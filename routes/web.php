@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\ReleaseController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportBatchController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
