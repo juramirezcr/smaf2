@@ -24,6 +24,9 @@ npm run dev
 
 Consulte [DEPLOYMENT.md](DEPLOYMENT.md). Las credenciales, tokens, volcados SQL y configuraciones de producción no se versionan.
 
+La importación limitada del catálogo/configuración de prefijos heredado se documenta en la sección
+[Migración limitada de prefijos](DEPLOYMENT.md#migración-limitada-de-prefijos) de la guía de despliegue.
+
 ## Releases
 
 Las versiones se publican mediante etiquetas `vX.Y.Z`. El flujo de CI valida PHP y React antes de aceptar cambios.

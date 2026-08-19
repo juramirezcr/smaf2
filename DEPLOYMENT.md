@@ -39,3 +39,60 @@ Después de modificar `.env`, ejecute `docker compose exec app php artisan confi
 ## Operación
 
 Los servicios `queue` y `scheduler` procesan archivos y tareas sin bloquear la interfaz. Consulte su estado con `docker compose ps` y los eventos con `docker compose logs -f queue`.
+
+## Migración limitada de prefijos
+
+`smaf:import-legacy-prefixes` lee un volcado MySQL **en streaming** y sólo interpreta los
+`INSERT` de las tablas heredadas `prefijos` y `destinos_conf`. No ejecuta el SQL, no se conecta
+a la base de datos anterior y no importa llamadas, usuarios, credenciales ni secretos. El comando
+no muestra valores del volcado.
+
+Requisitos:
+
+- SMAF 2 debe estar desplegado y migrado (`docker compose ps` debe mostrar `app` y `db` sanos).
+- Debe conocer el ID del usuario destino de SMAF 2 y el `usuario_id` del sistema heredado.
+- Se necesita espacio disponible para el volcado dentro del volumen `app-storage`; el archivo de
+  2.1 GB no se carga completo en memoria.
+- Transfiera el volcado a la VM **sólo** si va a ejecutar esta importación. No lo añada al repositorio,
+  a una imagen Docker, ni a copias de seguridad de código.
+
+En la VM, desde el directorio de `smaf-v2`, copie el archivo al contenedor. Reemplace
+`/ruta/segura/rhitcr_smaf.sql` por la ruta local temporal que recibió mediante una transferencia
+segura:
+
+```bash
+docker compose exec app mkdir -p /var/www/html/storage/app/legacy-import
+docker compose cp /ruta/segura/rhitcr_smaf.sql app:/var/www/html/storage/app/legacy-import/rhitcr_smaf.sql
+```
+
+Primero ejecute la simulación (no escribe nada). `--user` es el usuario actual de SMAF 2;
+`--legacy-user` limita las filas de configuración al usuario heredado indicado. Si se omite
+`--legacy-user`, se usa el mismo número de `--user`.
+
+```bash
+docker compose exec app php artisan smaf:import-legacy-prefixes \
+  /var/www/html/storage/app/legacy-import/rhitcr_smaf.sql \
+  --user=42 --legacy-user=7
+```
+
+Revise únicamente el resumen de conteos. Para persistir exactamente la misma importación, repita
+el comando con `--apply`:
+
+```bash
+docker compose exec app php artisan smaf:import-legacy-prefixes \
+  /var/www/html/storage/app/legacy-import/rhitcr_smaf.sql \
+  --user=42 --legacy-user=7 --apply
+```
+
+Las reglas se identifican por usuario destino, alcance `prefix` y prefijo, por lo que repetir
+`--apply` no crea duplicados. Las filas de `destinos_conf` tienen prioridad sobre los valores de
+catálogo de `prefijos`. Las acciones heredadas `N`, `B`, `I` se convierten respectivamente en
+`notify`, `block`, `ignore`; sólo el estado heredado activo (`A`) queda habilitado. Prefijos o
+límites inválidos se omiten de forma conservadora. Cuando se usa `--apply`, las escrituras se
+confirman como una sola transacción o se revierten por completo.
+
+Después de comprobar el resultado, elimine el archivo de la VM y del volumen del contenedor:
+
+```bash
+docker compose exec app rm -f /var/www/html/storage/app/legacy-import/rhitcr_smaf.sql
+```
