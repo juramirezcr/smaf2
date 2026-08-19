@@ -1,0 +1,90 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\CallRecord;
+use App\Models\ImportBatch;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
+
+class CallRecordImporter
+{
+    public function import(ImportBatch $batch): array
+    {
+        $stream = Storage::readStream($batch->storage_path);
+
+        if ($stream === false) {
+            throw new RuntimeException('No se pudo abrir el archivo de importación.');
+        }
+
+        $total = 0;
+        $processed = 0;
+        $rejected = 0;
+
+        try {
+            while (($row = fgetcsv($stream)) !== false) {
+                $total++;
+
+                if (count($row) < 9) {
+                    $rejected++;
+
+                    continue;
+                }
+
+                [$externalId, $account, $origin, $destination, $connectedAt, $duration, $userId, $customer] = $row;
+
+                if ((int) $userId !== $batch->user_id || ! ctype_digit(trim($externalId)) || trim($destination) === '') {
+                    $rejected++;
+
+                    continue;
+                }
+
+                try {
+                    $timestamp = Carbon::createFromFormat('Y-m-d H:i:s', trim($connectedAt), config('app.timezone'));
+                } catch (\Throwable) {
+                    $rejected++;
+
+                    continue;
+                }
+
+                CallRecord::updateOrCreate(
+                    ['user_id' => $batch->user_id, 'external_id' => trim($externalId)],
+                    [
+                        'import_batch_id' => $batch->id,
+                        'account' => trim($account),
+                        'customer' => trim($customer) ?: null,
+                        'origin' => trim($origin) ?: null,
+                        'destination' => trim($destination),
+                        'prefix' => $this->prefixFor(trim($destination)),
+                        'duration_seconds' => max(0, (int) $duration),
+                        'connected_at' => $timestamp,
+                    ],
+                );
+
+                $processed++;
+            }
+        } finally {
+            fclose($stream);
+        }
+
+        return compact('total', 'processed', 'rejected');
+    }
+
+    private function prefixFor(string $destination): ?string
+    {
+        $normalized = preg_replace('/\D/', '', $destination);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (str_starts_with($normalized, '011')) {
+            $normalized = substr($normalized, 3);
+        }
+
+        return str_starts_with($normalized, '1')
+            ? substr($normalized, 0, 4)
+            : substr($normalized, 0, 3);
+    }
+}

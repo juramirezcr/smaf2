@@ -1,0 +1,34 @@
+FROM composer:2 AS dependencies
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-scripts --prefer-dist --optimize-autoloader
+
+FROM node:24-alpine AS assets
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY resources ./resources
+COPY public ./public
+COPY tsconfig.json vite.config.js ./
+RUN npm run build
+
+FROM php:8.3-fpm-alpine
+
+WORKDIR /var/www/html
+
+RUN docker-php-ext-install pdo_mysql opcache
+
+COPY . .
+COPY --from=dependencies /app/vendor ./vendor
+COPY --from=assets /app/public/build ./public/build
+
+RUN chown -R www-data:www-data storage bootstrap/cache
+
+USER www-data
+
+CMD ["php-fpm"]
