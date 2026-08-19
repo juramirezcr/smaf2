@@ -16,10 +16,12 @@ class ReleaseController extends Controller
         abort_unless($request->user()->email === config('smaf.admin_email'), 403);
 
         $latest = null;
+        $history = [];
         $error = null;
 
         try {
-            $latest = $releases->latest();
+            $history = $releases->releases();
+            $latest = $history[0] ?? null;
         } catch (RuntimeException $exception) {
             $error = $exception->getMessage();
         }
@@ -28,6 +30,7 @@ class ReleaseController extends Controller
             'currentVersion' => config('smaf.version'),
             'repository' => config('smaf.github_repository'),
             'latest' => $latest,
+            'history' => $history,
             'error' => $error,
         ]);
     }

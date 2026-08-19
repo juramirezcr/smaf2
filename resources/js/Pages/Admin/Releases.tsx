@@ -6,16 +6,18 @@ interface Release {
     name: string;
     publishedAt: string;
     url: string;
+    notes: string | null;
 }
 
 interface ReleasesProps {
     currentVersion: string;
     repository: string;
     latest: Release | null;
+    history: Release[];
     error: string | null;
 }
 
-export default function Releases({ currentVersion, repository, latest, error }: ReleasesProps) {
+export default function Releases({ currentVersion, repository, latest, history, error }: ReleasesProps) {
     const updateAvailable = latest !== null && latest.tag.replace(/^v/, '') !== currentVersion;
 
     return (
@@ -35,6 +37,26 @@ export default function Releases({ currentVersion, repository, latest, error }: 
                             </div>
                         )}
                     </div>
+                    {!error && (
+                        <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">
+                            <h3 className="text-lg font-semibold text-gray-800">Historial de cambios</h3>
+                            {history.length === 0 ? (
+                                <p className="mt-4 text-gray-600">Aún no hay versiones publicadas.</p>
+                            ) : (
+                                <ol className="mt-4 divide-y divide-gray-200">
+                                    {history.map((release) => (
+                                        <li key={release.tag} className="py-4 first:pt-0">
+                                            <div className="flex items-baseline justify-between gap-4">
+                                                <a className="font-semibold text-indigo-600 underline" href={release.url} target="_blank" rel="noreferrer">{release.tag} {release.name}</a>
+                                                <time className="shrink-0 text-sm text-gray-500">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium' }).format(new Date(release.publishedAt))}</time>
+                                            </div>
+                                            {release.notes && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{release.notes}</p>}
+                                        </li>
+                                    ))}
+                                </ol>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>

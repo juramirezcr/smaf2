@@ -11,6 +11,11 @@ class GitHubReleaseService
 {
     public function latest(): array
     {
+        return $this->releases()[0] ?? throw new RuntimeException('No hay una release publicada todavía.');
+    }
+
+    public function releases(): array
+    {
         $repository = config('smaf.github_repository');
         $token = config('services.github.token');
 
@@ -22,13 +27,11 @@ class GitHubReleaseService
             $response = Http::acceptJson()
                 ->withToken($token)
                 ->timeout(10)
-                ->get("https://api.github.com/repos/{$repository}/releases/latest");
+                ->get("https://api.github.com/repos/{$repository}/releases", [
+                    'per_page' => 20,
+                ]);
         } catch (ConnectionException $exception) {
             throw new RuntimeException('No fue posible conectar con GitHub.', previous: $exception);
-        }
-
-        if ($response->status() === 404) {
-            throw new RuntimeException('No hay una release publicada todavía.');
         }
 
         try {
@@ -37,11 +40,16 @@ class GitHubReleaseService
             throw new RuntimeException('GitHub rechazó la consulta de releases.', previous: $exception);
         }
 
-        return [
-            'tag' => $response->json('tag_name'),
-            'name' => $response->json('name'),
-            'publishedAt' => $response->json('published_at'),
-            'url' => $response->json('html_url'),
-        ];
+        return collect($response->json())
+            ->reject(fn (array $release): bool => $release['draft'] || $release['prerelease'])
+            ->map(fn (array $release): array => [
+                'tag' => $release['tag_name'],
+                'name' => $release['name'],
+                'publishedAt' => $release['published_at'],
+                'url' => $release['html_url'],
+                'notes' => $release['body'],
+            ])
+            ->values()
+            ->all();
     }
 }
