@@ -17,7 +17,7 @@ COPY public ./public
 COPY tsconfig.json vite.config.js ./
 RUN npm run build
 
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm-alpine AS application
 
 WORKDIR /var/www/html
 
@@ -27,8 +27,14 @@ COPY . .
 COPY --from=dependencies /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
 
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN ln -s ../storage/app/public public/storage \
+    && chown -R www-data:www-data storage bootstrap/cache
 
 USER www-data
 
 CMD ["php-fpm"]
+
+FROM nginx:1.27-alpine AS nginx
+
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=application /var/www/html/public /var/www/html/public
