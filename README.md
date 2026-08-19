@@ -27,3 +27,13 @@ Consulte [DEPLOYMENT.md](DEPLOYMENT.md). Las credenciales, tokens, volcados SQL 
 ## Releases
 
 Las versiones se publican mediante etiquetas `vX.Y.Z`. El flujo de CI valida PHP y React antes de aceptar cambios.
+
+Para habilitar la consulta de releases privadas en la interfaz administrativa, configure en producción:
+
+```dotenv
+SMAF_ADMIN_EMAIL=correo-del-administrador
+GITHUB_REPOSITORY=juramirezcr/smaf2
+GITHUB_TOKEN=token-de-github-con-permiso-Contents:Read
+```
+
+El token no se expone a React, no se almacena en la base de datos y no debe añadirse a Git.
