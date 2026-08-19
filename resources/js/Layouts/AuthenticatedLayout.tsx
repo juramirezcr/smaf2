@@ -34,6 +34,12 @@ export default function Authenticated({
                                     Dashboard
                                 </NavLink>
                                 <NavLink
+                                    href={route('prefixes.index')}
+                                    active={route().current('prefixes.*')}
+                                >
+                                    Prefijos
+                                </NavLink>
+                                <NavLink
                                     href={route('admin.releases')}
                                     active={route().current('admin.releases')}
                                 >
@@ -142,6 +148,12 @@ export default function Authenticated({
                             active={route().current('dashboard')}
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('prefixes.index')}
+                            active={route().current('prefixes.*')}
+                        >
+                            Prefijos
                         </ResponsiveNavLink>
                     </div>
 
