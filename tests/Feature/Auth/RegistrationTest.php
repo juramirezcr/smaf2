@@ -31,7 +31,9 @@ class RegistrationTest extends TestCase
             'portaone_username' => 'portaone-user',
             'portaone_token' => 'portaone-token',
             'name' => 'Test User',
+            'username' => 'test-user',
             'email' => 'test@example.com',
+            'username' => 'test-user',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);

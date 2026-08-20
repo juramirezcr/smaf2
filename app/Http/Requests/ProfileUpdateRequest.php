@@ -24,7 +24,9 @@ class ProfileUpdateRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                Rule::unique(User::class)
+                    ->where('client_id', $this->user()->client_id)
+                    ->ignore($this->user()->id),
             ],
         ];
     }

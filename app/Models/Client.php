@@ -12,6 +12,7 @@ class Client extends Model
 
     protected $fillable = [
         'name',
+        'legacy_user_id',
         'portaone_environment',
         'portaone_username',
         'portaone_token',

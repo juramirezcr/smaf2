@@ -53,11 +53,12 @@ return new class extends Migration
                 }
             }
 
-            Schema::table('call_records', function (Blueprint $table) {
-                $table->dropUnique(['user_id', 'external_id']);
-                $table->unique(['client_id', 'external_id']);
-            });
         }
+
+        Schema::table('call_records', function (Blueprint $table) {
+            $table->dropUnique(['user_id', 'external_id']);
+            $table->unique(['client_id', 'external_id']);
+        });
     }
 
     public function down(): void

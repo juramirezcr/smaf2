@@ -39,19 +39,36 @@ export default function Authenticated({
                                 >
                                     Prefijos
                                 </NavLink>
-                                <NavLink
-                                    href={route('admin.releases')}
-                                    active={route().current('admin.releases')}
-                                >
-                                    Actualizaciones
-                                </NavLink>
-                                {user.role === 'client_admin' && (
-                                    <NavLink
-                                        href={route('users.index')}
-                                        active={route().current('users.*')}
-                                    >
-                                        Usuarios
-                                    </NavLink>
+                                {(user.isSystemAdmin || user.role === 'client_admin') && (
+                                    <Dropdown>
+                                        <Dropdown.Trigger>
+                                            <button
+                                                type="button"
+                                                className={`inline-flex h-16 items-center border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none ${
+                                                    route().current('admin.releases') || route().current('users.*')
+                                                        ? 'border-indigo-400 text-gray-900 focus:border-indigo-700'
+                                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 focus:border-gray-300 focus:text-gray-700'
+                                                }`}
+                                            >
+                                                Configuración
+                                                <svg className="ms-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-3.999 4a1 1 0 01-1.415 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </Dropdown.Trigger>
+                                        <Dropdown.Content align="left">
+                                            {user.isSystemAdmin && (
+                                                <Dropdown.Link href={route('admin.releases')}>
+                                                    Actualizaciones
+                                                </Dropdown.Link>
+                                            )}
+                                            {user.role === 'client_admin' && (
+                                                <Dropdown.Link href={route('users.index')}>
+                                                    Usuarios
+                                                </Dropdown.Link>
+                                            )}
+                                        </Dropdown.Content>
+                                    </Dropdown>
                                 )}
                             </div>
                         </div>
@@ -163,6 +180,19 @@ export default function Authenticated({
                         >
                             Prefijos
                         </ResponsiveNavLink>
+                        {(user.isSystemAdmin || user.role === 'client_admin') && (
+                            <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                Configuración
+                            </div>
+                        )}
+                        {user.isSystemAdmin && (
+                            <ResponsiveNavLink
+                                href={route('admin.releases')}
+                                active={route().current('admin.releases')}
+                            >
+                                Actualizaciones
+                            </ResponsiveNavLink>
+                        )}
                         {user.role === 'client_admin' && (
                             <ResponsiveNavLink
                                 href={route('users.index')}
