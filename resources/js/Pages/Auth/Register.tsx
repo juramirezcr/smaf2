@@ -13,6 +13,7 @@ export default function Register() {
         portaone_username: '',
         portaone_token: '',
         name: '',
+        username: '',
         email: '',
         password: '',
         password_confirmation: '',
@@ -68,6 +69,12 @@ export default function Register() {
                     />
 
                     <InputError message={errors.name} className="mt-2" />
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="username" value="Usuario" />
+                    <TextInput id="username" value={data.username} className="mt-1 block w-full" autoComplete="username" onChange={(e) => setData('username', e.target.value)} required />
+                    <InputError message={errors.username} className="mt-2" />
                 </div>
 
                 <div className="mt-4">

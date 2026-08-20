@@ -8,14 +8,14 @@ import { FormEventHandler } from 'react';
 
 export default function ResetPassword({
     token,
-    email,
+    username,
 }: {
     token: string;
-    email: string;
+    username: string;
 }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         token: token,
-        email: email,
+        username: username,
         password: '',
         password_confirmation: '',
     });
@@ -34,19 +34,18 @@ export default function ResetPassword({
 
             <form onSubmit={submit}>
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                    <InputLabel htmlFor="username" value="Usuario" />
 
                     <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
+                        id="username"
+                        name="username"
+                        value={data.username}
                         className="mt-1 block w-full"
                         autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData('username', e.target.value)}
                     />
 
-                    <InputError message={errors.email} className="mt-2" />
+                    <InputError message={errors.username} className="mt-2" />
                 </div>
 
                 <div className="mt-4">

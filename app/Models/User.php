@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['client_id', 'name', 'email', 'password', 'role'])]
+#[Fillable(['client_id', 'legacy_sub_user_id', 'name', 'username', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -45,5 +45,10 @@ class User extends Authenticatable
     public function isClientAdmin(): bool
     {
         return $this->role === 'client_admin';
+    }
+
+    public function getEmailForPasswordReset(): string
+    {
+        return $this->username;
     }
 }

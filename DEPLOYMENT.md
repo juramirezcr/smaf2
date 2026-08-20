@@ -110,3 +110,28 @@ Después de comprobar el resultado, elimine el archivo de la VM y del volumen de
 ```bash
 docker compose exec app rm -f /var/www/html/storage/app/legacy-import/rhitcr_smaf.sql
 ```
+
+## Migración de clientes y subusuarios
+
+`smaf:import-legacy-clients` importa cada fila de `usuarios` como un cliente y cada fila de
+`sub_usuarios` como una cuenta de ese cliente. La partición, el usuario API y la clave API quedan
+asociados al cliente; las claves API se cifran al guardarse y las contraseñas de subusuarios se
+convierten a hashes. El comando no imprime secretos.
+
+Los usuarios importados inician sesión con su campo legado `usuario` y contraseña. Se permiten
+correos repetidos en clientes distintos. Los nombres de usuario deben ser únicos en SMAF 2; ante un
+conflicto, la importación se detiene y revierte completamente.
+
+Copie el volcado de forma temporal como en la sección anterior y ejecútelo primero sin `--apply`:
+
+```bash
+docker compose exec app php artisan smaf:import-legacy-clients \
+  /var/www/html/storage/app/legacy-import/rhitcr_smaf.sql
+```
+
+Después de revisar el resumen de conteos, aplique la importación:
+
+```bash
+docker compose exec app php artisan smaf:import-legacy-clients \
+  /var/www/html/storage/app/legacy-import/rhitcr_smaf.sql --apply
+```

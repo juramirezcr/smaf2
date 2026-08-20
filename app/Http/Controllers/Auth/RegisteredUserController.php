@@ -39,7 +39,8 @@ class RegisteredUserController extends Controller
             'portaone_username' => 'required|string|max:255',
             'portaone_token' => 'required|string|max:4096',
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'username' => 'required|string|max:255|unique:'.User::class,
+            'email' => 'required|string|lowercase|email|max:255',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -54,6 +55,7 @@ class RegisteredUserController extends Controller
             return User::create([
                 'client_id' => $client->id,
                 'name' => $validated['name'],
+                'username' => $validated['username'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'role' => 'client_admin',

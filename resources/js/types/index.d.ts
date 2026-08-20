@@ -1,9 +1,11 @@
 export interface User {
     id: number;
     name: string;
+    username: string;
     email: string;
     client_id: number;
     role: 'client_admin' | 'client_user';
+    isSystemAdmin: boolean;
     email_verified_at?: string;
 }
 

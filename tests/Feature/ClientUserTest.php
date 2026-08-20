@@ -25,6 +25,7 @@ class ClientUserTest extends TestCase
 
         $this->actingAs($admin)->post(route('users.store'), [
             'name' => 'Client User',
+            'username' => 'client-user',
             'email' => 'member@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -43,5 +44,41 @@ class ClientUserTest extends TestCase
         $user = User::factory()->create(['role' => 'client_user']);
 
         $this->actingAs($user)->get(route('users.index'))->assertForbidden();
+    }
+
+    public function test_client_admin_can_edit_a_user_in_its_client(): void
+    {
+        $client = Client::factory()->create();
+        $admin = User::factory()->for($client)->create(['role' => 'client_admin']);
+        $user = User::factory()->for($client)->create(['role' => 'client_user']);
+
+        $this->actingAs($admin)->patch(route('users.update', $user), [
+            'name' => 'Updated User',
+            'username' => 'updated-user',
+            'email' => 'updated@example.com',
+            'password' => '',
+            'password_confirmation' => '',
+            'role' => 'client_admin',
+        ])->assertRedirect(route('users.index'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Updated User',
+            'email' => 'updated@example.com',
+            'role' => 'client_admin',
+        ]);
+    }
+
+    public function test_client_admin_cannot_edit_a_user_from_another_client(): void
+    {
+        $admin = User::factory()->create(['role' => 'client_admin']);
+        $otherClientUser = User::factory()->create(['role' => 'client_user']);
+
+        $this->actingAs($admin)->patch(route('users.update', $otherClientUser), [
+            'name' => 'Not Updated',
+            'username' => 'not-updated-user',
+            'email' => 'not-updated@example.com',
+            'role' => 'client_user',
+        ])->assertNotFound();
     }
 }

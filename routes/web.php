@@ -21,6 +21,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('prefixes', PrefixRuleController::class)->except('destroy');
     Route::get('/users', [ClientUserController::class, 'index'])->name('users.index');
     Route::post('/users', [ClientUserController::class, 'store'])->name('users.store');
+    Route::patch('/users/{user}', [ClientUserController::class, 'update'])->name('users.update');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

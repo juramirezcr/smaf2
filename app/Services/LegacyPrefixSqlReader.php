@@ -22,6 +22,17 @@ class LegacyPrefixSqlReader
             'segundos', 'llamadas_cuenta', 'segundos_cuenta', 'llamadas_actual',
             'segundos_actual', 't1', 't2', 't3', 't4', 'estado', 'accion',
         ],
+        'usuarios' => [
+            'id', 'particion', 'api_usuario', 'api_clave', 'usuario', 'password', 'nombre',
+            'email', 'correo_cc', 'telefono1', 'telefono2', 'cliente', 'titulo',
+            'notificacion', 'alerta_titulo', 'alerta', 'acceso', 'activar_sms',
+            'limite_prefijos',
+        ],
+        'sub_usuarios' => [
+            'id', 'usuario_id', 'nombre', 'email', 'usuario', 'password', 'notificar',
+            'telegram', 'telegram_chat_id', 'telegram_token', 'telefono1', 'telefono2',
+            'acceso',
+        ],
     ];
 
     /**
