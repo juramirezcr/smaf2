@@ -49,8 +49,10 @@ class CallRecordImporter
                 }
 
                 CallRecord::updateOrCreate(
-                    ['user_id' => $batch->user_id, 'external_id' => trim($externalId)],
+                    ['client_id' => $batch->client_id, 'external_id' => trim($externalId)],
                     [
+                        'user_id' => $batch->user_id,
+                        'client_id' => $batch->client_id,
                         'import_batch_id' => $batch->id,
                         'account' => trim($account),
                         'customer' => trim($customer) ?: null,

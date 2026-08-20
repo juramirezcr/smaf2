@@ -13,25 +13,25 @@ class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
-        $userId = auth()->id();
+        $clientId = auth()->user()->client_id;
 
         return Inertia::render('Dashboard', [
             'metrics' => [
                 'callsToday' => CallRecord::query()
-                    ->where('user_id', $userId)
+                    ->where('client_id', $clientId)
                     ->whereDate('connected_at', today())
                     ->count(),
                 'activeRules' => MonitoringRule::query()
-                    ->where('user_id', $userId)
+                    ->where('client_id', $clientId)
                     ->where('enabled', true)
                     ->count(),
                 'processingBatches' => ImportBatch::query()
-                    ->where('user_id', $userId)
+                    ->where('client_id', $clientId)
                     ->whereIn('status', ['queued', 'processing'])
                     ->count(),
             ],
             'recentRuns' => ProcessRun::query()
-                ->where('user_id', $userId)
+                ->where('client_id', $clientId)
                 ->latest()
                 ->limit(8)
                 ->get(['id', 'type', 'status', 'message', 'started_at', 'finished_at']),

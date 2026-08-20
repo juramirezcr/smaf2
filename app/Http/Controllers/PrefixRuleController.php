@@ -16,7 +16,7 @@ class PrefixRuleController extends Controller
     {
         return Inertia::render('Prefixes/Index', [
             'rules' => MonitoringRule::query()
-                ->where('user_id', $request->user()->id)
+                ->where('client_id', $request->user()->client_id)
                 ->where('scope', 'prefix')
                 ->latest()
                 ->paginate(10)
@@ -32,9 +32,11 @@ class PrefixRuleController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $rule = $request->user()->monitoringRules()->create([
+        $rule = MonitoringRule::create([
             ...$this->validatedRule($request),
             'scope' => 'prefix',
+            'user_id' => $request->user()->id,
+            'client_id' => $request->user()->client_id,
         ]);
 
         return to_route('prefixes.show', $rule)
@@ -137,7 +139,7 @@ class PrefixRuleController extends Controller
     private function ownedPrefix(Request $request, MonitoringRule $prefix): MonitoringRule
     {
         abort_unless(
-            $prefix->user_id === $request->user()->id && $prefix->scope === 'prefix',
+            $prefix->client_id === $request->user()->client_id && $prefix->scope === 'prefix',
             404,
         );
 
@@ -147,7 +149,7 @@ class PrefixRuleController extends Controller
     private function matchingCalls(MonitoringRule $rule, string $period): Builder
     {
         return CallRecord::query()
-            ->where('user_id', $rule->user_id)
+            ->where('client_id', $rule->client_id)
             ->where('connected_at', '>=', now()->subHours($this->periodHours()[$period]))
             ->where(function (Builder $query) use ($rule) {
                 $query->where('prefix', $rule->match_value)

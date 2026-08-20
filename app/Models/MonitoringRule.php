@@ -10,6 +10,7 @@ class MonitoringRule extends Model
 {
     protected $fillable = [
         'user_id',
+        'client_id',
         'scope',
         'match_value',
         'account',
@@ -45,6 +46,7 @@ class MonitoringRule extends Model
     {
         return $this->auditEvents()->create([
             'user_id' => $this->user_id,
+            'client_id' => $this->client_id,
             'action' => $this->action,
             'status' => $status,
             'context' => $context ?: null,

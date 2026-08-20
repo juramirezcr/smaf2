@@ -40,6 +40,20 @@ Después de modificar `.env`, ejecute `docker compose exec app php artisan confi
 
 Los servicios `queue` y `scheduler` procesan archivos y tareas sin bloquear la interfaz. Consulte su estado con `docker compose ps` y los eventos con `docker compose logs -f queue`.
 
+### Actualización manual desde GitHub Actions
+
+El administrador puede abrir **Actualizaciones** y seleccionar **Actualizar desde GitHub Actions**. Antes de usarlo, configure en el repositorio los siguientes secretos de Actions:
+
+| Secreto | Valor |
+| --- | --- |
+| `SSH_HOST` | Dirección o nombre DNS de la VM |
+| `SSH_USER` | Usuario de la VM que pertenece al grupo `docker` |
+| `SSH_PRIVATE_KEY` | Clave privada ED25519 exclusiva para el despliegue |
+| `SSH_KNOWN_HOSTS` | Salida de `ssh-keyscan -H <host>` revisada desde un canal confiable |
+| `SMAF_DEPLOY_PATH` | Ruta absoluta del clon, por ejemplo `/home/smaf/smaf-v2` |
+
+Agregue la clave pública correspondiente a `~/.ssh/authorized_keys` del usuario de despliegue en la VM. El workflow descarga la revisión elegida, reconstruye los contenedores y ejecuta las migraciones con `--force`; no modifica `.env` ni los volúmenes de MySQL, Redis o almacenamiento.
+
 ## Migración limitada de prefijos
 
 `smaf:import-legacy-prefixes` lee un volcado MySQL **en streaming** y sólo interpreta los

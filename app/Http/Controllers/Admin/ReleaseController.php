@@ -29,6 +29,7 @@ class ReleaseController extends Controller
         return Inertia::render('Admin/Releases', [
             'currentVersion' => config('smaf.version'),
             'repository' => config('smaf.github_repository'),
+            'deploymentUrl' => 'https://github.com/'.config('smaf.github_repository').'/actions/workflows/deploy.yml',
             'latest' => $latest,
             'history' => $history,
             'error' => $error,

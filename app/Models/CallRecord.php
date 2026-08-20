@@ -9,6 +9,7 @@ class CallRecord extends Model
 {
     protected $fillable = [
         'user_id',
+        'client_id',
         'import_batch_id',
         'external_id',
         'account',

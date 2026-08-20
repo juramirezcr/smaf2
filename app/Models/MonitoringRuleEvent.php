@@ -10,6 +10,7 @@ class MonitoringRuleEvent extends Model
     protected $fillable = [
         'monitoring_rule_id',
         'user_id',
+        'client_id',
         'action',
         'status',
         'context',

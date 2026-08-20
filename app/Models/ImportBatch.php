@@ -10,6 +10,7 @@ class ImportBatch extends Model
 {
     protected $fillable = [
         'user_id',
+        'client_id',
         'source',
         'original_filename',
         'storage_path',

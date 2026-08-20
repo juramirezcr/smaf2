@@ -45,6 +45,14 @@ export default function Authenticated({
                                 >
                                     Actualizaciones
                                 </NavLink>
+                                {user.role === 'client_admin' && (
+                                    <NavLink
+                                        href={route('users.index')}
+                                        active={route().current('users.*')}
+                                    >
+                                        Usuarios
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -155,6 +163,14 @@ export default function Authenticated({
                         >
                             Prefijos
                         </ResponsiveNavLink>
+                        {user.role === 'client_admin' && (
+                            <ResponsiveNavLink
+                                href={route('users.index')}
+                                active={route().current('users.*')}
+                            >
+                                Usuarios
+                            </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

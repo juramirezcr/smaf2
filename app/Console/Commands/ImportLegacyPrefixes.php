@@ -125,6 +125,7 @@ class ImportLegacyPrefixes extends Command
 
         $rule = MonitoringRule::query()->firstOrNew([
             'user_id' => $user->id,
+            'client_id' => $user->client_id,
             'scope' => 'prefix',
             'match_value' => $attributes['match_value'],
         ]);
