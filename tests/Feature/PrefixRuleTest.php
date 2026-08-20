@@ -59,6 +59,7 @@ class PrefixRuleTest extends TestCase
         $otherUser = User::factory()->create();
         $rule = MonitoringRule::create([
             'user_id' => $user->id,
+            'client_id' => $user->client_id,
             'scope' => 'prefix',
             'match_value' => '1202',
             'customer' => 'Cliente A',
@@ -73,6 +74,7 @@ class PrefixRuleTest extends TestCase
         foreach (range(1, 11) as $number) {
             CallRecord::create([
                 'user_id' => $user->id,
+                'client_id' => $user->client_id,
                 'import_batch_id' => $batch->id,
                 'external_id' => "matching-{$number}",
                 'account' => '40101234',
@@ -86,6 +88,7 @@ class PrefixRuleTest extends TestCase
 
         CallRecord::create([
             'user_id' => $user->id,
+            'client_id' => $user->client_id,
             'import_batch_id' => $batch->id,
             'external_id' => 'wrong-account',
             'account' => '99999999',
@@ -99,6 +102,7 @@ class PrefixRuleTest extends TestCase
         $otherBatch = $this->batchFor($otherUser);
         CallRecord::create([
             'user_id' => $otherUser->id,
+            'client_id' => $otherUser->client_id,
             'import_batch_id' => $otherBatch->id,
             'external_id' => 'other-user',
             'account' => '40101234',
@@ -126,6 +130,7 @@ class PrefixRuleTest extends TestCase
         $otherUser = User::factory()->create();
         $rule = MonitoringRule::create([
             'user_id' => $owner->id,
+            'client_id' => $owner->client_id,
             'scope' => 'prefix',
             'match_value' => '1202',
             'call_limit' => 20,
@@ -144,6 +149,7 @@ class PrefixRuleTest extends TestCase
         $user = User::factory()->create();
         $rule = MonitoringRule::create([
             'user_id' => $user->id,
+            'client_id' => $user->client_id,
             'scope' => 'prefix',
             'match_value' => '1202',
             'call_limit' => 20,
@@ -168,6 +174,7 @@ class PrefixRuleTest extends TestCase
     {
         return ImportBatch::create([
             'user_id' => $user->id,
+            'client_id' => $user->client_id,
             'source' => 'test',
             'original_filename' => 'calls.csv',
             'storage_path' => 'imports/calls-'.$user->id.'.csv',

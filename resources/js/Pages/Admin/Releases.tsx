@@ -12,12 +12,13 @@ interface Release {
 interface ReleasesProps {
     currentVersion: string;
     repository: string;
+    deploymentUrl: string;
     latest: Release | null;
     history: Release[];
     error: string | null;
 }
 
-export default function Releases({ currentVersion, repository, latest, history, error }: ReleasesProps) {
+export default function Releases({ currentVersion, repository, deploymentUrl, latest, history, error }: ReleasesProps) {
     const updateAvailable = latest !== null && latest.tag.replace(/^v/, '') !== currentVersion;
 
     return (
@@ -36,6 +37,13 @@ export default function Releases({ currentVersion, repository, latest, history, 
                                 <a className="mt-2 inline-block text-indigo-600 underline" href={latest.url} target="_blank" rel="noreferrer">Ver release en GitHub</a>
                             </div>
                         )}
+                        <div className="mt-6 border-t pt-6">
+                           <h3 className="font-semibold text-gray-900">Despliegue manual</h3>
+                           <p className="mt-1 text-sm text-gray-600">Inicia una actualización protegida desde GitHub Actions.</p>
+                           <a className="mt-3 inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500" href={deploymentUrl} target="_blank" rel="noreferrer">
+                               Actualizar desde GitHub Actions
+                           </a>
+                        </div>
                     </div>
                     {!error && (
                         <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">

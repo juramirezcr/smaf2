@@ -16,7 +16,7 @@ class ImportBatchController extends Controller
     {
         return Inertia::render('Imports/Index', [
             'batches' => ImportBatch::query()
-                ->where('user_id', auth()->id())
+                ->where('client_id', auth()->user()->client_id)
                 ->latest()
                 ->paginate(20)
                 ->through(fn (ImportBatch $batch) => [
@@ -45,6 +45,7 @@ class ImportBatchController extends Controller
 
         $batch = ImportBatch::create([
             'user_id' => $request->user()->id,
+            'client_id' => $request->user()->client_id,
             'source' => $validated['source'],
             'original_filename' => $file->getClientOriginalName(),
             'storage_path' => $path,

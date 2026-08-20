@@ -19,6 +19,7 @@ class ProcessImportBatch implements ShouldQueue
         $batch = ImportBatch::findOrFail($this->batchId);
         $run = ProcessRun::create([
             'user_id' => $batch->user_id,
+            'client_id' => $batch->client_id,
             'import_batch_id' => $batch->id,
             'type' => 'import',
             'status' => 'started',

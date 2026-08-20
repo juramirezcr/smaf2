@@ -9,6 +9,7 @@ class ProcessRun extends Model
 {
     protected $fillable = [
         'user_id',
+        'client_id',
         'import_batch_id',
         'type',
         'status',
