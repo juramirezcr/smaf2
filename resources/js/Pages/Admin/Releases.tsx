@@ -38,12 +38,22 @@ export default function Releases({ currentVersion, repository, latest, history, 
     const updateAvailable = latest !== null && latest.tag.replace(/^v/, '') !== currentVersion;
     const { post, processing, errors } = useForm({ tag: latest?.tag ?? '' });
     const [triggeredAt, setTriggeredAt] = useState<number | null>(null);
+    const [awaitingFreshRun, setAwaitingFreshRun] = useState(false);
 
     // GitHub tarda unos segundos en listar la ejecución recién disparada: mientras
     // no aparezca una ejecución más reciente que el momento del clic, seguimos
     // mostrando "en curso" en vez de reactivar el botón con el estado (obsoleto) anterior.
+    // Si el disparo falló (por ejemplo, el token sin permiso), nunca aparecerá una
+    // ejecución nueva, así que awaitingFreshRun se limpia en el propio onError.
     const runIsFresh = triggeredAt !== null && deployRun !== null && new Date(deployRun.createdAt).getTime() >= triggeredAt;
-    const deployRunning = processing || (triggeredAt !== null && !runIsFresh) || (runIsFresh && deployRun!.status !== 'completed');
+    const remoteRunning = deployRun !== null && deployRun.status !== 'completed';
+    const deployRunning = processing || awaitingFreshRun || remoteRunning;
+
+    useEffect(() => {
+        if (runIsFresh) {
+            setAwaitingFreshRun(false);
+        }
+    }, [runIsFresh]);
 
     useEffect(() => {
         if (!deployRunning) {
@@ -62,8 +72,16 @@ export default function Releases({ currentVersion, repository, latest, history, 
             return;
         }
 
-        setTriggeredAt(Date.now());
-        post(route('admin.releases.deploy'));
+        post(route('admin.releases.deploy'), {
+            onSuccess: () => {
+                setTriggeredAt(Date.now());
+                setAwaitingFreshRun(true);
+            },
+            onError: () => {
+                setTriggeredAt(null);
+                setAwaitingFreshRun(false);
+            },
+        });
     }
 
     function refreshStatus() {
