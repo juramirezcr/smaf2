@@ -88,6 +88,27 @@ class GitHubReleaseService
         ];
     }
 
+    /**
+     * Mensajes de commit entre dos referencias (tags o SHAs), del más
+     * antiguo al más reciente. Devuelve un arreglo vacío si GitHub no
+     * encuentra alguna de las dos referencias (por ejemplo, una versión
+     * que se desplegó sin llegar a etiquetarse como release).
+     */
+    public function commitMessagesBetween(string $base, string $head): array
+    {
+        try {
+            $response = $this->get("compare/{$base}...{$head}");
+        } catch (RuntimeException) {
+            return [];
+        }
+
+        return collect($response->json('commits'))
+            ->map(fn (array $commit): string => trim(strtok($commit['commit']['message'], "\n")))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     private function get(string $path, array $query = []): Response
     {
         $repository = config('smaf.github_repository');

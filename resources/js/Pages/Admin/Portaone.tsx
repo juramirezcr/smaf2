@@ -19,10 +19,11 @@ export default function Portaone({ baseUrl }: { baseUrl: string | null }) {
             <Head title="PortaOne" />
             <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
                 <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow">
-                    <h3 className="text-lg font-medium text-gray-900">Conexión con la API</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Conexión con la API v2</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                        URL base compartida por todos los clientes. El usuario, la clave API y la partición
-                        (entorno) de cada cliente se configuran en la pantalla de Clientes.
+                        Dirección raíz del servidor PortaOne (sin rutas adicionales), compartida por todos los
+                        clientes. El usuario API y la clave API de cada cliente se configuran en la pantalla de
+                        Clientes y se usan como usuario/contraseña al iniciar sesión contra esta URL.
                     </p>
                     <div className="mt-4">
                         <InputLabel htmlFor="base_url" value="URL de conexión" />
@@ -30,7 +31,7 @@ export default function Portaone({ baseUrl }: { baseUrl: string | null }) {
                             id="base_url"
                             value={data.base_url}
                             className="mt-1 block w-full"
-                            placeholder="https://biz.portaone.com/rest/"
+                            placeholder="https://clientes.rhitcr.com"
                             onChange={(event) => setData('base_url', event.target.value)}
                             required
                         />

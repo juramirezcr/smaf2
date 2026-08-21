@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Release {
     tag: string;
@@ -46,42 +46,6 @@ export default function Releases({ currentVersion, repository, latest, error, de
     const { post, processing, errors } = useForm({ tag: latest?.tag ?? '' });
     const [triggeredAt, setTriggeredAt] = useState<number | null>(null);
     const [awaitingFreshRun, setAwaitingFreshRun] = useState(false);
-
-    const noteForm = useForm({ version: currentVersion, notes: '' });
-    const editForm = useForm({ version: '', notes: '' });
-    const [editingId, setEditingId] = useState<number | null>(null);
-
-    function submitNote(event: FormEvent) {
-        event.preventDefault();
-        noteForm.post(route('admin.release-notes.store'), {
-            onSuccess: () => noteForm.reset('notes'),
-        });
-    }
-
-    function startEdit(note: ReleaseNoteItem) {
-        setEditingId(note.id);
-        editForm.setData({ version: note.version, notes: note.notes });
-        editForm.clearErrors();
-    }
-
-    function cancelEdit() {
-        setEditingId(null);
-    }
-
-    function submitEdit(event: FormEvent, id: number) {
-        event.preventDefault();
-        editForm.patch(route('admin.release-notes.update', id), {
-            onSuccess: () => setEditingId(null),
-        });
-    }
-
-    function deleteNote(id: number) {
-        if (!confirm('¿Eliminar esta nota de versión?')) {
-            return;
-        }
-
-        router.delete(route('admin.release-notes.destroy', id));
-    }
 
     // GitHub tarda unos segundos en listar la ejecución recién disparada: mientras
     // no aparezca una ejecución más reciente que el momento del clic, seguimos
@@ -188,83 +152,27 @@ export default function Releases({ currentVersion, repository, latest, error, de
                         )}
                     </div>
                     <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-800">Notas de versión</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">Historial de versiones</h3>
                         <p className="mt-1 text-sm text-gray-500">
-                            Documentación propia de cada versión, independiente de las notas automáticas de GitHub.
+                            Registro automático: cada vez que la versión instalada cambia, queda constancia aquí de
+                            cuándo pasó y qué commits se aplicaron. Nadie necesita escribir nada.
                         </p>
 
-                        <form onSubmit={submitNote} className="mt-4 rounded border p-4">
-                            <div className="flex flex-wrap items-end gap-3">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500">Versión</label>
-                                    <input
-                                        type="text"
-                                        value={noteForm.data.version}
-                                        onChange={(event) => noteForm.setData('version', event.target.value)}
-                                        className="mt-1 w-32 rounded border-gray-300 text-sm"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={noteForm.processing}
-                                    className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-                                >
-                                    Agregar nota
-                                </button>
-                            </div>
-                            <textarea
-                                value={noteForm.data.notes}
-                                onChange={(event) => noteForm.setData('notes', event.target.value)}
-                                placeholder="Qué cambió en esta versión..."
-                                rows={3}
-                                className="mt-3 w-full rounded border-gray-300 text-sm"
-                            />
-                            {noteForm.errors.version && <p className="mt-1 text-sm text-red-600">{noteForm.errors.version}</p>}
-                            {noteForm.errors.notes && <p className="mt-1 text-sm text-red-600">{noteForm.errors.notes}</p>}
-                        </form>
-
                         {releaseNotes.length === 0 ? (
-                            <p className="mt-4 text-gray-600">Aún no hay notas documentadas.</p>
+                            <p className="mt-4 text-gray-600">Aún no se ha detectado ningún cambio de versión.</p>
                         ) : (
                             <ol className="mt-4 divide-y divide-gray-200">
-                                {releaseNotes.map((note) =>
-                                    editingId === note.id ? (
-                                        <li key={note.id} className="py-4 first:pt-0">
-                                            <form onSubmit={(event) => submitEdit(event, note.id)}>
-                                                <input
-                                                    type="text"
-                                                    value={editForm.data.version}
-                                                    onChange={(event) => editForm.setData('version', event.target.value)}
-                                                    className="w-32 rounded border-gray-300 text-sm font-semibold"
-                                                />
-                                                <textarea
-                                                    value={editForm.data.notes}
-                                                    onChange={(event) => editForm.setData('notes', event.target.value)}
-                                                    rows={3}
-                                                    className="mt-2 w-full rounded border-gray-300 text-sm"
-                                                />
-                                                {editForm.errors.version && <p className="mt-1 text-sm text-red-600">{editForm.errors.version}</p>}
-                                                {editForm.errors.notes && <p className="mt-1 text-sm text-red-600">{editForm.errors.notes}</p>}
-                                                <div className="mt-2 flex gap-3 text-sm">
-                                                    <button type="submit" disabled={editForm.processing} className="text-indigo-600 underline disabled:opacity-50">Guardar</button>
-                                                    <button type="button" onClick={cancelEdit} className="text-gray-500 underline">Cancelar</button>
-                                                </div>
-                                            </form>
-                                        </li>
-                                    ) : (
-                                        <li key={note.id} className="py-4 first:pt-0">
-                                            <div className="flex items-baseline justify-between gap-4">
-                                                <p className="font-semibold">{note.version}</p>
-                                                <span className="flex shrink-0 items-center gap-3 text-sm">
-                                                    <time className="text-gray-500">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium' }).format(new Date(note.createdAt))}</time>
-                                                    <button onClick={() => startEdit(note)} className="text-indigo-600 underline">Editar</button>
-                                                    <button onClick={() => deleteNote(note.id)} className="text-red-600 underline">Eliminar</button>
-                                                </span>
-                                            </div>
-                                            <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{note.notes}</p>
-                                        </li>
-                                    ),
-                                )}
+                                {releaseNotes.map((note) => (
+                                    <li key={note.id} className="py-4 first:pt-0">
+                                        <div className="flex items-baseline justify-between gap-4">
+                                            <p className="font-semibold">{note.version}</p>
+                                            <time className="shrink-0 text-sm text-gray-500">
+                                                {new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(note.createdAt))}
+                                            </time>
+                                        </div>
+                                        <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{note.notes}</p>
+                                    </li>
+                                ))}
                             </ol>
                         )}
                     </div>

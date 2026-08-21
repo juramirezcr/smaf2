@@ -4,7 +4,6 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\PlatformUserController;
 use App\Http\Controllers\Admin\PortaoneSettingController;
 use App\Http\Controllers\Admin\ReleaseController;
-use App\Http\Controllers\Admin\ReleaseNoteController;
 use App\Http\Controllers\AccountReportController;
 use App\Http\Controllers\CallRecordController;
 use App\Http\Controllers\ClientUserController;
@@ -26,9 +25,6 @@ Route::middleware('auth')->group(function () {
     Route::middleware('system-admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/releases', [ReleaseController::class, 'index'])->name('releases');
         Route::post('/releases/deploy', [ReleaseController::class, 'deploy'])->name('releases.deploy');
-        Route::post('/release-notes', [ReleaseNoteController::class, 'store'])->name('release-notes.store');
-        Route::patch('/release-notes/{releaseNote}', [ReleaseNoteController::class, 'update'])->name('release-notes.update');
-        Route::delete('/release-notes/{releaseNote}', [ReleaseNoteController::class, 'destroy'])->name('release-notes.destroy');
         Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
         Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
         Route::patch('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');

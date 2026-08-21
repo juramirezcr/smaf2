@@ -35,6 +35,8 @@ class ReleaseController extends Controller
             $deployError = $exception->getMessage();
         }
 
+        $this->recordVersionChangeIfAny($releases);
+
         return Inertia::render('Admin/Releases', [
             'currentVersion' => config('smaf.version'),
             'repository' => config('smaf.github_repository'),
@@ -49,6 +51,33 @@ class ReleaseController extends Controller
                 'createdAt' => $note->created_at,
             ]),
         ]);
+    }
+
+    /**
+     * Si la versión instalada cambió desde el último registro, deja
+     * constancia automática con los commits reales de GitHub entre la
+     * versión anterior y la actual. No requiere que nadie escriba nada.
+     */
+    private function recordVersionChangeIfAny(GitHubReleaseService $releases): void
+    {
+        $currentVersion = config('smaf.version');
+        $lastRecorded = ReleaseNote::latest()->first();
+
+        if ($lastRecorded !== null && $lastRecorded->version === $currentVersion) {
+            return;
+        }
+
+        $notes = "Versión instalada actualizada a {$currentVersion}.";
+
+        if ($lastRecorded !== null) {
+            $commits = $releases->commitMessagesBetween('v'.$lastRecorded->version, 'v'.$currentVersion);
+
+            if ($commits !== []) {
+                $notes .= "\n\nCambios detectados:\n".implode("\n", array_map(fn (string $message): string => "- {$message}", $commits));
+            }
+        }
+
+        ReleaseNote::create(['version' => $currentVersion, 'notes' => $notes]);
     }
 
     public function deploy(Request $request, GitHubReleaseService $releases): RedirectResponse
