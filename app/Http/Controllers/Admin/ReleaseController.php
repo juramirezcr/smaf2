@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ReleaseNote;
 use App\Services\GitHubReleaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,10 +13,8 @@ use RuntimeException;
 
 class ReleaseController extends Controller
 {
-    public function index(Request $request, GitHubReleaseService $releases): Response
+    public function index(GitHubReleaseService $releases): Response
     {
-        $this->ensureAdmin($request);
-
         $latest = null;
         $history = [];
         $error = null;
@@ -40,17 +39,20 @@ class ReleaseController extends Controller
             'currentVersion' => config('smaf.version'),
             'repository' => config('smaf.github_repository'),
             'latest' => $latest,
-            'history' => $history,
             'error' => $error,
             'deployRun' => $deployRun,
             'deployError' => $deployError,
+            'releaseNotes' => ReleaseNote::latest()->get()->map(fn (ReleaseNote $note): array => [
+                'id' => $note->id,
+                'version' => $note->version,
+                'notes' => $note->notes,
+                'createdAt' => $note->created_at,
+            ]),
         ]);
     }
 
     public function deploy(Request $request, GitHubReleaseService $releases): RedirectResponse
     {
-        $this->ensureAdmin($request);
-
         $validated = $request->validate([
             'tag' => 'required|string',
         ]);
@@ -72,10 +74,5 @@ class ReleaseController extends Controller
         }
 
         return back();
-    }
-
-    private function ensureAdmin(Request $request): void
-    {
-        abort_unless($request->user()->email === config('smaf.admin_email'), 403);
     }
 }

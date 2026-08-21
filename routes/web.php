@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ReleaseController;
+use App\Http\Controllers\Admin\ReleaseNoteController;
 use App\Http\Controllers\ClientUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportBatchController;
@@ -15,8 +16,13 @@ Route::get('/dashboard', DashboardController::class)
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/admin/releases', [ReleaseController::class, 'index'])->name('admin.releases');
-    Route::post('/admin/releases/deploy', [ReleaseController::class, 'deploy'])->name('admin.releases.deploy');
+    Route::middleware('system-admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/releases', [ReleaseController::class, 'index'])->name('releases');
+        Route::post('/releases/deploy', [ReleaseController::class, 'deploy'])->name('releases.deploy');
+        Route::post('/release-notes', [ReleaseNoteController::class, 'store'])->name('release-notes.store');
+        Route::patch('/release-notes/{releaseNote}', [ReleaseNoteController::class, 'update'])->name('release-notes.update');
+        Route::delete('/release-notes/{releaseNote}', [ReleaseNoteController::class, 'destroy'])->name('release-notes.destroy');
+    });
     Route::get('/imports', [ImportBatchController::class, 'index'])->name('imports.index');
     Route::post('/imports', [ImportBatchController::class, 'store'])->name('imports.store');
     Route::resource('prefixes', PrefixRuleController::class)->except('destroy');
