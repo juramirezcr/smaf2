@@ -33,11 +33,13 @@ export default function Authenticated({
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
     const user = usePage().props.auth.user;
-    const [mobileOpen, setMobileOpen] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
     const canSeeConfig = user.isSystemAdmin || user.role === 'client_admin';
-    const configActive = route().current('admin.releases') || route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('users.*');
-    const [configOpen, setConfigOpen] = useState(configActive);
+    const configActive = Boolean(
+        route().current('admin.releases') || route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('users.*'),
+    );
+    const [configOpen, setConfigOpen] = useState<boolean>(configActive);
 
     const navItems: NavItem[] = [
         { name: 'Actual', href: route('dashboard'), active: route().current('dashboard'), icon: 'dashboard' },

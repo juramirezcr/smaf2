@@ -15,6 +15,7 @@ RUN npm ci
 COPY resources ./resources
 COPY public ./public
 COPY tsconfig.json vite.config.js tailwind.config.js postcss.config.js ./
+COPY --from=dependencies /app/vendor ./vendor
 RUN npm run build
 
 FROM php:8.3-fpm-alpine AS application
