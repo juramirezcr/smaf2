@@ -15,7 +15,8 @@ Route::get('/dashboard', DashboardController::class)
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/admin/releases', ReleaseController::class)->name('admin.releases');
+    Route::get('/admin/releases', [ReleaseController::class, 'index'])->name('admin.releases');
+    Route::post('/admin/releases/deploy', [ReleaseController::class, 'deploy'])->name('admin.releases.deploy');
     Route::get('/imports', [ImportBatchController::class, 'index'])->name('imports.index');
     Route::post('/imports', [ImportBatchController::class, 'store'])->name('imports.store');
     Route::resource('prefixes', PrefixRuleController::class)->except('destroy');

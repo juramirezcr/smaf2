@@ -31,12 +31,16 @@ La importación limitada del catálogo/configuración de prefijos heredado se do
 
 Las versiones se publican mediante etiquetas `vX.Y.Z`. El flujo de CI valida PHP y React antes de aceptar cambios.
 
-Para habilitar la consulta de releases privadas en la interfaz administrativa, configure en producción:
+Para habilitar la consulta de releases y el botón de actualización en la interfaz administrativa, configure en producción:
 
 ```dotenv
 SMAF_ADMIN_EMAIL=correo-del-administrador
 GITHUB_REPOSITORY=juramirezcr/smaf2
-GITHUB_TOKEN=token-de-github-con-permiso-Contents:Read
+GITHUB_TOKEN=token-de-github-con-permisos-Contents:Read-y-Actions:Read-and-write
 ```
 
-El token no se expone a React, no se almacena en la base de datos y no debe añadirse a Git.
+El botón "Actualizar" de `/admin/releases` dispara el workflow `deploy.yml` mediante la API de
+GitHub (no navega a GitHub) y muestra en la misma página el estado de la ejecución. El token
+necesita permiso de **Actions: Read and write** además de `Contents: Read` para poder iniciar el
+workflow y consultar su estado. El token no se expone a React, no se almacena en la base de datos
+y no debe añadirse a Git.

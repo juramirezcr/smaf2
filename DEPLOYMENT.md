@@ -40,9 +40,15 @@ Después de modificar `.env`, ejecute `docker compose exec app php artisan confi
 
 Los servicios `queue` y `scheduler` procesan archivos y tareas sin bloquear la interfaz. Consulte su estado con `docker compose ps` y los eventos con `docker compose logs -f queue`.
 
-### Actualización manual desde GitHub Actions
+### Actualización desde la interfaz administrativa
 
-El administrador puede abrir **Actualizaciones** y seleccionar **Actualizar desde GitHub Actions**. Antes de usarlo, configure en el repositorio los siguientes secretos de Actions:
+En **Actualizaciones**, el botón **Actualizar a `vX.Y.Z`** dispara directamente el workflow
+`deploy.yml` mediante la API de GitHub (ya no navega a GitHub) y la misma página muestra el
+estado de la ejecución (en cola, en progreso, éxito o fallo) con un enlace al log completo.
+Requiere que `GITHUB_TOKEN` tenga permiso de **Actions: Read and write** además de
+`Contents: Read` (ver [README.md](README.md#releases)).
+
+Antes de usarlo, configure en el repositorio los siguientes secretos de Actions:
 
 | Secreto | Valor |
 | --- | --- |
@@ -52,7 +58,23 @@ El administrador puede abrir **Actualizaciones** y seleccionar **Actualizar desd
 | `SSH_KNOWN_HOSTS` | Salida de `ssh-keyscan -H <host>` revisada desde un canal confiable |
 | `SMAF_DEPLOY_PATH` | Ruta absoluta del clon, por ejemplo `/home/smaf/smaf-v2` |
 
-Agregue la clave pública correspondiente a `~/.ssh/authorized_keys` del usuario de despliegue en la VM. El workflow descarga la revisión elegida, reconstruye los contenedores y ejecuta las migraciones con `--force`; no modifica `.env` ni los volúmenes de MySQL, Redis o almacenamiento.
+Agregue la clave pública correspondiente a `~/.ssh/authorized_keys` del usuario de despliegue en
+la VM. El workflow:
+
+1. Descarga la revisión elegida (`git fetch` + `git checkout --detach`) y reconstruye la imagen
+   con `docker compose build`, sin tocar los contenedores en ejecución.
+2. Valida las migraciones en modo de prueba (`php artisan migrate --pretend`, que no escribe en
+   la base de datos) antes de aplicar nada.
+3. Sólo si lo anterior tuvo éxito, cambia los contenedores (`docker compose up -d`) y aplica las
+   migraciones reales con `--force`.
+4. Si cualquier paso falla después del checkout, revierte automáticamente a la revisión anterior
+   y reconstruye/reinicia los contenedores con ese código conocido para dejar el sistema como
+   estaba. El job termina en fallo y el error queda visible en el log de Actions y en la página
+   de Actualizaciones.
+
+No modifica `.env` ni los volúmenes de MySQL, Redis o almacenamiento. Si el entorno `production`
+del repositorio tiene revisores obligatorios configurados en GitHub, el despliegue queda en pausa
+hasta su aprobación antes de tocar la VM.
 
 ## Migración limitada de prefijos
 

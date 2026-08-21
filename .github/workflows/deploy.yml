@@ -30,9 +30,28 @@ jobs:
           REVISION: ${{ github.sha }}
         run: |
           ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes "${SSH_USER}@${SSH_HOST}" \
-            "cd '${DEPLOY_PATH}' \
-            && git fetch --tags origin \
-            && git checkout --detach '${REVISION}' \
-            && docker compose build \
-            && docker compose up -d \
-            && docker compose exec -T app php artisan migrate --force"
+            bash -s -- "${DEPLOY_PATH}" "${REVISION}" <<'REMOTE'
+          set -euo pipefail
+          deploy_path="$1"
+          revision="$2"
+          cd "$deploy_path"
+          previous_sha="$(git rev-parse HEAD)"
+
+          rollback() {
+            echo "El despliegue falló; restaurando la revisión anterior (${previous_sha})." >&2
+            git checkout --detach "$previous_sha"
+            docker compose build
+            docker compose up -d
+          }
+          trap rollback ERR
+
+          git fetch --tags origin
+          git checkout --detach "$revision"
+          docker compose build
+          docker compose run --rm app php artisan migrate --pretend
+          docker compose up -d
+          docker compose exec -T app php artisan migrate --force
+
+          trap - ERR
+          echo "Despliegue completado: ${revision}"
+          REMOTE
