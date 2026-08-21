@@ -14,11 +14,10 @@ use Throwable;
 /**
  * Cliente SOAP para la interfaz clásica de administración de PortaOne
  * (WSDL en {base}/wsdl/{Servicio}AdminService.wsdl, documentada en
- * https://docs.portaone.com/API/mr105/AdminInterface/). Confirmado contra
- * el servidor real: login admite "token" en vez de "password" para cuentas
- * de servicio, y "i_env" para la partición. Las llamadas autenticadas
- * llevan un header SOAP "auth_info" (tipo AuthInfoStructure) con el
- * access_token devuelto por el login.
+ * https://docs.portaone.com/API/mr105/AdminInterface/). El patrón exacto
+ * (campos de login, header "auth_info" con session_id, verificación SSL
+ * desactivada) replica el código PHP ya probado en producción de la
+ * versión original de SMAF contra este mismo servidor.
  */
 class PortaOneClient
 {
@@ -30,7 +29,7 @@ class PortaOneClient
 
     /**
      * Inicia sesión con las credenciales del cliente, cuenta los customers y
-     * accounts visibles para ese token, y cierra la sesión. No persiste nada.
+     * accounts visibles para esa sesión, y cierra la sesión. No persiste nada.
      */
     public function testConnection(): array
     {
@@ -40,45 +39,45 @@ class PortaOneClient
             throw new RuntimeException('Configure la URL de conexión de PortaOne antes de probar.');
         }
 
-        $accessToken = $this->login($baseUrl);
+        $sessionId = $this->login($baseUrl);
 
         try {
             $params = ['limit' => 1, 'offset' => 0, 'get_total' => 1];
 
             return [
-                'customersCount' => $this->countList($baseUrl, 'CustomerAdminService', 'get_customer_list', 'customer_list', $params, $accessToken),
-                'accountsCount' => $this->countList($baseUrl, 'AccountAdminService', 'get_account_list', 'account_list', $params, $accessToken),
+                'customersCount' => $this->countList($baseUrl, 'CustomerAdminService', 'get_customer_list', 'customer_list', $params, $sessionId),
+                'accountsCount' => $this->countList($baseUrl, 'AccountAdminService', 'get_account_list', 'account_list', $params, $sessionId),
             ];
         } finally {
-            $this->logout($baseUrl, $accessToken);
+            $this->logout($baseUrl, $sessionId);
         }
     }
 
     private function login(string $baseUrl): string
     {
+        // La partición ("i_env") no se envía: para cuentas API atadas a un
+        // solo entorno, PortaOne rechaza la solicitud de login si se indica
+        // explícitamente ("Environment setting is forbidden"). El login y
+        // el token ya determinan el entorno correcto por sí mismos.
         $params = [
             'login' => $this->client->portaone_username,
             'token' => $this->client->portaone_token,
         ];
 
-        if (is_numeric($this->client->portaone_environment)) {
-            $params['i_env'] = (int) $this->client->portaone_environment;
-        }
-
         $result = $this->call($baseUrl, 'SessionAdminService', 'login', $params);
 
-        $accessToken = $result->access_token ?? null;
+        $sessionId = $result->session_id ?? null;
 
-        if (! is_string($accessToken) || $accessToken === '') {
-            throw new RuntimeException('PortaOne no devolvió un token de acceso válido. Verifique el usuario, la clave API y la partición del cliente.');
+        if (! is_string($sessionId) || $sessionId === '') {
+            throw new RuntimeException('PortaOne no devolvió una sesión válida. Verifique el usuario y la clave API del cliente.');
         }
 
-        return $accessToken;
+        return $sessionId;
     }
 
-    private function countList(string $baseUrl, string $service, string $method, string $listField, array $params, string $accessToken): int
+    private function countList(string $baseUrl, string $service, string $method, string $listField, array $params, string $sessionId): int
     {
-        $result = $this->call($baseUrl, $service, $method, $params, $accessToken);
+        $result = $this->call($baseUrl, $service, $method, $params, $sessionId);
 
         if (isset($result->total) && is_numeric($result->total)) {
             return (int) $result->total;
@@ -93,31 +92,29 @@ class PortaOneClient
         };
     }
 
-    private function logout(string $baseUrl, string $accessToken): void
+    private function logout(string $baseUrl, string $sessionId): void
     {
         try {
-            $this->call($baseUrl, 'SessionAdminService', 'logout', ['access_token' => $accessToken], $accessToken);
+            $this->call($baseUrl, 'SessionAdminService', 'logout', ['session_id' => $sessionId], $sessionId);
         } catch (RuntimeException) {
             // La prueba ya obtuvo su resultado; un fallo al cerrar sesión no es crítico.
         }
     }
 
-    private function call(string $baseUrl, string $service, string $method, array $params, ?string $accessToken = null): object
+    private function call(string $baseUrl, string $service, string $method, array $params, ?string $sessionId = null): object
     {
         try {
             $client = new SoapClient("{$baseUrl}/wsdl/{$service}.wsdl", [
                 'exceptions' => true,
                 'connection_timeout' => 10,
                 'cache_wsdl' => WSDL_CACHE_NONE,
+                'stream_context' => stream_context_create([
+                    'ssl' => ['verify_peer' => false, 'verify_peer_name' => false],
+                ]),
             ]);
 
-            if ($accessToken !== null) {
-                $authInfo = new SoapVar(
-                    ['access_token' => $accessToken],
-                    SOAP_ENC_OBJECT,
-                    'AuthInfoStructure',
-                    self::AUTH_NAMESPACE,
-                );
+            if ($sessionId !== null) {
+                $authInfo = new SoapVar(['session_id' => $sessionId], SOAP_ENC_OBJECT);
                 $client->__setSoapHeaders(new SoapHeader(self::AUTH_NAMESPACE, 'auth_info', $authInfo));
             }
 
