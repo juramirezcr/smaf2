@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\PortaoneAccount;
 use App\Models\PortaoneCustomer;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,10 @@ class PortaoneAccountController extends Controller
     public function index(Request $request): Response
     {
         $clientId = auth()->user()->client_id;
+
+        if ($clientId === null) {
+            return $this->clientPicker();
+        }
 
         $accountsCount = PortaoneAccount::query()
             ->selectRaw('count(*)')
@@ -56,6 +61,28 @@ class PortaoneAccountController extends Controller
             'customer' => $customer->only(['id', 'name', 'company_name', 'email', 'bill_status']),
             'accounts' => $accounts,
             'indexPath' => '/portaone-customers',
+        ]);
+    }
+
+    private function clientPicker(): Response
+    {
+        $customersCount = PortaoneCustomer::query()
+            ->selectRaw('count(*)')
+            ->whereColumn('client_id', 'clients.id')
+            ->active();
+
+        $accountsCount = PortaoneAccount::query()
+            ->selectRaw('count(*)')
+            ->whereColumn('client_id', 'clients.id')
+            ->active();
+
+        $clients = Client::query()
+            ->addSelect(['customers_count' => $customersCount, 'accounts_count' => $accountsCount])
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return Inertia::render('Accounts/CustomersClientPicker', [
+            'clients' => $clients,
         ]);
     }
 }
