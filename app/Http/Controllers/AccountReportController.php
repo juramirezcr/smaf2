@@ -13,6 +13,10 @@ class AccountReportController extends Controller
     {
         $clientId = auth()->user()->client_id;
 
+        if ($clientId === null) {
+            return $this->clientPicker();
+        }
+
         return Inertia::render('Accounts/Index', [
             'client' => Client::find($clientId)?->name,
             'accounts' => CallRecord::query()
@@ -23,6 +27,22 @@ class AccountReportController extends Controller
                 ->orderByDesc('calls')
                 ->paginate(25)
                 ->withQueryString(),
+        ]);
+    }
+
+    private function clientPicker(): Response
+    {
+        $callsCount = CallRecord::query()
+            ->selectRaw('count(*)')
+            ->whereColumn('client_id', 'clients.id');
+
+        $clients = Client::query()
+            ->addSelect(['calls_count' => $callsCount])
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return Inertia::render('Accounts/AccountsClientPicker', [
+            'clients' => $clients,
         ]);
     }
 }

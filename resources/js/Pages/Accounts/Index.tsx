@@ -1,6 +1,6 @@
 import Pagination from '@/Components/Pagination';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
 interface AccountRow {
     customer: string | null;
@@ -17,18 +17,24 @@ interface PaginationLink {
 
 interface AccountsProps {
     client: string | null;
+    backToClients?: boolean;
     accounts: {
         data: AccountRow[];
         links: PaginationLink[];
     };
 }
 
-export default function AccountsIndex({ client, accounts }: AccountsProps) {
+export default function AccountsIndex({ client, backToClients, accounts }: AccountsProps) {
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Cuentas</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Cuentas{client ? ` — ${client}` : ''}</h2>}>
             <Head title="Cuentas" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    {backToClients && (
+                        <Link href={route('admin.clients.index')} className="mb-4 inline-block text-sm text-indigo-600 hover:text-indigo-900">
+                            &larr; Volver a Clientes
+                        </Link>
+                    )}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <table className="min-w-full divide-y divide-gray-200 text-sm">
                             <thead className="bg-gray-50 text-left text-gray-500">

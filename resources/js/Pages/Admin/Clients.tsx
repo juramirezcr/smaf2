@@ -257,6 +257,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                             <td className="px-6 py-4 text-right">
                                                 <Link href={route('admin.clients.products.index', client.id)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Productos</Link>
                                                 <Link href={route('admin.clients.customers.index', client.id)} className="ms-4 text-sm font-medium text-indigo-600 hover:text-indigo-900">Customers</Link>
+                                                <Link href={route('admin.clients.accounts.index', client.id)} className="ms-4 text-sm font-medium text-indigo-600 hover:text-indigo-900">Cuentas</Link>
                                                 <button type="button" onClick={() => startEditing(client)} className="ms-4 text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
                                                 <button type="button" onClick={() => deleteClient(client)} className="ms-4 text-sm font-medium text-red-600 hover:text-red-900">Eliminar</button>
                                             </td>
