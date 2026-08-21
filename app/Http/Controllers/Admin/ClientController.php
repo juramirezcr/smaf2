@@ -87,8 +87,12 @@ class ClientController extends Controller
         return to_route('admin.clients.index');
     }
 
-    public function destroy(Client $client): RedirectResponse
+    public function destroy(Request $request, Client $client): RedirectResponse
     {
+        if ($client->users()->where('id', $request->user()->id)->exists()) {
+            return back()->withErrors(['client' => 'No puedes eliminar el cliente al que pertenece tu propia sesión.']);
+        }
+
         DB::transaction(function () use ($client) {
             $client->users()->delete();
             $client->delete();

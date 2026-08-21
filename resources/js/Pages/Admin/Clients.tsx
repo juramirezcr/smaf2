@@ -3,7 +3,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { FormEventHandler, useState } from 'react';
 
@@ -22,6 +22,7 @@ interface ConnectionTestResult {
 }
 
 export default function Clients({ clients }: { clients: ClientItem[] }) {
+    const pageErrors = usePage().props.errors as Record<string, string>;
     const [editingClient, setEditingClient] = useState<ClientItem | null>(null);
     const [testResults, setTestResults] = useState<Record<number, ConnectionTestResult>>({});
     const { data, setData, post, patch, processing, errors, reset } = useForm({
@@ -109,6 +110,11 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Clientes</h2>}>
             <Head title="Clientes" />
+            {pageErrors?.client && (
+                <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+                    <p className="rounded bg-amber-50 p-4 text-amber-800">{pageErrors.client}</p>
+                </div>
+            )}
             <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-3 lg:px-8">
                 <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow lg:col-span-1">
                     <h3 className="text-lg font-medium text-gray-900">{editingClient ? `Editar ${editingClient.name}` : 'Crear cliente'}</h3>

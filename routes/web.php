@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\PlatformUserController;
 use App\Http\Controllers\Admin\PortaoneSettingController;
 use App\Http\Controllers\Admin\ReleaseController;
 use App\Http\Controllers\Admin\ReleaseNoteController;
@@ -35,6 +36,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/clients/{client}/test-connection', [ClientController::class, 'testConnection'])->name('clients.test-connection');
         Route::get('/portaone', [PortaoneSettingController::class, 'edit'])->name('portaone.edit');
         Route::patch('/portaone', [PortaoneSettingController::class, 'update'])->name('portaone.update');
+        Route::get('/platform-users', [PlatformUserController::class, 'index'])->name('platform-users.index');
+        Route::post('/platform-users', [PlatformUserController::class, 'store'])->name('platform-users.store');
+        Route::patch('/platform-users/{user}', [PlatformUserController::class, 'update'])->name('platform-users.update');
+        Route::delete('/platform-users/{user}', [PlatformUserController::class, 'destroy'])->name('platform-users.destroy');
     });
     Route::get('/imports', [ImportBatchController::class, 'index'])->name('imports.index');
     Route::post('/imports', [ImportBatchController::class, 'store'])->name('imports.store');
