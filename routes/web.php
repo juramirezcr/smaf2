@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ReleaseController;
 use App\Http\Controllers\Admin\ReleaseNoteController;
 use App\Http\Controllers\ClientUserController;
@@ -22,6 +23,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/release-notes', [ReleaseNoteController::class, 'store'])->name('release-notes.store');
         Route::patch('/release-notes/{releaseNote}', [ReleaseNoteController::class, 'update'])->name('release-notes.update');
         Route::delete('/release-notes/{releaseNote}', [ReleaseNoteController::class, 'destroy'])->name('release-notes.destroy');
+        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::patch('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     });
     Route::get('/imports', [ImportBatchController::class, 'index'])->name('imports.index');
     Route::post('/imports', [ImportBatchController::class, 'store'])->name('imports.store');
