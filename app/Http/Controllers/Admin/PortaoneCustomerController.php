@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
+use App\Models\Client;
 use App\Models\PortaoneAccount;
 use App\Models\PortaoneCustomer;
 use Illuminate\Database\Eloquent\Builder;
@@ -9,12 +11,10 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class PortaoneAccountController extends Controller
+class PortaoneCustomerController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Client $client, Request $request): Response
     {
-        $clientId = auth()->user()->client_id;
-
         $accountsCount = PortaoneAccount::query()
             ->selectRaw('count(*)')
             ->whereColumn('i_customer', 'portaone_customers.i_customer')
@@ -22,7 +22,7 @@ class PortaoneAccountController extends Controller
             ->active();
 
         $customers = PortaoneCustomer::query()
-            ->where('client_id', $clientId)
+            ->where('client_id', $client->id)
             ->active()
             ->when($request->string('search')->toString(), function (Builder $query, string $search) {
                 $query->where(function (Builder $query) use ($search) {
@@ -36,15 +36,16 @@ class PortaoneAccountController extends Controller
             ->withQueryString();
 
         return Inertia::render('Accounts/Customers', [
+            'client' => ['id' => $client->id, 'name' => $client->name],
             'customers' => $customers,
             'search' => $request->string('search')->toString(),
-            'basePath' => '/portaone-customers',
+            'basePath' => "/admin/clients/{$client->id}/customers",
         ]);
     }
 
-    public function show(PortaoneCustomer $customer): Response
+    public function show(Client $client, PortaoneCustomer $customer): Response
     {
-        abort_unless($customer->client_id === auth()->user()->client_id, 403);
+        abort_unless($customer->client_id === $client->id, 404);
 
         $accounts = $customer->accounts()
             ->active()
@@ -53,9 +54,10 @@ class PortaoneAccountController extends Controller
             ->withQueryString();
 
         return Inertia::render('Accounts/CustomerAccounts', [
+            'client' => ['id' => $client->id, 'name' => $client->name],
             'customer' => $customer->only(['id', 'name', 'company_name', 'email', 'bill_status']),
             'accounts' => $accounts,
-            'indexPath' => '/portaone-customers',
+            'indexPath' => "/admin/clients/{$client->id}/customers",
         ]);
     }
 }

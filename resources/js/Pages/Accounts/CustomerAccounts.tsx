@@ -30,15 +30,17 @@ interface CustomerAccountsProps {
         data: AccountRow[];
         links: PaginationLink[];
     };
+    indexPath: string;
+    client?: { id: number; name: string } | null;
 }
 
-export default function CustomerAccounts({ customer, accounts }: CustomerAccountsProps) {
+export default function CustomerAccounts({ customer, accounts, indexPath, client }: CustomerAccountsProps) {
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">{customer.name ?? 'Customer'}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">{customer.name ?? 'Customer'}{client ? ` — ${client.name}` : ''}</h2>}>
             <Head title={customer.name ?? 'Customer'} />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <Link href={route('portaone-customers.index')} className="mb-4 inline-block text-sm text-indigo-600 hover:text-indigo-900">
+                    <Link href={indexPath} className="mb-4 inline-block text-sm text-indigo-600 hover:text-indigo-900">
                         &larr; Volver a Customers
                     </Link>
 

@@ -25,21 +25,28 @@ interface CustomersProps {
         links: PaginationLink[];
     };
     search: string;
+    basePath: string;
+    client?: { id: number; name: string } | null;
 }
 
-export default function Customers({ customers, search }: CustomersProps) {
+export default function Customers({ customers, search, basePath, client }: CustomersProps) {
     const [query, setQuery] = useState(search);
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
-        router.get(route('portaone-customers.index'), { search: query }, { preserveState: true });
+        router.get(basePath, { search: query }, { preserveState: true });
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Customers</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">{client ? `Customers — ${client.name}` : 'Customers'}</h2>}>
             <Head title="Customers" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    {client && (
+                        <Link href={route('admin.clients.index')} className="mb-4 inline-block text-sm text-indigo-600 hover:text-indigo-900">
+                            &larr; Volver a Clientes
+                        </Link>
+                    )}
                     <form onSubmit={submit} className="mb-4">
                         <TextInput
                             value={query}
@@ -66,7 +73,7 @@ export default function Customers({ customers, search }: CustomersProps) {
                                 ) : customers.data.map((customer) => (
                                     <tr key={customer.id}>
                                         <td className="px-6 py-4">
-                                            <Link href={route('portaone-customers.show', customer.id)} className="font-medium text-indigo-600 hover:text-indigo-900">
+                                            <Link href={`${basePath}/${customer.id}`} className="font-medium text-indigo-600 hover:text-indigo-900">
                                                 {customer.name ?? '—'}
                                             </Link>
                                         </td>
