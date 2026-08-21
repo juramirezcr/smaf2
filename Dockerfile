@@ -22,7 +22,8 @@ FROM php:8.3-fpm-alpine AS application
 
 WORKDIR /var/www/html
 
-RUN docker-php-ext-install pdo_mysql opcache
+RUN apk add --no-cache libxml2-dev \
+    && docker-php-ext-install pdo_mysql opcache soap
 
 COPY . .
 COPY --from=dependencies /app/vendor ./vendor

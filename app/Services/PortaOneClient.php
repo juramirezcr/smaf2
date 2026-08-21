@@ -4,20 +4,26 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\PortaoneSetting;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use SoapClient;
+use SoapFault;
+use SoapHeader;
+use SoapVar;
+use Throwable;
 
 /**
- * Cliente para la API Gateway v2 de PortaOne (REST + OAuth2 password grant),
- * documentada en https://demo.portaone.com/api/v2/+docs. El "usuario API" y
- * la "clave API" del cliente se envían como login/password: PortaOne emite
- * un token de acceso para cuentas de servicio que se usa igual que una
- * contraseña normal en /auth/login.
+ * Cliente SOAP para la interfaz clásica de administración de PortaOne
+ * (WSDL en {base}/wsdl/{Servicio}AdminService.wsdl, documentada en
+ * https://docs.portaone.com/API/mr105/AdminInterface/). Confirmado contra
+ * el servidor real: login admite "token" en vez de "password" para cuentas
+ * de servicio, y "i_env" para la partición. Las llamadas autenticadas
+ * llevan un header SOAP "auth_info" (tipo AuthInfoStructure) con el
+ * access_token devuelto por el login.
  */
 class PortaOneClient
 {
+    private const AUTH_NAMESPACE = 'http://schemas.portaone.com/soap';
+
     public function __construct(private readonly Client $client)
     {
     }
@@ -37,9 +43,11 @@ class PortaOneClient
         $accessToken = $this->login($baseUrl);
 
         try {
+            $params = ['limit' => 1, 'offset' => 0, 'get_total' => 1];
+
             return [
-                'customersCount' => $this->countResource($baseUrl, 'customers', $accessToken),
-                'accountsCount' => $this->countResource($baseUrl, 'accounts', $accessToken),
+                'customersCount' => $this->countList($baseUrl, 'CustomerAdminService', 'get_customer_list', 'customer_list', $params, $accessToken),
+                'accountsCount' => $this->countList($baseUrl, 'AccountAdminService', 'get_account_list', 'account_list', $params, $accessToken),
             ];
         } finally {
             $this->logout($baseUrl, $accessToken);
@@ -48,77 +56,76 @@ class PortaOneClient
 
     private function login(string $baseUrl): string
     {
-        try {
-            $response = Http::acceptJson()
-                ->timeout(10)
-                ->post("{$baseUrl}/api/v2/auth/login", [
-                    'login' => $this->client->portaone_username,
-                    'password' => $this->client->portaone_token,
-                ]);
-        } catch (ConnectionException $exception) {
-            throw new RuntimeException('No fue posible conectar con PortaOne.', previous: $exception);
+        $params = [
+            'login' => $this->client->portaone_username,
+            'token' => $this->client->portaone_token,
+        ];
+
+        if (is_numeric($this->client->portaone_environment)) {
+            $params['i_env'] = (int) $this->client->portaone_environment;
         }
 
-        if ($response->failed()) {
-            throw new RuntimeException($this->explainFailure($response, 'PortaOne rechazó el usuario o la clave API del cliente.'));
-        }
+        $result = $this->call($baseUrl, 'SessionAdminService', 'login', $params);
 
-        $accessToken = $response->json('access_token');
+        $accessToken = $result->access_token ?? null;
 
         if (! is_string($accessToken) || $accessToken === '') {
-            throw new RuntimeException('PortaOne no devolvió un token de acceso válido.');
+            throw new RuntimeException('PortaOne no devolvió un token de acceso válido. Verifique el usuario, la clave API y la partición del cliente.');
         }
 
         return $accessToken;
     }
 
-    private function countResource(string $baseUrl, string $resource, string $accessToken): int
+    private function countList(string $baseUrl, string $service, string $method, string $listField, array $params, string $accessToken): int
     {
-        try {
-            $response = Http::withToken($accessToken)
-                ->withHeaders(['Accept' => 'application/vnd.api+json'])
-                ->timeout(10)
-                ->get("{$baseUrl}/api/v2/{$resource}");
-        } catch (ConnectionException $exception) {
-            throw new RuntimeException('No fue posible conectar con PortaOne.', previous: $exception);
+        $result = $this->call($baseUrl, $service, $method, $params, $accessToken);
+
+        if (isset($result->total) && is_numeric($result->total)) {
+            return (int) $result->total;
         }
 
-        if ($response->failed()) {
-            throw new RuntimeException($this->explainFailure($response, "PortaOne rechazó la consulta de {$resource}."));
-        }
+        $list = $result->{$listField} ?? null;
 
-        $total = $response->json('meta.page.total');
-
-        return is_int($total) ? $total : count($response->json('data') ?? []);
+        return match (true) {
+            is_array($list) => count($list),
+            $list !== null => 1,
+            default => 0,
+        };
     }
 
     private function logout(string $baseUrl, string $accessToken): void
     {
         try {
-            Http::withToken($accessToken)->timeout(10)->post("{$baseUrl}/api/v2/auth/logout");
-        } catch (ConnectionException) {
+            $this->call($baseUrl, 'SessionAdminService', 'logout', ['access_token' => $accessToken], $accessToken);
+        } catch (RuntimeException) {
             // La prueba ya obtuvo su resultado; un fallo al cerrar sesión no es crítico.
         }
     }
 
-    /**
-     * Los errores de la API v2 llegan normalmente como una lista de objetos
-     * {code, title, detail}. Si la respuesta no tiene esa forma (por ejemplo,
-     * un proxy devolviendo HTML), mostramos el código HTTP y un fragmento
-     * crudo del cuerpo para poder diagnosticar sin adivinar.
-     */
-    private function explainFailure(Response $response, string $fallback): string
+    private function call(string $baseUrl, string $service, string $method, array $params, ?string $accessToken = null): object
     {
-        $detail = $response->json('0.detail') ?? $response->json('detail');
+        try {
+            $client = new SoapClient("{$baseUrl}/wsdl/{$service}.wsdl", [
+                'exceptions' => true,
+                'connection_timeout' => 10,
+                'cache_wsdl' => WSDL_CACHE_NONE,
+            ]);
 
-        if (is_string($detail) && $detail !== '') {
-            return "{$fallback} ({$detail})";
+            if ($accessToken !== null) {
+                $authInfo = new SoapVar(
+                    ['access_token' => $accessToken],
+                    SOAP_ENC_OBJECT,
+                    'AuthInfoStructure',
+                    self::AUTH_NAMESPACE,
+                );
+                $client->__setSoapHeaders(new SoapHeader(self::AUTH_NAMESPACE, 'auth_info', $authInfo));
+            }
+
+            return $client->__soapCall($method, [$params]);
+        } catch (SoapFault $fault) {
+            throw new RuntimeException("PortaOne rechazó la solicitud: {$fault->getMessage()}", previous: $fault);
+        } catch (Throwable $exception) {
+            throw new RuntimeException('No fue posible conectar con PortaOne.', previous: $exception);
         }
-
-        $snippet = trim(preg_replace('/\s+/', ' ', substr($response->body(), 0, 200)) ?? '');
-
-        return $snippet !== ''
-            ? "{$fallback} (HTTP {$response->status()}: {$snippet})"
-            : "{$fallback} (HTTP {$response->status()}, sin cuerpo de respuesta)";
     }
 }
