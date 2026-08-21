@@ -94,13 +94,16 @@ class SyncPortaOneData implements ShouldQueue
                         continue;
                     }
 
+                    $billStatus = $row['bill_status'] ?? null;
+
                     PortaoneCustomer::updateOrCreate(
                         ['client_id' => $client->id, 'i_customer' => (int) $row['i_customer']],
                         [
                             'name' => $row['name'] ?? null,
                             'company_name' => $row['companyname'] ?? null,
                             'email' => $row['email'] ?? null,
-                            'bill_status' => $row['bill_status'] ?? null,
+                            'bill_status' => $billStatus,
+                            'archived_at' => $this->isTerminated($billStatus) ? now() : null,
                             'synced_at' => now(),
                         ],
                     );
@@ -136,6 +139,8 @@ class SyncPortaOneData implements ShouldQueue
                             continue;
                         }
 
+                        $billStatus = $row['bill_status'] ?? null;
+
                         PortaoneAccount::updateOrCreate(
                             ['client_id' => $client->id, 'i_account' => (int) $row['i_account']],
                             [
@@ -143,8 +148,9 @@ class SyncPortaOneData implements ShouldQueue
                                 'account_id' => $row['id'] ?? null,
                                 'i_product' => isset($row['i_product']) ? (int) $row['i_product'] : null,
                                 'product_name' => $row['product_name'] ?? null,
-                                'bill_status' => $row['bill_status'] ?? null,
+                                'bill_status' => $billStatus,
                                 'blocked' => $row['blocked'] ?? null,
+                                'archived_at' => $this->isTerminated($billStatus) ? now() : null,
                                 'synced_at' => now(),
                             ],
                         );
@@ -166,5 +172,10 @@ class SyncPortaOneData implements ShouldQueue
         $context = $run->context ?? [];
         $context[$section] = $merge ? [...($context[$section] ?? []), ...$values] : $values;
         $run->update(['context' => $context]);
+    }
+
+    private function isTerminated(?string $billStatus): bool
+    {
+        return $billStatus !== null && str_contains(strtolower($billStatus), 'terminat');
     }
 }
