@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\User;
+use App\Services\PortaOneClient;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class ClientController extends Controller
 {
@@ -82,5 +85,26 @@ class ClientController extends Controller
         ]);
 
         return to_route('admin.clients.index');
+    }
+
+    public function destroy(Client $client): RedirectResponse
+    {
+        DB::transaction(function () use ($client) {
+            $client->users()->delete();
+            $client->delete();
+        });
+
+        return to_route('admin.clients.index');
+    }
+
+    public function testConnection(Client $client): JsonResponse
+    {
+        try {
+            $result = (new PortaOneClient($client))->testConnection();
+        } catch (RuntimeException $exception) {
+            return response()->json(['error' => $exception->getMessage()], 422);
+        }
+
+        return response()->json($result);
     }
 }

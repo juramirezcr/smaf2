@@ -4,6 +4,7 @@ export interface User {
     username: string;
     email: string;
     client_id: number;
+    clientName: string | null;
     role: 'client_admin' | 'client_user';
     isSystemAdmin: boolean;
     email_verified_at?: string;

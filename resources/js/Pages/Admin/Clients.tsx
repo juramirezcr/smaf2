@@ -3,7 +3,8 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
+import axios from 'axios';
 import { FormEventHandler, useState } from 'react';
 
 interface ClientItem {
@@ -15,8 +16,14 @@ interface ClientItem {
     createdAt: string;
 }
 
+interface ConnectionTestResult {
+    status: 'loading' | 'success' | 'error';
+    message: string;
+}
+
 export default function Clients({ clients }: { clients: ClientItem[] }) {
     const [editingClient, setEditingClient] = useState<ClientItem | null>(null);
+    const [testResults, setTestResults] = useState<Record<number, ConnectionTestResult>>({});
     const { data, setData, post, patch, processing, errors, reset } = useForm({
         name: '',
         portaone_environment: '',
@@ -65,6 +72,38 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
     const cancelEditing = () => {
         reset();
         setEditingClient(null);
+    };
+
+    const deleteClient = (client: ClientItem) => {
+        if (!confirm(`¿Eliminar "${client.name}" y sus ${client.usersCount} usuario(s)? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        router.delete(route('admin.clients.destroy', client.id), {
+            onSuccess: () => {
+                if (editingClient?.id === client.id) {
+                    cancelEditing();
+                }
+            },
+        });
+    };
+
+    const testConnection = async (client: ClientItem) => {
+        setTestResults((previous) => ({ ...previous, [client.id]: { status: 'loading', message: '' } }));
+
+        try {
+            const response = await axios.post(route('admin.clients.test-connection', client.id));
+            const { customersCount, accountsCount } = response.data;
+            setTestResults((previous) => ({
+                ...previous,
+                [client.id]: { status: 'success', message: `${customersCount} customers, ${accountsCount} accounts` },
+            }));
+        } catch (error) {
+            const message = axios.isAxiosError(error) && error.response?.data?.error
+                ? error.response.data.error
+                : 'No fue posible completar la prueba.';
+            setTestResults((previous) => ({ ...previous, [client.id]: { status: 'error', message } }));
+        }
     };
 
     return (
@@ -139,12 +178,13 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Partición</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Usuario API</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Usuarios</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Conexión</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {clients.length === 0 ? (
-                                <tr><td colSpan={5} className="px-6 py-4 text-sm text-gray-500">Aún no hay clientes.</td></tr>
+                                <tr><td colSpan={6} className="px-6 py-4 text-sm text-gray-500">Aún no hay clientes.</td></tr>
                             ) : (
                                 clients.map((client) => (
                                     <tr key={client.id}>
@@ -152,7 +192,25 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                         <td className="px-6 py-4 text-sm text-gray-500">{client.portaoneEnvironment}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500">{client.portaoneUsername}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500">{client.usersCount}</td>
-                                        <td className="px-6 py-4 text-right"><button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button></td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <button
+                                                type="button"
+                                                onClick={() => testConnection(client)}
+                                                disabled={testResults[client.id]?.status === 'loading'}
+                                                className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                            >
+                                                {testResults[client.id]?.status === 'loading' ? 'Probando...' : 'Probar conexión'}
+                                            </button>
+                                            {testResults[client.id] && testResults[client.id].status !== 'loading' && (
+                                                <p className={`mt-1 text-xs ${testResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {testResults[client.id].message}
+                                                </p>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
+                                            <button type="button" onClick={() => deleteClient(client)} className="ms-4 text-sm font-medium text-red-600 hover:text-red-900">Eliminar</button>
+                                        </td>
                                     </tr>
                                 ))
                             )}
