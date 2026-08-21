@@ -47,6 +47,7 @@ export default function Authenticated({
         { name: 'Prefijos', href: route('prefixes.index'), active: route().current('prefixes.*'), icon: 'globe' },
         { name: 'Destinos', href: route('destinations.index'), active: route().current('destinations.*'), icon: 'outbound' },
         { name: 'Cuentas', href: route('accounts.index'), active: route().current('accounts.*'), icon: 'users' },
+        { name: 'Customers', href: route('portaone-customers.index'), active: route().current('portaone-customers.*'), icon: 'users' },
         { name: 'Alertas', href: route('alerts.index'), active: route().current('alerts.*'), icon: 'bell' },
     ];
 

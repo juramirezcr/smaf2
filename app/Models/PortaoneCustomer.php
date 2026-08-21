@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PortaoneCustomer extends Model
 {
@@ -30,6 +31,12 @@ class PortaoneCustomer extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function accounts(): HasMany
+    {
+        return $this->hasMany(PortaoneAccount::class, 'i_customer', 'i_customer')
+            ->where('client_id', $this->client_id);
     }
 
     public function scopeActive(Builder $query): Builder

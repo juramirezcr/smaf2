@@ -12,6 +12,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DestinationReportController;
 use App\Http\Controllers\ImportBatchController;
 use App\Http\Controllers\MonitoringRuleEventController;
+use App\Http\Controllers\PortaoneAccountController;
 use App\Http\Controllers\PrefixRuleController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -48,6 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/calls', [CallRecordController::class, 'index'])->name('calls.index');
     Route::get('/destinations', [DestinationReportController::class, 'index'])->name('destinations.index');
     Route::get('/accounts', [AccountReportController::class, 'index'])->name('accounts.index');
+    Route::get('/portaone-customers', [PortaoneAccountController::class, 'index'])->name('portaone-customers.index');
+    Route::get('/portaone-customers/{customer}', [PortaoneAccountController::class, 'show'])->name('portaone-customers.show');
     Route::get('/alerts', [MonitoringRuleEventController::class, 'index'])->name('alerts.index');
     Route::get('/users', [ClientUserController::class, 'index'])->name('users.index');
     Route::post('/users', [ClientUserController::class, 'store'])->name('users.store');
