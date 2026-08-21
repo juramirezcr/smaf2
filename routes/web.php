@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\PlatformUserController;
+use App\Http\Controllers\Admin\PortaoneProductController;
 use App\Http\Controllers\Admin\PortaoneSettingController;
 use App\Http\Controllers\Admin\ReleaseController;
 use App\Http\Controllers\AccountReportController;
@@ -30,6 +31,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
         Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
         Route::post('/clients/{client}/test-connection', [ClientController::class, 'testConnection'])->name('clients.test-connection');
+        Route::post('/clients/{client}/sync', [ClientController::class, 'sync'])->name('clients.sync');
+        Route::get('/clients/{client}/products', [PortaoneProductController::class, 'index'])->name('clients.products.index');
+        Route::post('/clients/{client}/products/refresh', [PortaoneProductController::class, 'refresh'])->name('clients.products.refresh');
+        Route::patch('/clients/{client}/products', [PortaoneProductController::class, 'update'])->name('clients.products.update');
         Route::get('/portaone', [PortaoneSettingController::class, 'edit'])->name('portaone.edit');
         Route::patch('/portaone', [PortaoneSettingController::class, 'update'])->name('portaone.update');
         Route::get('/platform-users', [PlatformUserController::class, 'index'])->name('platform-users.index');

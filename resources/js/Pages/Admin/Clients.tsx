@@ -3,9 +3,26 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { FormEventHandler, useState } from 'react';
+import { FormEventHandler, useEffect, useState } from 'react';
+
+interface SyncProgress {
+    total: number;
+    synced: number;
+}
+
+interface SyncRun {
+    status: 'started' | 'completed' | 'failed';
+    context: {
+        products?: SyncProgress;
+        customers?: SyncProgress;
+        accounts?: SyncProgress;
+    } | null;
+    message: string | null;
+    startedAt: string;
+    finishedAt: string | null;
+}
 
 interface ClientItem {
     id: number;
@@ -14,11 +31,32 @@ interface ClientItem {
     portaoneUsername: string;
     usersCount: number;
     createdAt: string;
+    syncRun: SyncRun | null;
 }
 
 interface ConnectionTestResult {
     status: 'loading' | 'success' | 'error';
     message: string;
+}
+
+function ProgressBar({ label, progress }: { label: string; progress?: SyncProgress }) {
+    if (!progress) {
+        return null;
+    }
+
+    const pct = progress.total > 0 ? Math.min(100, Math.round((progress.synced / progress.total) * 100)) : 0;
+
+    return (
+        <div className="mt-1">
+            <div className="flex justify-between text-xs text-gray-500">
+                <span>{label}</span>
+                <span>{progress.synced} / {progress.total}</span>
+            </div>
+            <div className="mt-0.5 h-1.5 w-full rounded-full bg-gray-200">
+                <div className="h-1.5 rounded-full bg-indigo-600" style={{ width: `${pct}%` }} />
+            </div>
+        </div>
+    );
 }
 
 export default function Clients({ clients }: { clients: ClientItem[] }) {
@@ -87,6 +125,24 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                 }
             },
         });
+    };
+
+    const anySyncing = clients.some((client) => client.syncRun?.status === 'started');
+
+    useEffect(() => {
+        if (!anySyncing) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            router.reload({ only: ['clients'] });
+        }, 4000);
+
+        return () => clearInterval(interval);
+    }, [anySyncing]);
+
+    const syncClient = (client: ClientItem) => {
+        router.post(route('admin.clients.sync', client.id));
     };
 
     const testConnection = async (client: ClientItem) => {
@@ -212,9 +268,35 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                                     {testResults[client.id].message}
                                                 </p>
                                             )}
+
+                                            <div className="mt-3 border-t pt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => syncClient(client)}
+                                                    disabled={client.syncRun?.status === 'started'}
+                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                                >
+                                                    {client.syncRun?.status === 'started' ? 'Sincronizando...' : 'Sincronizar'}
+                                                </button>
+                                                {client.syncRun && (
+                                                    <div className="mt-1 w-48">
+                                                        <p className="text-xs text-gray-500">
+                                                            {client.syncRun.status === 'completed' && 'Última sincronización completa'}
+                                                            {client.syncRun.status === 'failed' && (
+                                                                <span className="text-red-600">Falló: {client.syncRun.message}</span>
+                                                            )}
+                                                            {client.syncRun.status === 'started' && 'Sincronizando...'}
+                                                        </p>
+                                                        <ProgressBar label="Productos" progress={client.syncRun.context?.products} />
+                                                        <ProgressBar label="Customers" progress={client.syncRun.context?.customers} />
+                                                        <ProgressBar label="Accounts (telefonía)" progress={client.syncRun.context?.accounts} />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
+                                            <Link href={route('admin.clients.products.index', client.id)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Productos</Link>
+                                            <button type="button" onClick={() => startEditing(client)} className="ms-4 text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
                                             <button type="button" onClick={() => deleteClient(client)} className="ms-4 text-sm font-medium text-red-600 hover:text-red-900">Eliminar</button>
                                         </td>
                                     </tr>

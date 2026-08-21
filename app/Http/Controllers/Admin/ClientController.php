@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncPortaOneData;
 use App\Models\Client;
+use App\Models\ProcessRun;
 use App\Models\User;
 use App\Services\PortaOneClient;
 use Illuminate\Http\JsonResponse;
@@ -20,18 +22,40 @@ class ClientController extends Controller
 {
     public function index(): Response
     {
+        $latestSyncRuns = ProcessRun::query()
+            ->where('type', 'portaone_sync')
+            ->whereIn('id', function ($query) {
+                $query->selectRaw('max(id)')
+                    ->from('process_runs')
+                    ->where('type', 'portaone_sync')
+                    ->groupBy('client_id');
+            })
+            ->get()
+            ->keyBy('client_id');
+
         return Inertia::render('Admin/Clients', [
             'clients' => Client::withCount('users')
                 ->latest()
                 ->get()
-                ->map(fn (Client $client): array => [
-                    'id' => $client->id,
-                    'name' => $client->name,
-                    'portaoneEnvironment' => $client->portaone_environment,
-                    'portaoneUsername' => $client->portaone_username,
-                    'usersCount' => $client->users_count,
-                    'createdAt' => $client->created_at,
-                ]),
+                ->map(function (Client $client) use ($latestSyncRuns): array {
+                    $run = $latestSyncRuns->get($client->id);
+
+                    return [
+                        'id' => $client->id,
+                        'name' => $client->name,
+                        'portaoneEnvironment' => $client->portaone_environment,
+                        'portaoneUsername' => $client->portaone_username,
+                        'usersCount' => $client->users_count,
+                        'createdAt' => $client->created_at,
+                        'syncRun' => $run ? [
+                            'status' => $run->status,
+                            'context' => $run->context,
+                            'message' => $run->message,
+                            'startedAt' => $run->started_at,
+                            'finishedAt' => $run->finished_at,
+                        ] : null,
+                    ];
+                }),
         ]);
     }
 
@@ -99,6 +123,13 @@ class ClientController extends Controller
         });
 
         return to_route('admin.clients.index');
+    }
+
+    public function sync(Client $client): RedirectResponse
+    {
+        SyncPortaOneData::dispatch($client->id);
+
+        return back();
     }
 
     public function testConnection(Client $client): JsonResponse

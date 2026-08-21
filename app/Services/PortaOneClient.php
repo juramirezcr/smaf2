@@ -23,6 +23,10 @@ class PortaOneClient
 {
     private const AUTH_NAMESPACE = 'http://schemas.portaone.com/soap';
 
+    // Lotes pequeños a propósito: evita saturar el servidor de PortaOne con
+    // páginas grandes cuando se sincronizan customers/accounts.
+    private const PAGE_SIZE = 100;
+
     public function __construct(private readonly Client $client)
     {
     }
@@ -33,21 +37,152 @@ class PortaOneClient
      */
     public function testConnection(): array
     {
-        $baseUrl = rtrim((string) PortaoneSetting::current()->base_url, '/');
-
-        if ($baseUrl === '') {
-            throw new RuntimeException('Configure la URL de conexión de PortaOne antes de probar.');
-        }
-
-        $sessionId = $this->login($baseUrl);
-
-        try {
+        return $this->withSession(function (string $baseUrl, string $sessionId) {
             $params = ['limit' => 1, 'offset' => 0, 'get_total' => 1];
 
             return [
                 'customersCount' => $this->countList($baseUrl, 'CustomerAdminService', 'get_customer_list', 'customer_list', $params, $sessionId),
                 'accountsCount' => $this->countList($baseUrl, 'AccountAdminService', 'get_account_list', 'account_list', $params, $sessionId),
             ];
+        });
+    }
+
+    /**
+     * Todos los productos configurados para este cliente (catálogo, no por
+     * customer). El administrador decide después cuáles son de telefonía.
+     */
+    public function fetchProducts(): array
+    {
+        $products = [];
+
+        $this->withSession(function (string $baseUrl, string $sessionId) use (&$products) {
+            $this->paginate(
+                $baseUrl,
+                'ProductAdminService',
+                'get_product_list',
+                'product_list',
+                [],
+                $sessionId,
+                function (array $page) use (&$products) {
+                    $products = [...$products, ...$page];
+                },
+                200,
+            );
+        });
+
+        return $products;
+    }
+
+    /**
+     * Sincroniza todos los customers del cliente, en lotes de PAGE_SIZE.
+     * $onPage recibe cada lote para persistir sin mantener todo en
+     * memoria; $onTotal recibe el total real (una sola vez, apenas se
+     * conoce) para poder mostrar progreso "X de Y". Devuelve el total
+     * sincronizado.
+     */
+    public function syncCustomers(callable $onPage, ?callable $onTotal = null): int
+    {
+        return $this->withSession(
+            fn (string $baseUrl, string $sessionId) => $this->paginate(
+                $baseUrl,
+                'CustomerAdminService',
+                'get_customer_list',
+                'customer_list',
+                [],
+                $sessionId,
+                $onPage,
+                onTotal: $onTotal,
+            ),
+        );
+    }
+
+    /**
+     * Sincroniza las accounts de un producto específico (normalmente uno
+     * marcado como telefonía). Devuelve el total sincronizado.
+     */
+    public function syncAccountsForProduct(int $iProduct, callable $onPage, ?callable $onTotal = null): int
+    {
+        return $this->withSession(
+            fn (string $baseUrl, string $sessionId) => $this->paginate(
+                $baseUrl,
+                'AccountAdminService',
+                'get_account_list',
+                'account_list',
+                ['i_product' => $iProduct],
+                $sessionId,
+                $onPage,
+                onTotal: $onTotal,
+            ),
+        );
+    }
+
+    private function paginate(
+        string $baseUrl,
+        string $service,
+        string $method,
+        string $listField,
+        array $extraParams,
+        string $sessionId,
+        callable $onPage,
+        int $pageSize = self::PAGE_SIZE,
+        ?callable $onTotal = null,
+    ): int {
+        $offset = 0;
+        $total = 0;
+        $totalReported = false;
+
+        do {
+            $params = [...$extraParams, 'limit' => $pageSize, 'offset' => $offset, 'get_total' => 1];
+            $result = $this->call($baseUrl, $service, $method, $params, $sessionId);
+
+            if (! $totalReported && $onTotal !== null && isset($result->total) && is_numeric($result->total)) {
+                $onTotal((int) $result->total);
+                $totalReported = true;
+            }
+
+            $page = $this->normalizeList($result->{$listField} ?? null);
+
+            if ($page !== []) {
+                $onPage($page);
+                $total += count($page);
+            }
+
+            $offset += $pageSize;
+        } while (count($page) >= $pageSize);
+
+        return $total;
+    }
+
+    /**
+     * PHP colapsa un arreglo SOAP de un solo elemento a un objeto suelto en
+     * vez de un arreglo de un elemento; esto lo normaliza siempre a arreglo
+     * de arreglos asociativos.
+     */
+    private function normalizeList(mixed $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return array_map(fn (object $item): array => (array) $item, $value);
+        }
+
+        return [(array) $value];
+    }
+
+    private function withSession(callable $callback): mixed
+    {
+        $baseUrl = rtrim((string) PortaoneSetting::current()->base_url, '/');
+
+        if ($baseUrl === '') {
+            throw new RuntimeException('Configure la URL de conexión de PortaOne antes de continuar.');
+        }
+
+        $sessionId = $this->login($baseUrl);
+
+        try {
+            return $callback($baseUrl, $sessionId);
         } finally {
             $this->logout($baseUrl, $sessionId);
         }
