@@ -1,6 +1,6 @@
 import Pagination from '@/Components/Pagination';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 
 interface AccountRow {
     customer: string | null;
@@ -15,25 +15,43 @@ interface PaginationLink {
     active: boolean;
 }
 
+interface ClientOption {
+    id: number;
+    name: string;
+}
+
 interface AccountsProps {
     client: string | null;
-    backToClients?: boolean;
+    clients?: ClientOption[] | null;
+    selectedClientId?: number | null;
     accounts: {
         data: AccountRow[];
         links: PaginationLink[];
     };
 }
 
-export default function AccountsIndex({ client, backToClients, accounts }: AccountsProps) {
+export default function AccountsIndex({ client, clients, selectedClientId, accounts }: AccountsProps) {
+    const changeClient = (clientId: string) => {
+        router.get('/accounts', { client_id: clientId }, { preserveState: true });
+    };
+
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Cuentas{client ? ` — ${client}` : ''}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Cuentas</h2>}>
             <Head title="Cuentas" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    {backToClients && (
-                        <Link href={route('admin.clients.index')} className="mb-4 inline-block text-sm text-indigo-600 hover:text-indigo-900">
-                            &larr; Volver a Clientes
-                        </Link>
+                    {clients && (
+                        <div className="mb-4">
+                            <select
+                                value={selectedClientId ?? ''}
+                                onChange={(event) => changeClient(event.target.value)}
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                {clients.map((option) => (
+                                    <option key={option.id} value={option.id}>{option.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     )}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <table className="min-w-full divide-y divide-gray-200 text-sm">

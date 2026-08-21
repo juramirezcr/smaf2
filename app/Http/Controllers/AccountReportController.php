@@ -4,17 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\CallRecord;
 use App\Models\Client;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AccountReportController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $clientId = auth()->user()->client_id;
+        $user = auth()->user();
+        $isAdmin = $user->client_id === null;
 
-        if ($clientId === null) {
-            return $this->clientPicker();
+        $clients = null;
+        $clientId = $user->client_id;
+
+        if ($isAdmin) {
+            $clients = Client::query()->orderBy('name')->get(['id', 'name']);
+            $clientId = $request->integer('client_id') ?: optional($clients->first())->id;
         }
 
         return Inertia::render('Accounts/Index', [
@@ -25,24 +31,10 @@ class AccountReportController extends Controller
                 ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
                 ->groupBy('customer', 'account')
                 ->orderByDesc('calls')
-                ->paginate(25)
+                ->paginate(10)
                 ->withQueryString(),
-        ]);
-    }
-
-    private function clientPicker(): Response
-    {
-        $callsCount = CallRecord::query()
-            ->selectRaw('count(*)')
-            ->whereColumn('client_id', 'clients.id');
-
-        $clients = Client::query()
-            ->addSelect(['calls_count' => $callsCount])
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return Inertia::render('Accounts/AccountsClientPicker', [
             'clients' => $clients,
+            'selectedClientId' => $isAdmin ? $clientId : null,
         ]);
     }
 }

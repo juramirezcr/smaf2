@@ -14,10 +14,15 @@ class PortaoneAccountController extends Controller
 {
     public function index(Request $request): Response
     {
-        $clientId = auth()->user()->client_id;
+        $user = auth()->user();
+        $isAdmin = $user->client_id === null;
 
-        if ($clientId === null) {
-            return $this->clientPicker();
+        $clients = null;
+        $clientId = $user->client_id;
+
+        if ($isAdmin) {
+            $clients = Client::query()->orderBy('name')->get(['id', 'name']);
+            $clientId = $request->integer('client_id') ?: optional($clients->first())->id;
         }
 
         $accountsCount = PortaoneAccount::query()
@@ -37,52 +42,36 @@ class PortaoneAccountController extends Controller
             })
             ->addSelect(['accounts_count' => $accountsCount])
             ->orderBy('name')
-            ->paginate(25)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Accounts/Customers', [
             'customers' => $customers,
             'search' => $request->string('search')->toString(),
             'basePath' => '/portaone-customers',
+            'clients' => $clients,
+            'selectedClientId' => $isAdmin ? $clientId : null,
         ]);
     }
 
     public function show(PortaoneCustomer $customer): Response
     {
-        abort_unless($customer->client_id === auth()->user()->client_id, 403);
+        $userClientId = auth()->user()->client_id;
+
+        abort_unless($userClientId === null || $customer->client_id === $userClientId, 403);
 
         $accounts = $customer->accounts()
             ->active()
             ->orderBy('account_id')
-            ->paginate(50)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Accounts/CustomerAccounts', [
             'customer' => $customer->only(['id', 'name', 'company_name', 'email', 'bill_status']),
             'accounts' => $accounts,
-            'indexPath' => '/portaone-customers',
-        ]);
-    }
-
-    private function clientPicker(): Response
-    {
-        $customersCount = PortaoneCustomer::query()
-            ->selectRaw('count(*)')
-            ->whereColumn('client_id', 'clients.id')
-            ->active();
-
-        $accountsCount = PortaoneAccount::query()
-            ->selectRaw('count(*)')
-            ->whereColumn('client_id', 'clients.id')
-            ->active();
-
-        $clients = Client::query()
-            ->addSelect(['customers_count' => $customersCount, 'accounts_count' => $accountsCount])
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return Inertia::render('Accounts/CustomersClientPicker', [
-            'clients' => $clients,
+            'indexPath' => $userClientId === null
+                ? "/portaone-customers?client_id={$customer->client_id}"
+                : '/portaone-customers',
         ]);
     }
 }

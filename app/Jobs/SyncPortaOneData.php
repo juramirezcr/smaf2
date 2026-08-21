@@ -94,16 +94,22 @@ class SyncPortaOneData implements ShouldQueue
                         continue;
                     }
 
+                    $iCustomer = (int) $row['i_customer'];
                     $billStatus = $row['bill_status'] ?? null;
 
+                    if ($this->isClosed($billStatus)) {
+                        PortaoneCustomer::where('client_id', $client->id)->where('i_customer', $iCustomer)->delete();
+
+                        continue;
+                    }
+
                     PortaoneCustomer::updateOrCreate(
-                        ['client_id' => $client->id, 'i_customer' => (int) $row['i_customer']],
+                        ['client_id' => $client->id, 'i_customer' => $iCustomer],
                         [
                             'name' => $row['name'] ?? null,
                             'company_name' => $row['companyname'] ?? null,
                             'email' => $row['email'] ?? null,
                             'bill_status' => $billStatus,
-                            'archived_at' => $this->isTerminated($billStatus) ? now() : null,
                             'synced_at' => now(),
                         ],
                     );
@@ -139,10 +145,17 @@ class SyncPortaOneData implements ShouldQueue
                             continue;
                         }
 
+                        $iAccount = (int) $row['i_account'];
                         $billStatus = $row['bill_status'] ?? null;
 
+                        if ($this->isClosed($billStatus)) {
+                            PortaoneAccount::where('client_id', $client->id)->where('i_account', $iAccount)->delete();
+
+                            continue;
+                        }
+
                         PortaoneAccount::updateOrCreate(
-                            ['client_id' => $client->id, 'i_account' => (int) $row['i_account']],
+                            ['client_id' => $client->id, 'i_account' => $iAccount],
                             [
                                 'i_customer' => isset($row['i_customer']) ? (int) $row['i_customer'] : null,
                                 'account_id' => $row['id'] ?? null,
@@ -150,7 +163,6 @@ class SyncPortaOneData implements ShouldQueue
                                 'product_name' => $row['product_name'] ?? null,
                                 'bill_status' => $billStatus,
                                 'blocked' => $row['blocked'] ?? null,
-                                'archived_at' => $this->isTerminated($billStatus) ? now() : null,
                                 'synced_at' => now(),
                             ],
                         );
@@ -174,8 +186,20 @@ class SyncPortaOneData implements ShouldQueue
         $run->update(['context' => $context]);
     }
 
-    private function isTerminated(?string $billStatus): bool
+    private function isClosed(?string $billStatus): bool
     {
-        return $billStatus !== null && str_contains(strtolower($billStatus), 'terminat');
+        if ($billStatus === null || $billStatus === '') {
+            return false;
+        }
+
+        $normalized = strtolower(trim($billStatus));
+
+        // PortaOne devuelve bill_status como código de una letra (O/B/C) en algunos
+        // métodos y como palabra completa en otros, según el servicio consultado.
+        if ($normalized === 'c') {
+            return true;
+        }
+
+        return str_contains($normalized, 'clos') || str_contains($normalized, 'terminat');
     }
 }

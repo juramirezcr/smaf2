@@ -1,9 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin\AccountReportController as AdminAccountReportController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\PlatformUserController;
-use App\Http\Controllers\Admin\PortaoneCustomerController as AdminPortaoneCustomerController;
 use App\Http\Controllers\Admin\PortaoneProductController;
 use App\Http\Controllers\Admin\PortaoneSettingController;
 use App\Http\Controllers\Admin\ReleaseController;
@@ -38,9 +36,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/clients/{client}/products', [PortaoneProductController::class, 'index'])->name('clients.products.index');
         Route::post('/clients/{client}/products/refresh', [PortaoneProductController::class, 'refresh'])->name('clients.products.refresh');
         Route::patch('/clients/{client}/products', [PortaoneProductController::class, 'update'])->name('clients.products.update');
-        Route::get('/clients/{client}/customers', [AdminPortaoneCustomerController::class, 'index'])->name('clients.customers.index');
-        Route::get('/clients/{client}/customers/{customer}', [AdminPortaoneCustomerController::class, 'show'])->name('clients.customers.show');
-        Route::get('/clients/{client}/accounts', [AdminAccountReportController::class, 'index'])->name('clients.accounts.index');
         Route::get('/portaone', [PortaoneSettingController::class, 'edit'])->name('portaone.edit');
         Route::patch('/portaone', [PortaoneSettingController::class, 'update'])->name('portaone.update');
         Route::get('/platform-users', [PlatformUserController::class, 'index'])->name('platform-users.index');
