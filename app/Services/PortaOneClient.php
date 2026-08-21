@@ -102,13 +102,23 @@ class PortaOneClient
     }
 
     /**
-     * Los errores de la API v2 llegan como una lista de objetos
-     * {code, title, detail}; usamos el primero para un mensaje legible.
+     * Los errores de la API v2 llegan normalmente como una lista de objetos
+     * {code, title, detail}. Si la respuesta no tiene esa forma (por ejemplo,
+     * un proxy devolviendo HTML), mostramos el código HTTP y un fragmento
+     * crudo del cuerpo para poder diagnosticar sin adivinar.
      */
     private function explainFailure(Response $response, string $fallback): string
     {
         $detail = $response->json('0.detail') ?? $response->json('detail');
 
-        return is_string($detail) && $detail !== '' ? "{$fallback} ({$detail})" : $fallback;
+        if (is_string($detail) && $detail !== '') {
+            return "{$fallback} ({$detail})";
+        }
+
+        $snippet = trim(preg_replace('/\s+/', ' ', substr($response->body(), 0, 200)) ?? '');
+
+        return $snippet !== ''
+            ? "{$fallback} (HTTP {$response->status()}: {$snippet})"
+            : "{$fallback} (HTTP {$response->status()}, sin cuerpo de respuesta)";
     }
 }
