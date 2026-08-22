@@ -159,7 +159,11 @@ class PortaOneClient
             $total = 0;
 
             foreach ($iAccounts as $iAccount) {
-                $extraParams = ['i_account' => (int) $iAccount];
+                $extraParams = [
+                    'i_account' => (int) $iAccount,
+                    // PortaOne exige to_date en tiempo de ejecución aunque el WSDL lo marque opcional.
+                    'to_date' => now()->format('Y-m-d\TH:i:s'),
+                ];
 
                 if ($fromDate !== null) {
                     $extraParams['from_date'] = $fromDate->format('Y-m-d\TH:i:s');
