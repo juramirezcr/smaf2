@@ -22,15 +22,15 @@ class CallRecordController extends Controller
         $clients = null;
         $clientId = $user->client_id;
         $showAll = false;
+        $clientNames = null;
 
         if ($isAdmin) {
             $clients = Client::query()->orderBy('name')->get(['id', 'name']);
             $selected = $request->input('client_id');
             $showAll = in_array($selected, [null, 'all'], true);
             $clientId = $showAll ? null : ((int) $selected ?: optional($clients->first())->id);
+            $clientNames = $clients->pluck('name', 'id');
         }
-
-        $clientNames = $showAll ? $clients->pluck('name', 'id') : null;
 
         $availableCustomers = PortaoneCustomer::query()
             ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))

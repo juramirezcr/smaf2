@@ -36,14 +36,19 @@ class PrefixResolver
     private static function loadPrefixCache(): void
     {
         self::$prefixCache = Cache::rememberForever('country_prefixes', function () {
-            return CountryPrefix::all()
-                ->keyBy('prefix')
-                ->map(fn ($item) => [
-                    'prefix' => $item->prefix,
-                    'country_code' => $item->country_code,
-                    'country_name' => $item->country_name,
-                ])
-                ->toArray();
+            try {
+                return CountryPrefix::all()
+                    ->keyBy('prefix')
+                    ->map(fn ($item) => [
+                        'prefix' => $item->prefix,
+                        'country_code' => $item->country_code,
+                        'country_name' => $item->country_name,
+                    ])
+                    ->toArray();
+            } catch (\Exception $e) {
+                // If table doesn't exist yet, return empty cache
+                return [];
+            }
         });
     }
 
