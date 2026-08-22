@@ -58,6 +58,24 @@ export default function CallsIndex({
     const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5000); // 5 segundos
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+    const [collapsedSubGroups, setCollapsedSubGroups] = useState<Set<string>>(new Set());
+
+    const toggleGroup = (key: string) => {
+        setCollapsedGroups((prev) => {
+            const next = new Set(prev);
+            next.has(key) ? next.delete(key) : next.add(key);
+            return next;
+        });
+    };
+
+    const toggleSubGroup = (key: string) => {
+        setCollapsedSubGroups((prev) => {
+            const next = new Set(prev);
+            next.has(key) ? next.delete(key) : next.add(key);
+            return next;
+        });
+    };
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -290,23 +308,78 @@ export default function CallsIndex({
                                 ) : groupBy === 'customer+account' ? (
                                     // Agrupado por Customer + Account
                                     <div className="divide-y divide-gray-200">
-                                        {Object.entries(groupedCalls).map(([customer, groupData]) => (
-                                            <div key={customer} className="border-t">
-                                                <div className="bg-blue-50 px-6 py-3 font-semibold text-gray-800">
-                                                    {customer}
-                                                    <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                        {Object.entries(groupedCalls).map(([customer, groupData]) => {
+                                            const isCollapsed = collapsedGroups.has(customer);
+                                            return (
+                                                <div key={customer} className="border-t">
+                                                    <button
+                                                        onClick={() => toggleGroup(customer)}
+                                                        className="w-full flex items-center gap-2 bg-blue-50 px-6 py-3 font-semibold text-gray-800 hover:bg-blue-100 transition-colors text-left"
+                                                    >
+                                                        <span className={`inline-block transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>▼</span>
+                                                        {customer}
+                                                        <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                                    </button>
+                                                    {!isCollapsed && Object.entries(groupData.subGroups || {}).map(([account, calls]) => {
+                                                        const subKey = `${customer}::${account}`;
+                                                        const isSubCollapsed = collapsedSubGroups.has(subKey);
+                                                        return (
+                                                            <div key={account}>
+                                                                <button
+                                                                    onClick={() => toggleSubGroup(subKey)}
+                                                                    className="w-full flex items-center gap-2 bg-indigo-50 px-8 py-2 text-sm font-medium text-gray-700 border-l-4 border-indigo-400 hover:bg-indigo-100 transition-colors text-left"
+                                                                >
+                                                                    <span className={`inline-block transition-transform text-xs ${isSubCollapsed ? '-rotate-90' : ''}`}>▼</span>
+                                                                    Account: {account}
+                                                                    <span className="ml-2 text-xs font-normal text-gray-600">({calls.length})</span>
+                                                                </button>
+                                                                {!isSubCollapsed && (
+                                                                    <table className="min-w-full text-sm">
+                                                                        <tbody className="divide-y divide-gray-200">
+                                                                            {calls.map((call) => (
+                                                                                <tr key={call.id} className="hover:bg-gray-50">
+                                                                                    {showingAll && <td className="px-6 py-4 text-gray-600 text-xs">{call.clientName ?? '—'}</td>}
+                                                                                    <td className="px-6 py-4">{call.cli ?? '—'}</td>
+                                                                                    <td className="px-6 py-4">{call.cld ?? '—'}</td>
+                                                                                    <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
+                                                                                    <td className="px-6 py-4 text-sm">{call.prefixCountry ?? call.country ?? '—'}</td>
+                                                                                    <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
+                                                                                    <td className="px-6 py-4 text-right font-semibold text-emerald-600">{call.durationSeconds}</td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                                {Object.entries(groupData.subGroups || {}).map(([account, calls]) => (
-                                                    <div key={account}>
-                                                        <div className="bg-indigo-50 px-8 py-2 text-sm font-medium text-gray-700 border-l-4 border-indigo-400">
-                                                            Account: {account}
-                                                            <span className="ml-2 text-xs font-normal text-gray-600">({calls.length})</span>
-                                                        </div>
-                                                        <table className="min-w-full text-sm">
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    // Agrupado por Client, Customer o Account
+                                    <div className="divide-y divide-gray-200">
+                                        {Object.entries(groupedCalls).map(([groupName, groupData]) => {
+                                            const isCollapsed = collapsedGroups.has(groupName);
+                                            return (
+                                                <div key={groupName} className="border-t">
+                                                    <button
+                                                        onClick={() => toggleGroup(groupName)}
+                                                        className="w-full flex items-center gap-2 bg-blue-50 px-6 py-3 font-semibold text-gray-800 hover:bg-blue-100 transition-colors text-left"
+                                                    >
+                                                        <span className={`inline-block transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>▼</span>
+                                                        {groupBy === 'client' ? 'Cliente' : groupBy === 'customer' ? 'Customer' : 'Account'}: {groupName}
+                                                        <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                                    </button>
+                                                    {!isCollapsed && (
+                                                        <table className="min-w-full text-sm w-full">
                                                             <tbody className="divide-y divide-gray-200">
-                                                                {calls.map((call) => (
+                                                                {groupData.calls.map((call) => (
                                                                     <tr key={call.id} className="hover:bg-gray-50">
-                                                                        {showingAll && <td className="px-6 py-4 text-gray-600 text-xs">{call.clientName ?? '—'}</td>}
+                                                                        {showingAll && groupBy !== 'client' && <td className="px-6 py-4 text-gray-600 text-xs">{call.clientName ?? '—'}</td>}
+                                                                        {groupBy === 'customer' && <td className="px-6 py-4 text-sm text-gray-600 font-mono">{call.accountId ?? '—'}</td>}
+                                                                        {groupBy === 'account' && <td className="px-6 py-4 text-sm text-gray-600"><button onClick={() => applyFilters({ customer: [...new Set([...selectedCustomers, call.customerName || ''])] })} className="text-indigo-600 hover:underline">{call.customerName ?? '—'}</button></td>}
                                                                         <td className="px-6 py-4">{call.cli ?? '—'}</td>
                                                                         <td className="px-6 py-4">{call.cld ?? '—'}</td>
                                                                         <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
@@ -317,39 +390,10 @@ export default function CallsIndex({
                                                                 ))}
                                                             </tbody>
                                                         </table>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    // Agrupado por Client, Customer o Account
-                                    <div className="divide-y divide-gray-200">
-                                        {Object.entries(groupedCalls).map(([groupName, groupData]) => (
-                                            <div key={groupName} className="border-t">
-                                                <div className="bg-blue-50 px-6 py-3 font-semibold text-gray-800">
-                                                    {groupBy === 'client' ? 'Cliente' : groupBy === 'customer' ? 'Customer' : 'Account'}: {groupName}
-                                                    <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                                    )}
                                                 </div>
-                                                <table className="min-w-full text-sm w-full">
-                                                    <tbody className="divide-y divide-gray-200">
-                                                        {groupData.calls.map((call) => (
-                                                            <tr key={call.id} className="hover:bg-gray-50">
-                                                                {showingAll && groupBy !== 'client' && <td className="px-6 py-4 text-gray-600 text-xs">{call.clientName ?? '—'}</td>}
-                                                                {groupBy === 'customer' && <td className="px-6 py-4 text-sm text-gray-600 font-mono">{call.accountId ?? '—'}</td>}
-                                                                {groupBy === 'account' && <td className="px-6 py-4 text-sm text-gray-600"><button onClick={() => applyFilters({ customer: [...new Set([...selectedCustomers, call.customerName || ''])] })} className="text-indigo-600 hover:underline">{call.customerName ?? '—'}</button></td>}
-                                                                <td className="px-6 py-4">{call.cli ?? '—'}</td>
-                                                                <td className="px-6 py-4">{call.cld ?? '—'}</td>
-                                                                <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
-                                                                <td className="px-6 py-4 text-sm">{call.prefixCountry ?? call.country ?? '—'}</td>
-                                                                <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
-                                                                <td className="px-6 py-4 text-right font-semibold text-emerald-600">{call.durationSeconds}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
