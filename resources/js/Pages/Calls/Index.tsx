@@ -131,15 +131,6 @@ export default function CallsIndex({
             }, {} as GroupedCalls);
         }
 
-        if (type === 'customer') {
-            return calls.reduce((acc, call) => {
-                const key = call.customerName || 'Sin customer';
-                if (!acc[key]) acc[key] = { calls: [] };
-                acc[key].calls.push(call);
-                return acc;
-            }, {} as GroupedCalls);
-        }
-
         if (type === 'account') {
             return calls.reduce((acc, call) => {
                 const key = call.accountId || 'Sin account';
@@ -149,7 +140,7 @@ export default function CallsIndex({
             }, {} as GroupedCalls);
         }
 
-        if (type === 'customer+account') {
+        if (type === 'customer' || type === 'customer+account') {
             return calls.reduce((acc, call) => {
                 const customerKey = call.customerName || 'Sin customer';
                 const accountKey = call.accountId || 'Sin account';
@@ -326,8 +317,8 @@ export default function CallsIndex({
                                             ))}
                                         </tbody>
                                     </table>
-                                ) : groupBy === 'customer+account' ? (
-                                    // Agrupado por Customer + Account
+                                ) : groupBy === 'customer' || groupBy === 'customer+account' ? (
+                                    // Agrupado por Customer (con sub-grupo por Account)
                                     <div className="divide-y divide-gray-200">
                                         {Object.entries(groupedCalls).map(([customer, groupData]) => {
                                             const isCollapsed = !expandedGroups.has(customer);
@@ -381,11 +372,10 @@ export default function CallsIndex({
                                         })}
                                     </div>
                                 ) : (
-                                    // Agrupado por Client, Customer o Account
+                                    // Agrupado por Client o Account
                                     <div className="divide-y divide-gray-200">
                                         {Object.entries(groupedCalls).map(([groupName, groupData]) => {
                                             const isCollapsed = !expandedGroups.has(groupName);
-                                            const history = groupBy === 'customer' ? customerCallHistory[groupName] : undefined;
                                             return (
                                                 <div key={groupName} className="border-t">
                                                     <button
@@ -393,9 +383,8 @@ export default function CallsIndex({
                                                         className="w-full flex items-center gap-2 bg-blue-50 px-6 py-3 font-semibold text-gray-800 hover:bg-blue-100 transition-colors text-left"
                                                     >
                                                         <span className={`inline-block transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>▼</span>
-                                                        {groupBy === 'client' ? 'Cliente' : groupBy === 'customer' ? 'Customer' : 'Account'}: {groupName}
+                                                        {groupBy === 'client' ? 'Cliente' : 'Account'}: {groupName}
                                                         <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
-                                                        {history && <Sparkline data={history} />}
                                                     </button>
                                                     {!isCollapsed && (
                                                         <table className="min-w-full text-sm w-full">
@@ -403,7 +392,6 @@ export default function CallsIndex({
                                                                 {groupData.calls.map((call) => (
                                                                     <tr key={call.id} className="hover:bg-gray-50">
                                                                         {showingAll && groupBy !== 'client' && <td className="px-6 py-4 text-gray-600 text-xs">{call.clientName ?? '—'}</td>}
-                                                                        {groupBy === 'customer' && <td className="px-6 py-4 text-sm text-gray-600 font-mono">{call.accountId ?? '—'}</td>}
                                                                         {groupBy === 'account' && <td className="px-6 py-4 text-sm text-gray-600"><button onClick={() => applyFilters({ customer: [...new Set([...selectedCustomers, call.customerName || ''])] })} className="text-indigo-600 hover:underline">{call.customerName ?? '—'}</button></td>}
                                                                         <td className="px-6 py-4">{call.cli ?? '—'}</td>
                                                                         <td className="px-6 py-4">{call.cld ?? '—'}</td>
