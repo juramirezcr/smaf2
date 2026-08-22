@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\CallRecord;
 use App\Models\Client;
+use App\Models\PortaoneAccount;
 use App\Models\PortaoneActiveSession;
+use App\Models\PortaoneCustomer;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,14 +25,37 @@ class CallRecordController extends Controller
         if ($isAdmin) {
             $clients = Client::query()->orderBy('name')->get(['id', 'name']);
             $selected = $request->input('client_id');
-            $showAll = $selected === 'all';
+            $showAll = in_array($selected, [null, 'all'], true);
             $clientId = $showAll ? null : ((int) $selected ?: optional($clients->first())->id);
         }
 
         $clientNames = $showAll ? $clients->pluck('name', 'id') : null;
 
+        $availableCustomers = PortaoneCustomer::query()
+            ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
+            ->active()
+            ->orderBy('name')
+            ->pluck('name')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $availableAccounts = PortaoneAccount::query()
+            ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
+            ->active()
+            ->orderBy('account_id')
+            ->pluck('account_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $selectedCustomers = array_values(array_filter((array) $request->input('customer', [])));
+        $selectedAccounts = array_values(array_filter((array) $request->input('account', [])));
+
         $activeCalls = PortaoneActiveSession::query()
             ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
+            ->when($selectedCustomers !== [], fn ($query) => $query->whereIn('customer_name', $selectedCustomers))
+            ->when($selectedAccounts !== [], fn ($query) => $query->whereIn('account_id', $selectedAccounts))
             ->active()
             ->orderByDesc('connect_time')
             ->get(['id', 'client_id', 'customer_name', 'account_id', 'cli', 'cld', 'country', 'connect_time', 'duration_seconds'])
@@ -50,9 +75,15 @@ class CallRecordController extends Controller
             'client' => $showAll ? null : Client::find($clientId)?->name,
             'clients' => $clients,
             'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
+            'availableCustomers' => $availableCustomers,
+            'availableAccounts' => $availableAccounts,
+            'selectedCustomers' => $selectedCustomers,
+            'selectedAccounts' => $selectedAccounts,
             'activeCalls' => $activeCalls,
             'calls' => CallRecord::query()
                 ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
+                ->when($selectedCustomers !== [], fn ($query) => $query->whereIn('customer', $selectedCustomers))
+                ->when($selectedAccounts !== [], fn ($query) => $query->whereIn('account', $selectedAccounts))
                 ->latest('connected_at')
                 ->paginate(25)
                 ->withQueryString()

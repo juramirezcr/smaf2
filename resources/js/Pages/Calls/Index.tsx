@@ -1,3 +1,4 @@
+import CheckboxMultiSelect from '@/Components/CheckboxMultiSelect';
 import Pagination from '@/Components/Pagination';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
@@ -43,6 +44,10 @@ interface CallsProps {
     client: string | null;
     clients?: ClientOption[] | null;
     selectedClientId?: number | 'all' | null;
+    availableCustomers: string[];
+    availableAccounts: string[];
+    selectedCustomers: string[];
+    selectedAccounts: string[];
     activeCalls: ActiveCall[];
     calls: {
         data: Call[];
@@ -50,11 +55,30 @@ interface CallsProps {
     };
 }
 
-export default function CallsIndex({ client, clients, selectedClientId, activeCalls, calls }: CallsProps) {
+export default function CallsIndex({
+    client,
+    clients,
+    selectedClientId,
+    availableCustomers,
+    availableAccounts,
+    selectedCustomers,
+    selectedAccounts,
+    activeCalls,
+    calls,
+}: CallsProps) {
     const showingAll = selectedClientId === 'all';
 
+    const applyFilters = (overrides: Record<string, unknown>) => {
+        router.get('/calls', {
+            client_id: selectedClientId ?? undefined,
+            customer: selectedCustomers,
+            account: selectedAccounts,
+            ...overrides,
+        }, { preserveState: true });
+    };
+
     const changeClient = (clientId: string) => {
-        router.get('/calls', { client_id: clientId }, { preserveState: true });
+        applyFilters({ client_id: clientId });
     };
 
     return (
@@ -62,8 +86,8 @@ export default function CallsIndex({ client, clients, selectedClientId, activeCa
             <Head title="Llamadas" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    {clients && (
-                        <div className="mb-4">
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                        {clients && (
                             <select
                                 value={selectedClientId ?? ''}
                                 onChange={(event) => changeClient(event.target.value)}
@@ -74,8 +98,20 @@ export default function CallsIndex({ client, clients, selectedClientId, activeCa
                                     <option key={option.id} value={option.id}>{option.name}</option>
                                 ))}
                             </select>
-                        </div>
-                    )}
+                        )}
+                        <CheckboxMultiSelect
+                            label="Customer"
+                            options={availableCustomers}
+                            selected={selectedCustomers}
+                            onChange={(customer) => applyFilters({ customer })}
+                        />
+                        <CheckboxMultiSelect
+                            label="Accounts"
+                            options={availableAccounts}
+                            selected={selectedAccounts}
+                            onChange={(account) => applyFilters({ account })}
+                        />
+                    </div>
 
                     {activeCalls.length > 0 && (
                         <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-emerald-200">

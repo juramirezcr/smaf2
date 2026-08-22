@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 
 interface PrefixStat {
+    client_name: string | null;
     country_code: string | null;
     prefix: string | null;
     calls: number;
@@ -25,11 +26,7 @@ interface AccountStat {
 }
 
 interface DashboardProps {
-    metrics: {
-        callsToday: number;
-        activeRules: number;
-        processingBatches: number;
-    };
+    period: string;
     prefixStats: PrefixStat[];
     destinationStats: DestinationStat[];
     accountStats: AccountStat[];
@@ -56,31 +53,47 @@ function Card({ color, title, icon, href, children }: { color: string; title: st
     );
 }
 
-export default function Dashboard({ metrics, prefixStats, destinationStats, accountStats, alertCounts, recentRuns }: DashboardProps) {
+export default function Dashboard({ period, prefixStats, destinationStats, accountStats, alertCounts, recentRuns }: DashboardProps) {
+    const handlePeriodChange = (newPeriod: string) => {
+        router.get(route('dashboard'), { period: newPeriod }, { preserveState: true });
+    };
+
+    const periodLabels: Record<string, string> = {
+        '1h': 'Última hora',
+        '6h': 'Últimas 6 horas',
+        '24h': 'Últimas 24 horas',
+        '7d': 'Últimos 7 días',
+        '30d': 'Último mes',
+    };
+
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">SMAF 2</h2>}>
             <Head title="Dashboard" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="grid gap-4 md:grid-cols-3">
-                        {[
-                            ['Llamadas hoy', metrics.callsToday],
-                            ['Reglas activas', metrics.activeRules],
-                            ['Lotes en proceso', metrics.processingBatches],
-                        ].map(([label, value]) => (
-                            <div key={String(label)} className="rounded-lg bg-white p-6 shadow-sm">
-                                <p className="text-sm text-gray-500">{label}</p>
-                                <p className="mt-2 text-3xl font-semibold text-gray-900">{value}</p>
-                            </div>
+                    <div className="mb-6 flex gap-2">
+                        {Object.entries(periodLabels).map(([value, label]) => (
+                            <button
+                                key={value}
+                                onClick={() => handlePeriodChange(value)}
+                                className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                                    period === value
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                }`}
+                            >
+                                {label}
+                            </button>
                         ))}
                     </div>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-100 text-xs uppercase text-gray-500">
                                     <tr>
+                                        {prefixStats.some(s => s.client_name) && <th className="px-4 py-2 text-left">Cliente</th>}
                                         <th className="px-4 py-2 text-left">País</th>
                                         <th className="px-4 py-2 text-left">Prefijo</th>
                                         <th className="px-4 py-2 text-right">Llamadas</th>
@@ -89,9 +102,10 @@ export default function Dashboard({ metrics, prefixStats, destinationStats, acco
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {prefixStats.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas hoy.</td></tr>
+                                        <tr><td colSpan={prefixStats.some(s => s.client_name) ? 5 : 4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
                                     ) : prefixStats.map((row, index) => (
                                         <tr key={index}>
+                                            {prefixStats.some(s => s.client_name) && <td className="px-4 py-2">{row.client_name ?? '—'}</td>}
                                             <td className="px-4 py-2">{row.country_code ?? '—'}</td>
                                             <td className="px-4 py-2">{row.prefix ?? '—'}</td>
                                             <td className="px-4 py-2 text-right">{row.calls}</td>
@@ -124,7 +138,7 @@ export default function Dashboard({ metrics, prefixStats, destinationStats, acco
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {destinationStats.length === 0 ? (
-                                        <tr><td colSpan={6} className="px-4 py-3 text-gray-500">Sin llamadas hoy.</td></tr>
+                                        <tr><td colSpan={6} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
                                     ) : destinationStats.map((row, index) => (
                                         <tr key={index}>
                                             <td className="px-4 py-2">{row.customer ?? '—'}</td>
@@ -151,7 +165,7 @@ export default function Dashboard({ metrics, prefixStats, destinationStats, acco
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {accountStats.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas hoy.</td></tr>
+                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
                                     ) : accountStats.map((row, index) => (
                                         <tr key={index}>
                                             <td className="px-4 py-2">{row.customer ?? '—'}</td>

@@ -24,7 +24,7 @@ class AccountReportController extends Controller
         if ($isAdmin) {
             $clients = Client::query()->orderBy('name')->get(['id', 'name']);
             $selected = $request->input('client_id');
-            $showAll = $selected === 'all';
+            $showAll = in_array($selected, [null, 'all'], true);
             $clientId = $showAll ? null : ((int) $selected ?: optional($clients->first())->id);
         }
 
