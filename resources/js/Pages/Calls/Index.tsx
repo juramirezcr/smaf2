@@ -136,8 +136,26 @@ export default function CallsIndex({
                                         {activeCalls.map((call) => (
                                             <tr key={call.id}>
                                                 {showingAll && <td className="px-6 py-4">{call.clientName ?? '—'}</td>}
-                                                <td className="px-6 py-4">{call.customerName ?? '—'}</td>
-                                                <td className="px-6 py-4">{call.accountId ?? '—'}</td>
+                                                <td className="px-6 py-4">
+                                                    {call.customerName ? (
+                                                        <button
+                                                            onClick={() => applyFilters({ customer: selectedCustomers.includes(call.customerName!) ? selectedCustomers.filter(c => c !== call.customerName) : [...selectedCustomers, call.customerName!] })}
+                                                            className="text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                        >
+                                                            {call.customerName}
+                                                        </button>
+                                                    ) : '—'}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {call.accountId ? (
+                                                        <button
+                                                            onClick={() => applyFilters({ account: selectedAccounts.includes(call.accountId!) ? selectedAccounts.filter(a => a !== call.accountId) : [...selectedAccounts, call.accountId!] })}
+                                                            className="text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                        >
+                                                            {call.accountId}
+                                                        </button>
+                                                    ) : '—'}
+                                                </td>
                                                 <td className="px-6 py-4">{call.cli ?? '—'}</td>
                                                 <td className="px-6 py-4">{call.cld ?? '—'}</td>
                                                 <td className="px-6 py-4">{call.country ?? '—'}</td>
@@ -178,8 +196,26 @@ export default function CallsIndex({
                                         <tr key={call.id}>
                                             <td className="px-6 py-4">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectedAt))}</td>
                                             <td className="px-6 py-4">{(showingAll ? call.clientName : client) ?? '—'}</td>
-                                            <td className="px-6 py-4">{call.customer ?? '—'}</td>
-                                            <td className="px-6 py-4">{call.account ?? '—'}</td>
+                                            <td className="px-6 py-4">
+                                                {call.customer ? (
+                                                    <button
+                                                        onClick={() => applyFilters({ customer: selectedCustomers.includes(call.customer!) ? selectedCustomers.filter(c => c !== call.customer) : [...selectedCustomers, call.customer!] })}
+                                                        className="text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                    >
+                                                        {call.customer}
+                                                    </button>
+                                                ) : '—'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {call.account ? (
+                                                    <button
+                                                        onClick={() => applyFilters({ account: selectedAccounts.includes(call.account!) ? selectedAccounts.filter(a => a !== call.account) : [...selectedAccounts, call.account!] })}
+                                                        className="text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                    >
+                                                        {call.account}
+                                                    </button>
+                                                ) : '—'}
+                                            </td>
                                             <td className="px-6 py-4">{call.origin ?? '—'}</td>
                                             <td className="px-6 py-4">{call.destination ?? '—'}</td>
                                             <td className="px-6 py-4">{call.countryCode ?? '—'}</td>
