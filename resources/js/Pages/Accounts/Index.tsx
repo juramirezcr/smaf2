@@ -11,6 +11,7 @@ interface AccountRow {
     customer_name: string | null;
     product_name: string | null;
     bill_status: string | null;
+    client_name?: string | null;
 }
 
 interface PaginationLink {
@@ -28,7 +29,7 @@ interface AccountsProps {
     client: string | null;
     search: string;
     clients?: ClientOption[] | null;
-    selectedClientId?: number | null;
+    selectedClientId?: number | 'all' | null;
     accounts: {
         data: AccountRow[];
         links: PaginationLink[];
@@ -37,6 +38,7 @@ interface AccountsProps {
 
 export default function AccountsIndex({ client, search, clients, selectedClientId, accounts }: AccountsProps) {
     const [query, setQuery] = useState(search);
+    const showingAll = selectedClientId === 'all';
 
     const changeClient = (clientId: string) => {
         router.get('/accounts', { client_id: clientId }, { preserveState: true });
@@ -44,7 +46,7 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
-        router.get('/accounts', { search: query, client_id: selectedClientId }, { preserveState: true });
+        router.get('/accounts', { search: query, client_id: selectedClientId ?? undefined }, { preserveState: true });
     };
 
     return (
@@ -59,6 +61,7 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
                                 onChange={(event) => changeClient(event.target.value)}
                                 className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
+                                <option value="all">Todos</option>
                                 {clients.map((option) => (
                                     <option key={option.id} value={option.id}>{option.name}</option>
                                 ))}
@@ -94,7 +97,7 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
                                     </tr>
                                 ) : accounts.data.map((row) => (
                                     <tr key={row.id}>
-                                        <td className="px-6 py-4">{client ?? '—'}</td>
+                                        <td className="px-6 py-4">{(showingAll ? row.client_name : client) ?? '—'}</td>
                                         <td className="px-6 py-4">{row.customer_name ?? '—'}</td>
                                         <td className="px-6 py-4">{row.account_id ?? '—'}</td>
                                         <td className="px-6 py-4">{row.product_name ?? '—'}</td>

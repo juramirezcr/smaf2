@@ -19,10 +19,13 @@ class PortaoneAccountController extends Controller
 
         $clients = null;
         $clientId = $user->client_id;
+        $showAll = false;
 
         if ($isAdmin) {
             $clients = Client::query()->orderBy('name')->get(['id', 'name']);
-            $clientId = $request->integer('client_id') ?: optional($clients->first())->id;
+            $selected = $request->input('client_id');
+            $showAll = $selected === 'all';
+            $clientId = $showAll ? null : ((int) $selected ?: optional($clients->first())->id);
         }
 
         $accountsCount = PortaoneAccount::query()
@@ -32,7 +35,7 @@ class PortaoneAccountController extends Controller
             ->active();
 
         $customers = PortaoneCustomer::query()
-            ->where('client_id', $clientId)
+            ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
             ->active()
             ->when($request->string('search')->toString(), function (Builder $query, string $search) {
                 $query->where(function (Builder $query) use ($search) {
@@ -45,12 +48,21 @@ class PortaoneAccountController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        if ($showAll) {
+            $clientNames = $clients->pluck('name', 'id');
+            $customers->getCollection()->transform(function (PortaoneCustomer $customer) use ($clientNames) {
+                $customer->client_name = $clientNames->get($customer->client_id);
+
+                return $customer;
+            });
+        }
+
         return Inertia::render('Accounts/Customers', [
             'customers' => $customers,
             'search' => $request->string('search')->toString(),
             'basePath' => '/portaone-customers',
             'clients' => $clients,
-            'selectedClientId' => $isAdmin ? $clientId : null,
+            'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
         ]);
     }
 

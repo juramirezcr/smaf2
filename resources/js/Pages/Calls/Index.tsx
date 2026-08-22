@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/react';
 
 interface Call {
     id: number;
+    clientName?: string | null;
     customer: string | null;
     account: string | null;
     origin: string | null;
@@ -29,7 +30,7 @@ interface ClientOption {
 interface CallsProps {
     client: string | null;
     clients?: ClientOption[] | null;
-    selectedClientId?: number | null;
+    selectedClientId?: number | 'all' | null;
     calls: {
         data: Call[];
         links: PaginationLink[];
@@ -37,6 +38,8 @@ interface CallsProps {
 }
 
 export default function CallsIndex({ client, clients, selectedClientId, calls }: CallsProps) {
+    const showingAll = selectedClientId === 'all';
+
     const changeClient = (clientId: string) => {
         router.get('/calls', { client_id: clientId }, { preserveState: true });
     };
@@ -53,6 +56,7 @@ export default function CallsIndex({ client, clients, selectedClientId, calls }:
                                 onChange={(event) => changeClient(event.target.value)}
                                 className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
+                                <option value="all">Todos</option>
                                 {clients.map((option) => (
                                     <option key={option.id} value={option.id}>{option.name}</option>
                                 ))}
@@ -82,7 +86,7 @@ export default function CallsIndex({ client, clients, selectedClientId, calls }:
                                     ) : calls.data.map((call) => (
                                         <tr key={call.id}>
                                             <td className="px-6 py-4">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectedAt))}</td>
-                                            <td className="px-6 py-4">{client ?? '—'}</td>
+                                            <td className="px-6 py-4">{(showingAll ? call.clientName : client) ?? '—'}</td>
                                             <td className="px-6 py-4">{call.customer ?? '—'}</td>
                                             <td className="px-6 py-4">{call.account ?? '—'}</td>
                                             <td className="px-6 py-4">{call.origin ?? '—'}</td>

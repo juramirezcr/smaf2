@@ -12,6 +12,7 @@ export interface PrefixRule {
     lastEvaluatedAt: string | null;
     createdAt: string;
     updatedAt: string;
+    clientName?: string | null;
 }
 
 export interface Paginated<T> {

@@ -19,14 +19,17 @@ class AccountReportController extends Controller
 
         $clients = null;
         $clientId = $user->client_id;
+        $showAll = false;
 
         if ($isAdmin) {
             $clients = Client::query()->orderBy('name')->get(['id', 'name']);
-            $clientId = $request->integer('client_id') ?: optional($clients->first())->id;
+            $selected = $request->input('client_id');
+            $showAll = $selected === 'all';
+            $clientId = $showAll ? null : ((int) $selected ?: optional($clients->first())->id);
         }
 
         $accounts = PortaoneAccount::query()
-            ->where('client_id', $clientId)
+            ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
             ->active()
             ->when($request->string('search')->toString(), function (Builder $query, string $search) {
                 $query->where(function (Builder $query) use ($search) {
@@ -39,22 +42,31 @@ class AccountReportController extends Controller
             ->withQueryString();
 
         $customerNames = PortaoneCustomer::query()
-            ->where('client_id', $clientId)
+            ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
             ->whereIn('i_customer', $accounts->getCollection()->pluck('i_customer')->filter()->unique())
-            ->pluck('name', 'i_customer');
+            ->get(['i_customer', 'client_id', 'name'])
+            ->keyBy(fn (PortaoneCustomer $customer) => $customer->client_id.':'.$customer->i_customer);
 
-        $accounts->getCollection()->transform(function (PortaoneAccount $account) use ($customerNames) {
-            $account->customer_name = $account->i_customer ? $customerNames->get($account->i_customer) : null;
+        $clientNames = $showAll ? $clients->pluck('name', 'id') : null;
+
+        $accounts->getCollection()->transform(function (PortaoneAccount $account) use ($customerNames, $clientNames) {
+            $account->customer_name = $account->i_customer
+                ? $customerNames->get($account->client_id.':'.$account->i_customer)?->name
+                : null;
+
+            if ($clientNames !== null) {
+                $account->client_name = $clientNames->get($account->client_id);
+            }
 
             return $account;
         });
 
         return Inertia::render('Accounts/Index', [
-            'client' => Client::find($clientId)?->name,
+            'client' => $showAll ? null : Client::find($clientId)?->name,
             'search' => $request->string('search')->toString(),
             'accounts' => $accounts,
             'clients' => $clients,
-            'selectedClientId' => $isAdmin ? $clientId : null,
+            'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
         ]);
     }
 }

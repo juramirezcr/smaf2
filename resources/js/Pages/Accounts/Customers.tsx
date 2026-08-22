@@ -12,6 +12,7 @@ interface CustomerRow {
     email: string | null;
     bill_status: string | null;
     accounts_count: number;
+    client_name?: string | null;
 }
 
 interface PaginationLink {
@@ -33,15 +34,16 @@ interface CustomersProps {
     search: string;
     basePath: string;
     clients?: ClientOption[] | null;
-    selectedClientId?: number | null;
+    selectedClientId?: number | 'all' | null;
 }
 
 export default function Customers({ customers, search, basePath, clients, selectedClientId }: CustomersProps) {
     const [query, setQuery] = useState(search);
+    const showingAll = selectedClientId === 'all';
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
-        router.get(basePath, { search: query, client_id: selectedClientId }, { preserveState: true });
+        router.get(basePath, { search: query, client_id: selectedClientId ?? undefined }, { preserveState: true });
     };
 
     const changeClient = (clientId: string) => {
@@ -60,6 +62,7 @@ export default function Customers({ customers, search, basePath, clients, select
                                 onChange={(event) => changeClient(event.target.value)}
                                 className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
+                                <option value="all">Todos</option>
                                 {clients.map((client) => (
                                     <option key={client.id} value={client.id}>{client.name}</option>
                                 ))}
@@ -79,6 +82,7 @@ export default function Customers({ customers, search, basePath, clients, select
                         <table className="min-w-full divide-y divide-gray-200 text-sm">
                             <thead className="bg-gray-50 text-left text-gray-500">
                                 <tr>
+                                    {showingAll && <th className="px-6 py-3">Cliente (interno del sistema)</th>}
                                     <th className="px-6 py-3">Customer</th>
                                     <th className="px-6 py-3">Empresa</th>
                                     <th className="px-6 py-3">Email</th>
@@ -88,9 +92,10 @@ export default function Customers({ customers, search, basePath, clients, select
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {customers.data.length === 0 ? (
-                                    <tr><td colSpan={5} className="px-6 py-4 text-gray-500">Aún no hay customers sincronizados.</td></tr>
+                                    <tr><td colSpan={showingAll ? 6 : 5} className="px-6 py-4 text-gray-500">Aún no hay customers sincronizados.</td></tr>
                                 ) : customers.data.map((customer) => (
                                     <tr key={customer.id}>
+                                        {showingAll && <td className="px-6 py-4">{customer.client_name ?? '—'}</td>}
                                         <td className="px-6 py-4">
                                             <Link href={`${basePath}/${customer.id}`} className="font-medium text-indigo-600 hover:text-indigo-900">
                                                 {customer.name ?? '—'}

@@ -21,22 +21,43 @@ class PrefixRuleController extends Controller
 
         $clients = null;
         $clientId = $user->client_id;
+        $showAll = false;
 
         if ($isAdmin) {
             $clients = Client::query()->orderBy('name')->get(['id', 'name']);
-            $clientId = $request->integer('client_id') ?: optional($clients->first())->id;
+            $selected = $request->input('client_id');
+            $showAll = $selected === 'all';
+            $clientId = $showAll ? null : ((int) $selected ?: optional($clients->first())->id);
         }
+
+        $clientNames = $showAll ? $clients->pluck('name', 'id') : null;
+
+        $availableCountries = MonitoringRule::query()
+            ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
+            ->where('scope', 'prefix')
+            ->whereNotNull('country')
+            ->distinct()
+            ->orderBy('country')
+            ->pluck('country');
+
+        $selectedCountries = array_values(array_filter((array) $request->input('country', [])));
 
         return Inertia::render('Prefixes/Index', [
             'rules' => MonitoringRule::query()
-                ->where('client_id', $clientId)
+                ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
                 ->where('scope', 'prefix')
+                ->when($selectedCountries !== [], fn (Builder $query) => $query->whereIn('country', $selectedCountries))
                 ->orderByRaw('CAST(match_value AS UNSIGNED) asc')
                 ->paginate(10)
                 ->withQueryString()
-                ->through(fn (MonitoringRule $rule) => $this->ruleData($rule)),
+                ->through(fn (MonitoringRule $rule) => [
+                    ...$this->ruleData($rule),
+                    'clientName' => $clientNames?->get($rule->client_id),
+                ]),
             'clients' => $clients,
-            'selectedClientId' => $isAdmin ? $clientId : null,
+            'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
+            'availableCountries' => $availableCountries,
+            'selectedCountries' => $selectedCountries,
         ]);
     }
 
