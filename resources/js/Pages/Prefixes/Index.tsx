@@ -1,9 +1,16 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import type { Paginated, PrefixRule } from './types';
+
+interface ClientOption {
+    id: number;
+    name: string;
+}
 
 interface PrefixesIndexProps {
     rules: Paginated<PrefixRule>;
+    clients?: ClientOption[] | null;
+    selectedClientId?: number | null;
 }
 
 function Scope({ rule }: { rule: PrefixRule }) {
@@ -19,7 +26,11 @@ function Scope({ rule }: { rule: PrefixRule }) {
     );
 }
 
-export default function PrefixesIndex({ rules }: PrefixesIndexProps) {
+export default function PrefixesIndex({ rules, clients, selectedClientId }: PrefixesIndexProps) {
+    const changeClient = (clientId: string) => {
+        router.get(route('prefixes.index'), { client_id: clientId }, { preserveState: true });
+    };
+
     return (
         <AuthenticatedLayout
             header={
@@ -28,7 +39,7 @@ export default function PrefixesIndex({ rules }: PrefixesIndexProps) {
                         Reglas de prefijo
                     </h2>
                     <Link
-                        href={route('prefixes.create')}
+                        href={route('prefixes.create', { client_id: selectedClientId ?? undefined })}
                         className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         Nueva regla
@@ -50,6 +61,20 @@ export default function PrefixesIndex({ rules }: PrefixesIndexProps) {
                         </p>
                     </section>
 
+                    {clients && (
+                        <div>
+                            <select
+                                value={selectedClientId ?? ''}
+                                onChange={(event) => changeClient(event.target.value)}
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                {clients.map((client) => (
+                                    <option key={client.id} value={client.id}>{client.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <section className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                             <h2 className="font-semibold text-gray-900">
@@ -70,7 +95,7 @@ export default function PrefixesIndex({ rules }: PrefixesIndexProps) {
                                     monitoreo de destinos de alto riesgo.
                                 </p>
                                 <Link
-                                    href={route('prefixes.create')}
+                                    href={route('prefixes.create', { client_id: selectedClientId ?? undefined })}
                                     className="mt-5 inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
                                 >
                                     Crear regla
@@ -157,6 +182,7 @@ export default function PrefixesIndex({ rules }: PrefixesIndexProps) {
                                             <Link
                                                 href={route('prefixes.index', {
                                                     page: rules.current_page - 1,
+                                                    client_id: selectedClientId ?? undefined,
                                                 })}
                                                 className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                             >
@@ -172,6 +198,7 @@ export default function PrefixesIndex({ rules }: PrefixesIndexProps) {
                                             <Link
                                                 href={route('prefixes.index', {
                                                     page: rules.current_page + 1,
+                                                    client_id: selectedClientId ?? undefined,
                                                 })}
                                                 className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                             >

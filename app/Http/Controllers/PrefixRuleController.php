@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\CallRecord;
+use App\Models\Client;
 use App\Models\MonitoringRule;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,29 +16,62 @@ class PrefixRuleController extends Controller
 {
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        $isAdmin = $user->client_id === null;
+
+        $clients = null;
+        $clientId = $user->client_id;
+
+        if ($isAdmin) {
+            $clients = Client::query()->orderBy('name')->get(['id', 'name']);
+            $clientId = $request->integer('client_id') ?: optional($clients->first())->id;
+        }
+
         return Inertia::render('Prefixes/Index', [
             'rules' => MonitoringRule::query()
-                ->where('client_id', $request->user()->client_id)
+                ->where('client_id', $clientId)
                 ->where('scope', 'prefix')
                 ->latest()
                 ->paginate(10)
                 ->withQueryString()
                 ->through(fn (MonitoringRule $rule) => $this->ruleData($rule)),
+            'clients' => $clients,
+            'selectedClientId' => $isAdmin ? $clientId : null,
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Prefixes/Create');
+        $isAdmin = $request->user()->client_id === null;
+
+        return Inertia::render('Prefixes/Create', [
+            'clients' => $isAdmin ? Client::query()->orderBy('name')->get(['id', 'name']) : null,
+            'selectedClientId' => $isAdmin ? $request->integer('client_id') ?: null : null,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        $isAdmin = $user->client_id === null;
+
+        if ($isAdmin) {
+            $client = Client::query()->findOrFail($request->input('client_id'));
+            $targetUser = User::query()->where('client_id', $client->id)->orderBy('id')->first();
+            abort_if($targetUser === null, 422, 'El cliente seleccionado no tiene usuarios.');
+
+            $clientId = $client->id;
+            $userId = $targetUser->id;
+        } else {
+            $clientId = $user->client_id;
+            $userId = $user->id;
+        }
+
         $rule = MonitoringRule::create([
             ...$this->validatedRule($request),
             'scope' => 'prefix',
-            'user_id' => $request->user()->id,
-            'client_id' => $request->user()->client_id,
+            'user_id' => $userId,
+            'client_id' => $clientId,
         ]);
 
         return to_route('prefixes.show', $rule)
@@ -138,8 +173,10 @@ class PrefixRuleController extends Controller
 
     private function ownedPrefix(Request $request, MonitoringRule $prefix): MonitoringRule
     {
+        $userClientId = $request->user()->client_id;
+
         abort_unless(
-            $prefix->client_id === $request->user()->client_id && $prefix->scope === 'prefix',
+            ($userClientId === null || $prefix->client_id === $userClientId) && $prefix->scope === 'prefix',
             404,
         );
 

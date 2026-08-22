@@ -2,7 +2,17 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import RuleForm from './Partials/RuleForm';
 
-export default function CreatePrefixRule() {
+interface ClientOption {
+    id: number;
+    name: string;
+}
+
+interface CreatePrefixRuleProps {
+    clients?: ClientOption[] | null;
+    selectedClientId?: number | null;
+}
+
+export default function CreatePrefixRule({ clients, selectedClientId }: CreatePrefixRuleProps) {
     return (
         <AuthenticatedLayout
             header={
@@ -34,7 +44,7 @@ export default function CreatePrefixRule() {
                             </p>
                         </div>
                         <div className="pt-6">
-                            <RuleForm />
+                            <RuleForm clients={clients} initialClientId={selectedClientId} />
                         </div>
                     </div>
                 </div>

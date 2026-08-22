@@ -5,11 +5,19 @@ import { Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import type { PrefixRule } from '../types';
 
+interface ClientOption {
+    id: number;
+    name: string;
+}
+
 interface RuleFormProps {
     rule?: PrefixRule;
+    clients?: ClientOption[] | null;
+    initialClientId?: number | null;
 }
 
 interface RuleFormData {
+    client_id: number | string;
     prefix: string;
     country: string;
     description: string;
@@ -21,8 +29,9 @@ interface RuleFormData {
     enabled: boolean;
 }
 
-export default function RuleForm({ rule }: RuleFormProps) {
+export default function RuleForm({ rule, clients, initialClientId }: RuleFormProps) {
     const form = useForm<RuleFormData>({
+        client_id: initialClientId ?? clients?.[0]?.id ?? '',
         prefix: rule?.prefix ?? '',
         country: rule?.country ?? '',
         description: rule?.description ?? '',
@@ -47,6 +56,24 @@ export default function RuleForm({ rule }: RuleFormProps) {
 
     return (
         <form onSubmit={submit} className="space-y-8">
+            {clients && !rule && (
+                <div>
+                    <InputLabel htmlFor="client_id" value="Cliente (interno del sistema)" />
+                    <select
+                        id="client_id"
+                        value={form.data.client_id}
+                        onChange={(event) => form.setData('client_id', event.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        required
+                    >
+                        {clients.map((client) => (
+                            <option key={client.id} value={client.id}>{client.name}</option>
+                        ))}
+                    </select>
+                    <InputError message={form.errors.client_id} className="mt-2" />
+                </div>
+            )}
+
             <div className="grid gap-x-6 gap-y-5 md:grid-cols-2">
                 <div>
                     <InputLabel htmlFor="prefix" value="Prefijo" />
