@@ -74,6 +74,34 @@ class PortaOneClient
     }
 
     /**
+     * Fotografía actual de todas las llamadas en curso (BillingSessionAdminService).
+     * A diferencia de get_xdr_list, cada registro ya trae i_account/i_customer y la
+     * duración calculada; el call_id es la llave para luego correlacionar con el
+     * XDR una vez que la llamada finalice.
+     */
+    public function fetchActiveSessions(): array
+    {
+        $sessions = [];
+
+        $this->withSession(function (string $baseUrl, string $sessionId) use (&$sessions) {
+            $this->paginate(
+                $baseUrl,
+                'BillingSessionAdminService',
+                'get_active_sessions_list',
+                'active_session_list',
+                [],
+                $sessionId,
+                function (array $page) use (&$sessions) {
+                    $sessions = [...$sessions, ...$page];
+                },
+                200,
+            );
+        });
+
+        return $sessions;
+    }
+
+    /**
      * Sincroniza todos los customers del cliente, en lotes de PAGE_SIZE.
      * $onPage recibe cada lote para persistir sin mantener todo en
      * memoria; $onTotal recibe el total real (una sola vez, apenas se
