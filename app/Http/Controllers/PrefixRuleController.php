@@ -31,7 +31,7 @@ class PrefixRuleController extends Controller
             'rules' => MonitoringRule::query()
                 ->where('client_id', $clientId)
                 ->where('scope', 'prefix')
-                ->latest()
+                ->orderByRaw('CAST(match_value AS INTEGER) asc')
                 ->paginate(10)
                 ->withQueryString()
                 ->through(fn (MonitoringRule $rule) => $this->ruleData($rule)),

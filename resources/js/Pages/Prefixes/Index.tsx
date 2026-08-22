@@ -50,17 +50,6 @@ export default function PrefixesIndex({ rules, clients, selectedClientId }: Pref
             <Head title="Reglas de prefijo" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <section className="bg-white px-6 py-6 shadow-sm sm:rounded-lg">
-                        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-                            Monitoreo por prefijos
-                        </h1>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
-                            Define límites horarios de llamadas y minutos para un
-                            prefijo. Las acciones se conservan como configuración
-                            auditable; aún no se conectan a PortaOne.
-                        </p>
-                    </section>
-
                     {clients && (
                         <div>
                             <select
