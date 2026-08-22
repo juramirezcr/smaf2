@@ -14,6 +14,7 @@ interface PrefixesIndexProps {
     selectedClientId?: number | 'all' | null;
     availableCountries: string[];
     selectedCountries: string[];
+    prefixSearch: string;
 }
 
 function Scope({ rule }: { rule: PrefixRule }) {
@@ -87,15 +88,21 @@ function CountryFilter({ available, selected, onChange }: { available: string[];
     );
 }
 
-export default function PrefixesIndex({ rules, clients, selectedClientId, availableCountries, selectedCountries }: PrefixesIndexProps) {
+export default function PrefixesIndex({ rules, clients, selectedClientId, availableCountries, selectedCountries, prefixSearch }: PrefixesIndexProps) {
+    const [search, setSearch] = useState(prefixSearch);
     const showingAll = selectedClientId === 'all';
 
     const changeClient = (clientId: string) => {
-        router.get(route('prefixes.index'), { client_id: clientId, country: selectedCountries }, { preserveState: true });
+        router.get(route('prefixes.index'), { client_id: clientId, country: selectedCountries, prefix_search: search || undefined }, { preserveState: true });
     };
 
     const changeCountries = (countries: string[]) => {
-        router.get(route('prefixes.index'), { client_id: selectedClientId ?? undefined, country: countries }, { preserveState: true });
+        router.get(route('prefixes.index'), { client_id: selectedClientId ?? undefined, country: countries, prefix_search: search || undefined }, { preserveState: true });
+    };
+
+    const handlePrefixSearch = (value: string) => {
+        setSearch(value);
+        router.get(route('prefixes.index'), { client_id: selectedClientId ?? undefined, country: selectedCountries, prefix_search: value || undefined }, { preserveState: true });
     };
 
     return (
@@ -131,6 +138,13 @@ export default function PrefixesIndex({ rules, clients, selectedClientId, availa
                             </select>
                         )}
                         <CountryFilter available={availableCountries} selected={selectedCountries} onChange={changeCountries} />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => handlePrefixSearch(e.target.value)}
+                            placeholder="Buscar prefijo..."
+                            className="rounded-md border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
                     </div>
 
                     <section className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
@@ -247,6 +261,7 @@ export default function PrefixesIndex({ rules, clients, selectedClientId, availa
                                                     page: rules.current_page - 1,
                                                     client_id: selectedClientId ?? undefined,
                                                     country: selectedCountries,
+                                                    prefix_search: search || undefined,
                                                 })}
                                                 className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                             >
@@ -264,6 +279,7 @@ export default function PrefixesIndex({ rules, clients, selectedClientId, availa
                                                     page: rules.current_page + 1,
                                                     client_id: selectedClientId ?? undefined,
                                                     country: selectedCountries,
+                                                    prefix_search: search || undefined,
                                                 })}
                                                 className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                             >

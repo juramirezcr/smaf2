@@ -41,12 +41,14 @@ class PrefixRuleController extends Controller
             ->pluck('country');
 
         $selectedCountries = array_values(array_filter((array) $request->input('country', [])));
+        $prefixSearch = $request->string('prefix_search', '')->trim()->value();
 
         return Inertia::render('Prefixes/Index', [
             'rules' => MonitoringRule::query()
                 ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
                 ->where('scope', 'prefix')
                 ->when($selectedCountries !== [], fn (Builder $query) => $query->whereIn('country', $selectedCountries))
+                ->when($prefixSearch !== '', fn (Builder $query) => $query->where('match_value', 'like', $prefixSearch.'%'))
                 ->orderByRaw('CAST(match_value AS UNSIGNED) asc')
                 ->paginate(10)
                 ->withQueryString()
@@ -58,6 +60,7 @@ class PrefixRuleController extends Controller
             'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
             'availableCountries' => $availableCountries,
             'selectedCountries' => $selectedCountries,
+            'prefixSearch' => $prefixSearch,
         ]);
     }
 
