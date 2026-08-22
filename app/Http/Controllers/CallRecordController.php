@@ -72,7 +72,7 @@ class CallRecordController extends Controller
             ->active()
             ->orderByDesc('connect_time')
             ->get(['id', 'client_id', 'customer_name', 'account_id', 'cli', 'cld', 'country', 'connect_time', 'duration_seconds'])
-            ->map(function (PortaoneActiveSession $session): array {
+            ->map(function (PortaoneActiveSession $session) use ($clientNames): array {
                 $prefixData = PrefixResolver::resolve($session->cld);
                 return [
                     'id' => $session->id,
