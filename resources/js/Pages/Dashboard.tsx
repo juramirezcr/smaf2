@@ -67,8 +67,7 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
     };
 
     const header = (
-        <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold leading-tight text-gray-800">SMAF 2</h2>
+        <div className="flex items-center justify-end">
             <select
                 value={period}
                 onChange={(event) => handlePeriodChange(event.target.value)}
