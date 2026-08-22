@@ -80,26 +80,6 @@ class CallRecordController extends Controller
             'selectedCustomers' => $selectedCustomers,
             'selectedAccounts' => $selectedAccounts,
             'activeCalls' => $activeCalls,
-            'calls' => CallRecord::query()
-                ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
-                ->when($selectedCustomers !== [], fn ($query) => $query->whereIn('customer', $selectedCustomers))
-                ->when($selectedAccounts !== [], fn ($query) => $query->whereIn('account', $selectedAccounts))
-                ->latest('connected_at')
-                ->paginate(25)
-                ->withQueryString()
-                ->through(fn (CallRecord $call): array => [
-                    'id' => $call->id,
-                    'clientName' => $clientNames?->get($call->client_id),
-                    'customer' => $call->customer,
-                    'account' => $call->account,
-                    'origin' => $call->origin,
-                    'destination' => $call->destination,
-                    'countryCode' => $call->country_code,
-                    'prefix' => $call->prefix,
-                    'durationSeconds' => $call->duration_seconds,
-                    'chargedAmount' => $call->charged_amount,
-                    'connectedAt' => $call->connected_at,
-                ]),
         ]);
     }
 }

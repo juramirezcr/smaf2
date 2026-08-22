@@ -1,21 +1,6 @@
 import CheckboxMultiSelect from '@/Components/CheckboxMultiSelect';
-import Pagination from '@/Components/Pagination';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-
-interface Call {
-    id: number;
-    clientName?: string | null;
-    customer: string | null;
-    account: string | null;
-    origin: string | null;
-    destination: string | null;
-    countryCode: string | null;
-    prefix: string | null;
-    durationSeconds: number;
-    chargedAmount: string | null;
-    connectedAt: string;
-}
 
 interface ActiveCall {
     id: number;
@@ -27,12 +12,6 @@ interface ActiveCall {
     country: string | null;
     connectTime: string | null;
     durationSeconds: number;
-}
-
-interface PaginationLink {
-    url: string | null;
-    label: string;
-    active: boolean;
 }
 
 interface ClientOption {
@@ -49,10 +28,6 @@ interface CallsProps {
     selectedCustomers: string[];
     selectedAccounts: string[];
     activeCalls: ActiveCall[];
-    calls: {
-        data: Call[];
-        links: PaginationLink[];
-    };
 }
 
 export default function CallsIndex({
@@ -64,7 +39,6 @@ export default function CallsIndex({
     selectedCustomers,
     selectedAccounts,
     activeCalls,
-    calls,
 }: CallsProps) {
     const showingAll = selectedClientId === 'all';
 
@@ -168,67 +142,6 @@ export default function CallsIndex({
                             </div>
                         </div>
                     )}
-
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <div className="border-b px-6 py-3 text-sm font-semibold text-gray-900">
-                            Historial de llamadas (XDR)
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead className="bg-gray-50 text-left text-gray-500">
-                                    <tr>
-                                        <th className="px-6 py-3">Fecha</th>
-                                        <th className="px-6 py-3">Cliente (interno del sistema)</th>
-                                        <th className="px-6 py-3">Customer</th>
-                                        <th className="px-6 py-3">Account</th>
-                                        <th className="px-6 py-3">Origen</th>
-                                        <th className="px-6 py-3">Destino</th>
-                                        <th className="px-6 py-3">País</th>
-                                        <th className="px-6 py-3">Prefijo</th>
-                                        <th className="px-6 py-3 text-right">Segundos</th>
-                                        <th className="px-6 py-3 text-right">Cargo</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {calls.data.length === 0 ? (
-                                        <tr><td colSpan={10} className="px-6 py-4 text-gray-500">Aún no hay llamadas registradas.</td></tr>
-                                    ) : calls.data.map((call) => (
-                                        <tr key={call.id}>
-                                            <td className="px-6 py-4">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectedAt))}</td>
-                                            <td className="px-6 py-4">{(showingAll ? call.clientName : client) ?? '—'}</td>
-                                            <td className="px-6 py-4">
-                                                {call.customer ? (
-                                                    <button
-                                                        onClick={() => applyFilters({ customer: selectedCustomers.includes(call.customer!) ? selectedCustomers.filter(c => c !== call.customer) : [...selectedCustomers, call.customer!] })}
-                                                        className="text-indigo-600 hover:text-indigo-900 hover:underline"
-                                                    >
-                                                        {call.customer}
-                                                    </button>
-                                                ) : '—'}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {call.account ? (
-                                                    <button
-                                                        onClick={() => applyFilters({ account: selectedAccounts.includes(call.account!) ? selectedAccounts.filter(a => a !== call.account) : [...selectedAccounts, call.account!] })}
-                                                        className="text-indigo-600 hover:text-indigo-900 hover:underline"
-                                                    >
-                                                        {call.account}
-                                                    </button>
-                                                ) : '—'}
-                                            </td>
-                                            <td className="px-6 py-4">{call.origin ?? '—'}</td>
-                                            <td className="px-6 py-4">{call.destination ?? '—'}</td>
-                                            <td className="px-6 py-4">{call.countryCode ?? '—'}</td>
-                                            <td className="px-6 py-4">{call.prefix ?? '—'}</td>
-                                            <td className="px-6 py-4 text-right">{call.durationSeconds}</td>
-                                            <td className="px-6 py-4 text-right">{call.chargedAmount ?? '—'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination links={calls.links} />
-                    </div>
                 </div>
             </div>
         </AuthenticatedLayout>
