@@ -144,6 +144,31 @@ class PortaOneClient
         );
     }
 
+    /**
+     * Histórico de llamadas finalizadas (AccountAdminService::get_xdr_list)
+     * desde $fromDate en adelante, para reportes; no confundir con
+     * fetchActiveSessions(), que es la fotografía de llamadas en curso.
+     */
+    public function syncXdrs(?\DateTimeInterface $fromDate, callable $onPage, ?callable $onTotal = null): int
+    {
+        $extraParams = $fromDate !== null
+            ? ['from_date' => $fromDate->format('Y-m-d\TH:i:s')]
+            : [];
+
+        return $this->withSession(
+            fn (string $baseUrl, string $sessionId) => $this->paginate(
+                $baseUrl,
+                'AccountAdminService',
+                'get_xdr_list',
+                'xdr_list',
+                $extraParams,
+                $sessionId,
+                $onPage,
+                onTotal: $onTotal,
+            ),
+        );
+    }
+
     private function paginate(
         string $baseUrl,
         string $service,

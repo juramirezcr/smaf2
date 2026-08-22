@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\PollPortaOneActiveSessions;
+use App\Jobs\SyncPortaOneCalls;
 use App\Jobs\SyncPortaOneData;
 use App\Models\Client;
 use Illuminate\Foundation\Inspiring;
@@ -24,3 +25,10 @@ Schedule::call(function () {
         ->whereNotNull('portaone_token')
         ->each(fn (Client $client) => PollPortaOneActiveSessions::dispatch($client->id));
 })->everyMinute()->name('portaone-active-sessions')->withoutOverlapping();
+
+Schedule::call(function () {
+    Client::query()
+        ->whereNotNull('portaone_username')
+        ->whereNotNull('portaone_token')
+        ->each(fn (Client $client) => SyncPortaOneCalls::dispatch($client->id));
+})->everyFifteenMinutes()->name('portaone-xdr-sync')->withoutOverlapping();

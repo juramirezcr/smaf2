@@ -12,6 +12,9 @@ class CallRecord extends Model
         'client_id',
         'import_batch_id',
         'external_id',
+        'i_xdr',
+        'i_customer',
+        'i_account',
         'account',
         'customer',
         'origin',
@@ -19,12 +22,16 @@ class CallRecord extends Model
         'prefix',
         'country_code',
         'duration_seconds',
+        'charged_amount',
         'connected_at',
     ];
 
     protected function casts(): array
     {
-        return ['connected_at' => 'datetime'];
+        return [
+            'connected_at' => 'datetime',
+            'charged_amount' => 'decimal:4',
+        ];
     }
 
     public function importBatch(): BelongsTo

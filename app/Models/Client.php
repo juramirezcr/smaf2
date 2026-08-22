@@ -16,11 +16,15 @@ class Client extends Model
         'portaone_environment',
         'portaone_username',
         'portaone_token',
+        'xdr_synced_until',
     ];
 
     protected function casts(): array
     {
-        return ['portaone_token' => 'encrypted'];
+        return [
+            'portaone_token' => 'encrypted',
+            'xdr_synced_until' => 'datetime',
+        ];
     }
 
     public function users(): HasMany
