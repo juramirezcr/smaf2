@@ -1,22 +1,30 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
-interface PrefixStat {
-    client_name: string | null;
-    country_code: string | null;
-    prefix: string | null;
+interface StatItem {
+    label: string;
     calls: number;
     seconds: number;
+    history: number[];
 }
 
-interface DestinationStat {
-    customer: string | null;
-    country_code: string | null;
+interface StatGroup {
+    clientName: string | null;
+    items: StatItem[];
+}
+
+interface DestinationItem {
     prefix: string | null;
     destination: string | null;
     calls: number;
     seconds: number;
+    history: number[];
+}
+
+interface DestinationGroup {
+    clientName: string | null;
+    items: DestinationItem[];
 }
 
 interface AccountStat {
@@ -28,10 +36,24 @@ interface AccountStat {
 
 interface DashboardProps {
     period: string;
-    prefixStats: PrefixStat[];
-    destinationStats: DestinationStat[];
+    prefixStats: StatGroup[];
+    destinationStats: DestinationGroup[];
     accountStats: AccountStat[];
     alertCounts: Record<string, number>;
+}
+
+function Sparkline({ data }: { data: number[] }) {
+    const width = 90;
+    const height = 22;
+    const max = Math.max(...data, 1);
+    const step = width / Math.max(data.length - 1, 1);
+    const points = data.map((value, index) => `${index * step},${height - (value / max) * (height - 2) - 1}`).join(' ');
+
+    return (
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="inline-block overflow-visible align-middle">
+            <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.5" className="text-indigo-400" />
+        </svg>
+    );
 }
 
 function Card({ color, title, icon, href, children }: { color: string; title: string; icon: string; href: string; children: React.ReactNode }) {
@@ -109,66 +131,82 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <Link
+                        href={route('alerts.index')}
+                        className="mb-4 flex items-center gap-6 rounded-lg bg-white px-4 py-3 text-sm shadow-sm hover:bg-gray-50"
+                    >
+                        <span className="font-semibold text-gray-700">Alertas (24h):</span>
+                        <span title="Bloqueadas">🚫 {alertCounts.block ?? 0}</span>
+                        <span title="Notificadas">🔔 {alertCounts.notify ?? 0}</span>
+                        <span title="Ignoradas">➖ {alertCounts.ignore ?? 0}</span>
+                    </Link>
+
+                    <div className="mb-4">
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-100 text-xs uppercase text-gray-500">
                                     <tr>
-                                        {prefixStats.some(s => s.client_name) && <th className="px-4 py-2 text-left">Cliente</th>}
-                                        <th className="px-4 py-2 text-left">País</th>
                                         <th className="px-4 py-2 text-left">Prefijo</th>
                                         <th className="px-4 py-2 text-right">Llamadas</th>
                                         <th className="px-4 py-2 text-right">Segundos</th>
+                                        <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {prefixStats.length === 0 ? (
-                                        <tr><td colSpan={prefixStats.some(s => s.client_name) ? 5 : 4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
-                                    ) : prefixStats.map((row, index) => (
-                                        <tr key={index}>
-                                            {prefixStats.some(s => s.client_name) && <td className="px-4 py-2">{row.client_name ?? '—'}</td>}
-                                            <td className="px-4 py-2">{row.country_code ?? '—'}</td>
-                                            <td className="px-4 py-2">{row.prefix ?? '—'}</td>
-                                            <td className="px-4 py-2 text-right">{row.calls}</td>
-                                            <td className="px-4 py-2 text-right">{row.seconds}</td>
-                                        </tr>
+                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
+                                    ) : prefixStats.map((group, groupIndex) => (
+                                        <Fragment key={groupIndex}>
+                                            {group.clientName && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
+                                                </tr>
+                                            )}
+                                            {group.items.map((item, itemIndex) => (
+                                                <tr key={itemIndex}>
+                                                    <td className="px-4 py-2 font-mono">{item.label ?? '—'}</td>
+                                                    <td className="px-4 py-2 text-right">{item.calls}</td>
+                                                    <td className="px-4 py-2 text-right">{item.seconds}</td>
+                                                    <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
+                                                </tr>
+                                            ))}
+                                        </Fragment>
                                     ))}
                                 </tbody>
                             </table>
                         </Card>
+                    </div>
 
-                        <Card color="bg-red-700" title="Alertas" icon="⚠️" href={route('alerts.index')}>
-                            <div className="flex items-center justify-center gap-8 px-4 py-6 text-lg">
-                                <span title="Bloqueadas">🚫 {alertCounts.block ?? 0}</span>
-                                <span title="Notificadas">🔔 {alertCounts.notify ?? 0}</span>
-                                <span title="Ignoradas">➖ {alertCounts.ignore ?? 0}</span>
-                            </div>
-                        </Card>
-
-                        <Card color="bg-pink-700" title="Destinos" icon="📞" href={route('destinations.index')}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Card color="bg-pink-700" title="Destinos (Top 10)" icon="📞" href={route('destinations.index')}>
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-100 text-xs uppercase text-gray-500">
                                     <tr>
-                                        <th className="px-4 py-2 text-left">Cliente</th>
-                                        <th className="px-4 py-2 text-left">País</th>
                                         <th className="px-4 py-2 text-left">Prefijo</th>
                                         <th className="px-4 py-2 text-left">Destino</th>
                                         <th className="px-4 py-2 text-right">Llamadas</th>
-                                        <th className="px-4 py-2 text-right">Segundos</th>
+                                        <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {destinationStats.length === 0 ? (
-                                        <tr><td colSpan={6} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
-                                    ) : destinationStats.map((row, index) => (
-                                        <tr key={index}>
-                                            <td className="px-4 py-2">{row.customer ?? '—'}</td>
-                                            <td className="px-4 py-2">{row.country_code ?? '—'}</td>
-                                            <td className="px-4 py-2">{row.prefix ?? '—'}</td>
-                                            <td className="px-4 py-2">{row.destination ?? '—'}</td>
-                                            <td className="px-4 py-2 text-right">{row.calls}</td>
-                                            <td className="px-4 py-2 text-right">{row.seconds}</td>
-                                        </tr>
+                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
+                                    ) : destinationStats.map((group, groupIndex) => (
+                                        <Fragment key={groupIndex}>
+                                            {group.clientName && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
+                                                </tr>
+                                            )}
+                                            {group.items.map((item, itemIndex) => (
+                                                <tr key={itemIndex}>
+                                                    <td className="px-4 py-2">{item.prefix ?? '—'}</td>
+                                                    <td className="px-4 py-2">{item.destination ?? '—'}</td>
+                                                    <td className="px-4 py-2 text-right">{item.calls}</td>
+                                                    <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
+                                                </tr>
+                                            ))}
+                                        </Fragment>
                                     ))}
                                 </tbody>
                             </table>
