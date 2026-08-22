@@ -46,4 +46,9 @@ class Client extends Model
     {
         return $this->hasMany(PortaoneAccount::class);
     }
+
+    public function callRecords(): HasMany
+    {
+        return $this->hasMany(CallRecord::class);
+    }
 }

@@ -35,6 +35,7 @@ interface ClientItem {
     productsCount: number;
     customersCount: number;
     accountsCount: number;
+    callsCount: number;
     createdAt: string;
     syncRun: SyncRun | null;
 }
@@ -262,6 +263,13 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                                             <span className="text-xs text-gray-500">{client.accountsCount}</span>
                                                         </div>
                                                         {client.syncRun?.status === 'started' && <ProgressBar progress={client.syncRun.context?.accounts} />}
+
+                                                        <div className="flex items-center justify-between gap-2 border-t pt-1.5">
+                                                            <Link href={`/calls?client_id=${client.id}`} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
+                                                                Llamadas
+                                                            </Link>
+                                                            <span className="text-xs text-gray-500">{client.callsCount}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>

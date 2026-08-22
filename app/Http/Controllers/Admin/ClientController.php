@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncPortaOneCalls;
 use App\Jobs\SyncPortaOneData;
 use App\Models\Client;
 use App\Models\ProcessRun;
@@ -39,6 +40,7 @@ class ClientController extends Controller
                     'portaoneProducts as products_count',
                     'portaoneCustomers as customers_count' => fn ($query) => $query->whereNull('archived_at'),
                     'portaoneAccounts as accounts_count' => fn ($query) => $query->whereNull('archived_at'),
+                    'callRecords as calls_count',
                 ])
                 ->latest()
                 ->get()
@@ -54,6 +56,7 @@ class ClientController extends Controller
                         'productsCount' => $client->products_count,
                         'customersCount' => $client->customers_count,
                         'accountsCount' => $client->accounts_count,
+                        'callsCount' => $client->calls_count,
                         'createdAt' => $client->created_at,
                         'syncRun' => $run ? [
                             'status' => $run->status,
@@ -136,6 +139,7 @@ class ClientController extends Controller
     public function sync(Client $client): RedirectResponse
     {
         SyncPortaOneData::dispatch($client->id);
+        SyncPortaOneCalls::dispatch($client->id);
 
         return back();
     }
