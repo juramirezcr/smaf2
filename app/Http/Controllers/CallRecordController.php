@@ -82,8 +82,8 @@ class CallRecordController extends Controller
                     'cli' => $session->cli,
                     'cld' => $session->cld,
                     'country' => $session->country,
-                    'prefix' => $prefixData?->get('prefix') ?? null,
-                    'prefixCountry' => $prefixData?->get('country_name') ?? null,
+                    'prefix' => $prefixData['prefix'] ?? null,
+                    'prefixCountry' => $prefixData['country_name'] ?? null,
                     'connectTime' => $session->connect_time,
                     'durationSeconds' => $session->duration_seconds,
                 ];
