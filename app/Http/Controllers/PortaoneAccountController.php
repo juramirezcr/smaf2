@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\PortaoneAccount;
+use App\Models\PortaoneActiveSession;
 use App\Models\PortaoneCustomer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -84,6 +86,48 @@ class PortaoneAccountController extends Controller
             'indexPath' => $userClientId === null
                 ? "/portaone-customers?client_id={$customer->client_id}"
                 : '/portaone-customers',
+        ]);
+    }
+
+    public function accountCalls(PortaoneAccount $account): Response
+    {
+        $userClientId = auth()->user()->client_id;
+
+        abort_unless($userClientId === null || $account->client_id === $userClientId, 403);
+
+        $activeCalls = PortaoneActiveSession::query()
+            ->where('client_id', $account->client_id)
+            ->where('i_account', $account->i_account)
+            ->active()
+            ->orderByDesc('connect_time')
+            ->get(['id', 'cli', 'cld', 'country', 'connect_time', 'duration_seconds']);
+
+        $calls = CallRecord::query()
+            ->where('client_id', $account->client_id)
+            ->where('i_account', $account->i_account)
+            ->latest('connected_at')
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (CallRecord $call): array => [
+                'id' => $call->id,
+                'origin' => $call->origin,
+                'destination' => $call->destination,
+                'countryCode' => $call->country_code,
+                'prefix' => $call->prefix,
+                'durationSeconds' => $call->duration_seconds,
+                'chargedAmount' => $call->charged_amount,
+                'connectedAt' => $call->connected_at,
+            ]);
+
+        $customerId = $account->i_customer
+            ? PortaoneCustomer::query()->where('client_id', $account->client_id)->where('i_customer', $account->i_customer)->value('id')
+            : null;
+
+        return Inertia::render('Accounts/AccountCalls', [
+            'account' => $account->only(['id', 'account_id', 'product_name', 'bill_status', 'i_customer']),
+            'activeCalls' => $activeCalls,
+            'calls' => $calls,
+            'indexPath' => $customerId ? "/portaone-customers/{$customerId}" : '/portaone-customers',
         ]);
     }
 }

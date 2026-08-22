@@ -16,6 +16,18 @@ interface Call {
     connectedAt: string;
 }
 
+interface ActiveCall {
+    id: number;
+    clientName?: string | null;
+    customerName: string | null;
+    accountId: string | null;
+    cli: string | null;
+    cld: string | null;
+    country: string | null;
+    connectTime: string | null;
+    durationSeconds: number;
+}
+
 interface PaginationLink {
     url: string | null;
     label: string;
@@ -31,13 +43,14 @@ interface CallsProps {
     client: string | null;
     clients?: ClientOption[] | null;
     selectedClientId?: number | 'all' | null;
+    activeCalls: ActiveCall[];
     calls: {
         data: Call[];
         links: PaginationLink[];
     };
 }
 
-export default function CallsIndex({ client, clients, selectedClientId, calls }: CallsProps) {
+export default function CallsIndex({ client, clients, selectedClientId, activeCalls, calls }: CallsProps) {
     const showingAll = selectedClientId === 'all';
 
     const changeClient = (clientId: string) => {
@@ -63,7 +76,49 @@ export default function CallsIndex({ client, clients, selectedClientId, calls }:
                             </select>
                         </div>
                     )}
+
+                    {activeCalls.length > 0 && (
+                        <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-emerald-200">
+                            <div className="border-b bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-800">
+                                Llamadas activas ({activeCalls.length})
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead className="bg-gray-50 text-left text-gray-500">
+                                        <tr>
+                                            {showingAll && <th className="px-6 py-3">Cliente (interno del sistema)</th>}
+                                            <th className="px-6 py-3">Customer</th>
+                                            <th className="px-6 py-3">Account</th>
+                                            <th className="px-6 py-3">Desde</th>
+                                            <th className="px-6 py-3">Hacia</th>
+                                            <th className="px-6 py-3">País</th>
+                                            <th className="px-6 py-3">Conectada</th>
+                                            <th className="px-6 py-3 text-right">Segundos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {activeCalls.map((call) => (
+                                            <tr key={call.id}>
+                                                {showingAll && <td className="px-6 py-4">{call.clientName ?? '—'}</td>}
+                                                <td className="px-6 py-4">{call.customerName ?? '—'}</td>
+                                                <td className="px-6 py-4">{call.accountId ?? '—'}</td>
+                                                <td className="px-6 py-4">{call.cli ?? '—'}</td>
+                                                <td className="px-6 py-4">{call.cld ?? '—'}</td>
+                                                <td className="px-6 py-4">{call.country ?? '—'}</td>
+                                                <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
+                                                <td className="px-6 py-4 text-right">{call.durationSeconds}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+                        <div className="border-b px-6 py-3 text-sm font-semibold text-gray-900">
+                            Historial de llamadas (XDR)
+                        </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 text-sm">
                                 <thead className="bg-gray-50 text-left text-gray-500">

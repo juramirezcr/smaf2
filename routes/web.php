@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/accounts', [AccountReportController::class, 'index'])->name('accounts.index');
     Route::get('/portaone-customers', [PortaoneAccountController::class, 'index'])->name('portaone-customers.index');
     Route::get('/portaone-customers/{customer}', [PortaoneAccountController::class, 'show'])->name('portaone-customers.show');
+    Route::get('/portaone-accounts/{account}/calls', [PortaoneAccountController::class, 'accountCalls'])->name('portaone-accounts.calls');
     Route::get('/alerts', [MonitoringRuleEventController::class, 'index'])->name('alerts.index');
     Route::get('/users', [ClientUserController::class, 'index'])->name('users.index');
     Route::post('/users', [ClientUserController::class, 'store'])->name('users.store');

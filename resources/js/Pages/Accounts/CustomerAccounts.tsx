@@ -65,7 +65,11 @@ export default function CustomerAccounts({ customer, accounts, indexPath }: Cust
                                     <tr><td colSpan={4} className="px-6 py-4 text-gray-500">Este customer no tiene accounts de telefonía sincronizadas.</td></tr>
                                 ) : accounts.data.map((account) => (
                                     <tr key={account.id}>
-                                        <td className="px-6 py-4">{account.account_id ?? '—'}</td>
+                                        <td className="px-6 py-4">
+                                            <Link href={`/portaone-accounts/${account.id}/calls`} className="font-medium text-indigo-600 hover:text-indigo-900">
+                                                {account.account_id ?? '—'}
+                                            </Link>
+                                        </td>
                                         <td className="px-6 py-4">{account.product_name ?? '—'}</td>
                                         <td className="px-6 py-4"><BillStatusBadge status={account.bill_status} /></td>
                                         <td className="px-6 py-4">{account.blocked ?? '—'}</td>
