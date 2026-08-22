@@ -1,6 +1,6 @@
+import BillStatusBadge from '@/Components/BillStatusBadge';
 import Pagination from '@/Components/Pagination';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { billStatusLabel } from '@/utils/billStatus';
 import { Head, Link } from '@inertiajs/react';
 
 interface AccountRow {
@@ -47,7 +47,7 @@ export default function CustomerAccounts({ customer, accounts, indexPath }: Cust
                     <div className="mb-6 rounded-lg bg-white p-4 shadow-sm text-sm text-gray-600">
                         <p><span className="font-medium text-gray-900">Empresa:</span> {customer.company_name ?? '—'}</p>
                         <p><span className="font-medium text-gray-900">Email:</span> {customer.email ?? '—'}</p>
-                        <p><span className="font-medium text-gray-900">Estado:</span> {billStatusLabel(customer.bill_status)}</p>
+                        <p className="flex items-center gap-2"><span className="font-medium text-gray-900">Estado:</span> <BillStatusBadge status={customer.bill_status} /></p>
                     </div>
 
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
@@ -67,7 +67,7 @@ export default function CustomerAccounts({ customer, accounts, indexPath }: Cust
                                     <tr key={account.id}>
                                         <td className="px-6 py-4">{account.account_id ?? '—'}</td>
                                         <td className="px-6 py-4">{account.product_name ?? '—'}</td>
-                                        <td className="px-6 py-4">{billStatusLabel(account.bill_status)}</td>
+                                        <td className="px-6 py-4"><BillStatusBadge status={account.bill_status} /></td>
                                         <td className="px-6 py-4">{account.blocked ?? '—'}</td>
                                     </tr>
                                 ))}

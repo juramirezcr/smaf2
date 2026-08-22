@@ -1,7 +1,7 @@
+import BillStatusBadge from '@/Components/BillStatusBadge';
 import Pagination from '@/Components/Pagination';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { billStatusLabel } from '@/utils/billStatus';
 import { Head, Link, router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 
@@ -98,7 +98,7 @@ export default function Customers({ customers, search, basePath, clients, select
                                         </td>
                                         <td className="px-6 py-4">{customer.company_name ?? '—'}</td>
                                         <td className="px-6 py-4">{customer.email ?? '—'}</td>
-                                        <td className="px-6 py-4">{billStatusLabel(customer.bill_status)}</td>
+                                        <td className="px-6 py-4"><BillStatusBadge status={customer.bill_status} /></td>
                                         <td className="px-6 py-4 text-right">{customer.accounts_count}</td>
                                     </tr>
                                 ))}

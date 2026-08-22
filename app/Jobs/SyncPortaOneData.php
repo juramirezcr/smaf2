@@ -185,6 +185,26 @@ class SyncPortaOneData implements ShouldQueue
                 },
             );
         }
+
+        $this->deleteCustomersWithoutAccounts($client);
+    }
+
+    /**
+     * SMAF solo tiene sentido para customers con servicio de telefonía; uno
+     * sin ninguna account sincronizada no aporta nada que monitorear.
+     */
+    private function deleteCustomersWithoutAccounts(Client $client): void
+    {
+        $customerIdsWithAccounts = PortaoneAccount::query()
+            ->where('client_id', $client->id)
+            ->whereNotNull('i_customer')
+            ->distinct()
+            ->pluck('i_customer');
+
+        PortaoneCustomer::query()
+            ->where('client_id', $client->id)
+            ->whereNotIn('i_customer', $customerIdsWithAccounts)
+            ->delete();
     }
 
     private function setContext(ProcessRun $run, string $section, array $values, bool $merge = false): void

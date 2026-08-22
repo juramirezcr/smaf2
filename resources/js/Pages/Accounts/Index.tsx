@@ -1,7 +1,7 @@
+import BillStatusBadge from '@/Components/BillStatusBadge';
 import Pagination from '@/Components/Pagination';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { billStatusLabel } from '@/utils/billStatus';
 import { FormEventHandler, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 
@@ -98,7 +98,7 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
                                         <td className="px-6 py-4">{row.customer_name ?? '—'}</td>
                                         <td className="px-6 py-4">{row.account_id ?? '—'}</td>
                                         <td className="px-6 py-4">{row.product_name ?? '—'}</td>
-                                        <td className="px-6 py-4">{billStatusLabel(row.bill_status)}</td>
+                                        <td className="px-6 py-4"><BillStatusBadge status={row.bill_status} /></td>
                                     </tr>
                                 ))}
                             </tbody>

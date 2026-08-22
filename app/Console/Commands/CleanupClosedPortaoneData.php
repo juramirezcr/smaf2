@@ -62,6 +62,33 @@ class CleanupClosedPortaoneData extends Command
             });
         });
 
+        Client::query()->each(function (Client $client) use ($apply) {
+            $customerIdsWithAccounts = PortaoneAccount::query()
+                ->where('client_id', $client->id)
+                ->whereNotNull('i_customer')
+                ->distinct()
+                ->pluck('i_customer');
+
+            $customersWithoutAccounts = PortaoneCustomer::query()
+                ->where('client_id', $client->id)
+                ->whereNotIn('i_customer', $customerIdsWithAccounts)
+                ->get(['id']);
+
+            if ($customersWithoutAccounts->isEmpty()) {
+                return;
+            }
+
+            $this->info(sprintf(
+                '%s: %d customers sin accounts de telefonía a eliminar (sin servicio, sin importancia para SMAF).',
+                $client->name,
+                $customersWithoutAccounts->count(),
+            ));
+
+            if ($apply) {
+                PortaoneCustomer::query()->whereIn('id', $customersWithoutAccounts->pluck('id'))->delete();
+            }
+        });
+
         $this->info($apply ? 'Limpieza aplicada.' : 'Dry run: nada se eliminó. Usa --apply para persistir.');
 
         return self::SUCCESS;

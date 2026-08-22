@@ -34,7 +34,12 @@ class ClientController extends Controller
             ->keyBy('client_id');
 
         return Inertia::render('Admin/Clients', [
-            'clients' => Client::withCount('users')
+            'clients' => Client::withCount([
+                    'users',
+                    'portaoneProducts as products_count',
+                    'portaoneCustomers as customers_count' => fn ($query) => $query->whereNull('archived_at'),
+                    'portaoneAccounts as accounts_count' => fn ($query) => $query->whereNull('archived_at'),
+                ])
                 ->latest()
                 ->get()
                 ->map(function (Client $client) use ($latestSyncRuns): array {
@@ -46,6 +51,9 @@ class ClientController extends Controller
                         'portaoneEnvironment' => $client->portaone_environment,
                         'portaoneUsername' => $client->portaone_username,
                         'usersCount' => $client->users_count,
+                        'productsCount' => $client->products_count,
+                        'customersCount' => $client->customers_count,
+                        'accountsCount' => $client->accounts_count,
                         'createdAt' => $client->created_at,
                         'syncRun' => $run ? [
                             'status' => $run->status,

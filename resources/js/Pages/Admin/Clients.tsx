@@ -32,6 +32,9 @@ interface ClientItem {
     portaoneEnvironment: string;
     portaoneUsername: string;
     usersCount: number;
+    productsCount: number;
+    customersCount: number;
+    accountsCount: number;
     createdAt: string;
     syncRun: SyncRun | null;
 }
@@ -41,7 +44,7 @@ interface ConnectionTestResult {
     message: string;
 }
 
-function ProgressBar({ label, progress }: { label: string; progress?: SyncProgress }) {
+function ProgressBar({ progress }: { progress?: SyncProgress }) {
     if (!progress) {
         return null;
     }
@@ -49,10 +52,9 @@ function ProgressBar({ label, progress }: { label: string; progress?: SyncProgre
     const pct = progress.total > 0 ? Math.min(100, Math.round((progress.synced / progress.total) * 100)) : 0;
 
     return (
-        <div className="mt-1">
-            <div className="flex justify-between text-xs text-gray-500">
-                <span>{label}</span>
-                <span>{progress.synced} / {progress.total}</span>
+        <div className="mt-0.5">
+            <div className="flex justify-end text-xs text-gray-400">
+                <span>sincronizando {progress.synced} / {progress.total}</span>
             </div>
             <div className="mt-0.5 h-1.5 w-full rounded-full bg-gray-200">
                 <div className="h-1.5 rounded-full bg-indigo-600" style={{ width: `${pct}%` }} />
@@ -197,23 +199,17 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Partición</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Usuario API</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Usuarios</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Conexión</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {clients.length === 0 ? (
-                                    <tr><td colSpan={6} className="px-6 py-4 text-sm text-gray-500">Aún no hay clientes.</td></tr>
+                                    <tr><td colSpan={3} className="px-6 py-4 text-sm text-gray-500">Aún no hay clientes.</td></tr>
                                 ) : (
                                     clients.map((client) => (
                                         <tr key={client.id}>
                                             <td className="px-6 py-4 text-sm text-gray-900">{client.name}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{client.portaoneEnvironment}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{client.portaoneUsername}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{client.usersCount}</td>
                                             <td className="px-6 py-4 text-sm">
                                                 <button
                                                     type="button"
@@ -238,27 +234,39 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                                     >
                                                         {client.syncRun?.status === 'started' ? 'Sincronizando...' : 'Sincronizar'}
                                                     </button>
-                                                    {client.syncRun && (
-                                                        <div className="mt-1 w-48">
-                                                            <p className="text-xs text-gray-500">
-                                                                {client.syncRun.status === 'completed' && 'Última sincronización completa'}
-                                                                {client.syncRun.status === 'failed' && (
-                                                                    <span className="text-red-600">Falló: {client.syncRun.message}</span>
-                                                                )}
-                                                                {client.syncRun.status === 'started' && 'Sincronizando...'}
-                                                            </p>
-                                                            <ProgressBar label="Productos" progress={client.syncRun.context?.products} />
-                                                            <ProgressBar label="Customers" progress={client.syncRun.context?.customers} />
-                                                            <ProgressBar label="Accounts (telefonía)" progress={client.syncRun.context?.accounts} />
-                                                        </div>
+                                                    {client.syncRun?.status === 'failed' && (
+                                                        <p className="mt-1 text-xs text-red-600">Falló: {client.syncRun.message}</p>
                                                     )}
+
+                                                    <div className="mt-2 w-56 space-y-1.5">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <Link href={route('admin.clients.products.index', client.id)} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
+                                                                Productos
+                                                            </Link>
+                                                            <span className="text-xs text-gray-500">{client.productsCount}</span>
+                                                        </div>
+                                                        {client.syncRun?.status === 'started' && <ProgressBar progress={client.syncRun.context?.products} />}
+
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <Link href={`/portaone-customers?client_id=${client.id}`} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
+                                                                Customers
+                                                            </Link>
+                                                            <span className="text-xs text-gray-500">{client.customersCount}</span>
+                                                        </div>
+                                                        {client.syncRun?.status === 'started' && <ProgressBar progress={client.syncRun.context?.customers} />}
+
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <Link href={`/accounts?client_id=${client.id}`} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
+                                                                Accounts de telefonía
+                                                            </Link>
+                                                            <span className="text-xs text-gray-500">{client.accountsCount}</span>
+                                                        </div>
+                                                        {client.syncRun?.status === 'started' && <ProgressBar progress={client.syncRun.context?.accounts} />}
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <Link href={route('admin.clients.products.index', client.id)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Productos</Link>
-                                                <Link href={`/portaone-customers?client_id=${client.id}`} className="ms-4 text-sm font-medium text-indigo-600 hover:text-indigo-900">Customers</Link>
-                                                <Link href={`/accounts?client_id=${client.id}`} className="ms-4 text-sm font-medium text-indigo-600 hover:text-indigo-900">Cuentas</Link>
-                                                <button type="button" onClick={() => startEditing(client)} className="ms-4 text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
+                                                <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
                                                 <button type="button" onClick={() => deleteClient(client)} className="ms-4 text-sm font-medium text-red-600 hover:text-red-900">Eliminar</button>
                                             </td>
                                         </tr>

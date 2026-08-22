@@ -27,4 +27,19 @@ class Client extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function portaoneProducts(): HasMany
+    {
+        return $this->hasMany(PortaoneProduct::class);
+    }
+
+    public function portaoneCustomers(): HasMany
+    {
+        return $this->hasMany(PortaoneCustomer::class);
+    }
+
+    public function portaoneAccounts(): HasMany
+    {
+        return $this->hasMany(PortaoneAccount::class);
+    }
 }
