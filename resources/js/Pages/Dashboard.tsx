@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 interface PrefixStat {
     client_name: string | null;
@@ -45,10 +46,31 @@ function Card({ color, title, icon, href, children }: { color: string; title: st
     );
 }
 
+const AUTO_REFRESH_OPTIONS = [
+    { value: 0, label: 'Sin auto-actualizar' },
+    { value: 60_000, label: 'Cada 1 min' },
+    { value: 300_000, label: 'Cada 5 min' },
+    { value: 900_000, label: 'Cada 15 min' },
+];
+
 export default function Dashboard({ period, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
+    const [autoRefreshInterval, setAutoRefreshInterval] = useState(300_000);
+
     const handlePeriodChange = (newPeriod: string) => {
         router.get(route('dashboard'), { period: newPeriod }, { preserveState: true });
     };
+
+    useEffect(() => {
+        if (autoRefreshInterval === 0) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts'] });
+        }, autoRefreshInterval);
+
+        return () => clearInterval(interval);
+    }, [autoRefreshInterval, period]);
 
     const periodLabels: Record<string, string> = {
         '1h': 'Última hora',
@@ -59,7 +81,16 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
     };
 
     const header = (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
+            <select
+                value={autoRefreshInterval}
+                onChange={(event) => setAutoRefreshInterval(Number(event.target.value))}
+                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+                {AUTO_REFRESH_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+            </select>
             <select
                 value={period}
                 onChange={(event) => handlePeriodChange(event.target.value)}
