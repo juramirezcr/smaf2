@@ -31,14 +31,6 @@ interface DashboardProps {
     destinationStats: DestinationStat[];
     accountStats: AccountStat[];
     alertCounts: Record<string, number>;
-    recentRuns: Array<{
-        id: number;
-        type: string;
-        status: string;
-        message: string | null;
-        started_at: string;
-        finished_at: string | null;
-    }>;
 }
 
 function Card({ color, title, icon, href, children }: { color: string; title: string; icon: string; href: string; children: React.ReactNode }) {
@@ -53,7 +45,7 @@ function Card({ color, title, icon, href, children }: { color: string; title: st
     );
 }
 
-export default function Dashboard({ period, prefixStats, destinationStats, accountStats, alertCounts, recentRuns }: DashboardProps) {
+export default function Dashboard({ period, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
     const handlePeriodChange = (newPeriod: string) => {
         router.get(route('dashboard'), { period: newPeriod }, { preserveState: true });
     };
@@ -175,23 +167,6 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
                                 </tbody>
                             </table>
                         </Card>
-                    </div>
-
-                    <div className="mt-6 overflow-hidden rounded-lg bg-white shadow-sm">
-                        <div className="border-b px-6 py-4 font-semibold text-gray-900">Ejecuciones recientes</div>
-                        <div className="divide-y">
-                            {recentRuns.length === 0 ? (
-                                <p className="p-6 text-sm text-gray-500">Aún no hay ejecuciones registradas.</p>
-                            ) : recentRuns.map((run) => (
-                                <div key={run.id} className="flex items-center justify-between px-6 py-4 text-sm">
-                                    <div>
-                                        <p className="font-medium text-gray-900">{run.type}</p>
-                                        {run.message && <p className="text-red-600">{run.message}</p>}
-                                    </div>
-                                    <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">{run.status}</span>
-                                </div>
-                            ))}
-                        </div>
                     </div>
                 </div>
             </div>

@@ -6,7 +6,6 @@ use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
-use App\Models\ProcessRun;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -74,11 +73,6 @@ class DashboardController extends Controller
                 ->selectRaw('count(*) as total')
                 ->groupBy('action')
                 ->pluck('total', 'action'),
-            'recentRuns' => ProcessRun::query()
-                ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
-                ->latest()
-                ->limit(8)
-                ->get(['id', 'type', 'status', 'message', 'started_at', 'finished_at']),
         ]);
     }
 }
