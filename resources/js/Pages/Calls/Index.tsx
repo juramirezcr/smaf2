@@ -32,6 +32,25 @@ interface CallsProps {
     selectedCustomers: string[];
     selectedAccounts: string[];
     activeCalls: ActiveCall[];
+    customerCallHistory?: Record<string, number[]>;
+}
+
+function Sparkline({ data }: { data: number[] }) {
+    const width = 80;
+    const height = 24;
+    const max = Math.max(...data, 1);
+    const step = width / Math.max(data.length - 1, 1);
+    const points = data.map((value, index) => `${index * step},${height - (value / max) * (height - 2) - 1}`).join(' ');
+    const total = data.reduce((sum, value) => sum + value, 0);
+
+    return (
+        <span className="inline-flex items-center gap-1.5 align-middle" title={`${total} llamadas en las últimas 24h`}>
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+                <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.5" className="text-indigo-400" />
+            </svg>
+            <span className="text-xs font-normal text-gray-500">{total} / 24h</span>
+        </span>
+    );
 }
 
 type GroupBy = 'none' | 'client' | 'customer' | 'account' | 'customer+account';
@@ -52,17 +71,19 @@ export default function CallsIndex({
     selectedCustomers,
     selectedAccounts,
     activeCalls,
+    customerCallHistory = {},
 }: CallsProps) {
     const showingAll = selectedClientId === 'all';
     const [groupBy, setGroupBy] = useState<GroupBy>('customer');
     const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5000); // 5 segundos
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-    const [collapsedSubGroups, setCollapsedSubGroups] = useState<Set<string>>(new Set());
+    // Los grupos inician colapsados; expandedGroups guarda solo los que el usuario abrió.
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const [expandedSubGroups, setExpandedSubGroups] = useState<Set<string>>(new Set());
 
     const toggleGroup = (key: string) => {
-        setCollapsedGroups((prev) => {
+        setExpandedGroups((prev) => {
             const next = new Set(prev);
             next.has(key) ? next.delete(key) : next.add(key);
             return next;
@@ -70,7 +91,7 @@ export default function CallsIndex({
     };
 
     const toggleSubGroup = (key: string) => {
-        setCollapsedSubGroups((prev) => {
+        setExpandedSubGroups((prev) => {
             const next = new Set(prev);
             next.has(key) ? next.delete(key) : next.add(key);
             return next;
@@ -309,7 +330,8 @@ export default function CallsIndex({
                                     // Agrupado por Customer + Account
                                     <div className="divide-y divide-gray-200">
                                         {Object.entries(groupedCalls).map(([customer, groupData]) => {
-                                            const isCollapsed = collapsedGroups.has(customer);
+                                            const isCollapsed = !expandedGroups.has(customer);
+                                            const history = customerCallHistory[customer];
                                             return (
                                                 <div key={customer} className="border-t">
                                                     <button
@@ -319,10 +341,11 @@ export default function CallsIndex({
                                                         <span className={`inline-block transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>▼</span>
                                                         {customer}
                                                         <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                                        {history && <Sparkline data={history} />}
                                                     </button>
                                                     {!isCollapsed && Object.entries(groupData.subGroups || {}).map(([account, calls]) => {
                                                         const subKey = `${customer}::${account}`;
-                                                        const isSubCollapsed = collapsedSubGroups.has(subKey);
+                                                        const isSubCollapsed = !expandedSubGroups.has(subKey);
                                                         return (
                                                             <div key={account}>
                                                                 <button
@@ -361,7 +384,8 @@ export default function CallsIndex({
                                     // Agrupado por Client, Customer o Account
                                     <div className="divide-y divide-gray-200">
                                         {Object.entries(groupedCalls).map(([groupName, groupData]) => {
-                                            const isCollapsed = collapsedGroups.has(groupName);
+                                            const isCollapsed = !expandedGroups.has(groupName);
+                                            const history = groupBy === 'customer' ? customerCallHistory[groupName] : undefined;
                                             return (
                                                 <div key={groupName} className="border-t">
                                                     <button
@@ -371,6 +395,7 @@ export default function CallsIndex({
                                                         <span className={`inline-block transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>▼</span>
                                                         {groupBy === 'client' ? 'Cliente' : groupBy === 'customer' ? 'Customer' : 'Account'}: {groupName}
                                                         <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                                        {history && <Sparkline data={history} />}
                                                     </button>
                                                     {!isCollapsed && (
                                                         <table className="min-w-full text-sm w-full">

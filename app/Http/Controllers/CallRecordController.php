@@ -65,6 +65,24 @@ class CallRecordController extends Controller
                 ->values()
             : [];
 
+        $since = now()->subHours(23)->startOfHour();
+        $hourlyRows = CallRecord::query()
+            ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
+            ->where('connected_at', '>=', $since)
+            ->selectRaw("customer, DATE_FORMAT(connected_at, '%Y-%m-%d %H:00:00') as hour_bucket, COUNT(*) as call_count")
+            ->groupBy('customer', 'hour_bucket')
+            ->get()
+            ->groupBy('customer');
+
+        $hourBuckets = collect(range(0, 23))
+            ->map(fn (int $offset) => $since->copy()->addHours($offset)->format('Y-m-d H:00:00'));
+
+        $customerCallHistory = $hourlyRows->map(function ($rows) use ($hourBuckets) {
+            $byHour = $rows->pluck('call_count', 'hour_bucket');
+
+            return $hourBuckets->map(fn (string $hour) => (int) ($byHour->get($hour) ?? 0))->values();
+        });
+
         $activeCalls = PortaoneActiveSession::query()
             ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
             ->when($selectedCustomers !== [], fn ($query) => $query->whereIn('customer_name', $selectedCustomers))
@@ -99,6 +117,7 @@ class CallRecordController extends Controller
             'selectedCustomers' => $selectedCustomers,
             'selectedAccounts' => $selectedAccounts,
             'activeCalls' => $activeCalls,
+            'customerCallHistory' => $customerCallHistory,
         ]);
     }
 }
