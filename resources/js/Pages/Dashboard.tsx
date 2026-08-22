@@ -66,28 +66,27 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
         '30d': 'Último mes',
     };
 
+    const header = (
+        <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold leading-tight text-gray-800">SMAF 2</h2>
+            <select
+                value={period}
+                onChange={(event) => handlePeriodChange(event.target.value)}
+                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+                {Object.entries(periodLabels).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                ))}
+            </select>
+        </div>
+    );
+
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">SMAF 2</h2>}>
+        <AuthenticatedLayout header={header}>
             <Head title="Dashboard" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="mb-6 flex gap-2">
-                        {Object.entries(periodLabels).map(([value, label]) => (
-                            <button
-                                key={value}
-                                onClick={() => handlePeriodChange(value)}
-                                className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                                    period === value
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                                }`}
-                            >
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-
                     <div className="grid gap-4 md:grid-cols-2">
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
                             <table className="w-full text-sm">
