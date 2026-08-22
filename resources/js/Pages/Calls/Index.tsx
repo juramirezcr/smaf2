@@ -1,7 +1,7 @@
 import CheckboxMultiSelect from '@/Components/CheckboxMultiSelect';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ActiveCall {
     id: number;
@@ -55,6 +55,28 @@ export default function CallsIndex({
 }: CallsProps) {
     const showingAll = selectedClientId === 'all';
     const [groupBy, setGroupBy] = useState<GroupBy>('customer');
+    const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5000); // 5 segundos
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsRefreshing(true);
+            router.get('/calls', {
+                client_id: selectedClientId ?? undefined,
+                customer: selectedCustomers,
+                account: selectedAccounts,
+            }, {
+                preserveState: true,
+                onFinish: () => {
+                    setLastUpdated(new Date());
+                    setIsRefreshing(false);
+                },
+            });
+        }, autoRefreshInterval);
+
+        return () => clearInterval(interval);
+    }, [autoRefreshInterval, selectedClientId, selectedCustomers, selectedAccounts]);
 
     const groupCalls = (calls: ActiveCall[], type: GroupBy): GroupedCalls => {
         if (type === 'none') {
@@ -158,21 +180,53 @@ export default function CallsIndex({
                         </div>
 
                         {activeCalls.length > 0 && (
-                            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 overflow-x-auto">
-                                <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Agrupar por:</span>
-                                {(['none', 'client', 'customer', 'account', 'customer+account'] as GroupBy[]).map((option) => (
-                                    <button
-                                        key={option}
-                                        onClick={() => setGroupBy(option)}
-                                        className={`px-3 py-1.5 text-sm font-medium rounded transition-colors whitespace-nowrap ${
-                                            groupBy === option
-                                                ? 'bg-indigo-600 text-white'
-                                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        {option === 'none' ? 'Sin agrupar' : option === 'client' ? 'Cliente' : option === 'customer' ? 'Customer' : option === 'account' ? 'Account' : 'Customer + Account'}
-                                    </button>
-                                ))}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 overflow-x-auto">
+                                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Agrupar por:</span>
+                                    {(['none', 'client', 'customer', 'account', 'customer+account'] as GroupBy[]).map((option) => (
+                                        <button
+                                            key={option}
+                                            onClick={() => setGroupBy(option)}
+                                            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors whitespace-nowrap ${
+                                                groupBy === option
+                                                    ? 'bg-indigo-600 text-white'
+                                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {option === 'none' ? 'Sin agrupar' : option === 'client' ? 'Cliente' : option === 'customer' ? 'Customer' : option === 'account' ? 'Account' : 'Customer + Account'}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-gray-700">Auto-actualizar:</span>
+                                        {([3000, 5000, 10000, 30000, 0] as const).map((interval) => (
+                                            <button
+                                                key={interval}
+                                                onClick={() => setAutoRefreshInterval(interval)}
+                                                className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                                                    autoRefreshInterval === interval
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {interval === 0 ? 'Off' : interval === 3000 ? '3s' : interval === 5000 ? '5s' : interval === 10000 ? '10s' : '30s'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
+                                        {isRefreshing && (
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                                                <span>Actualizando...</span>
+                                            </div>
+                                        )}
+                                        {!isRefreshing && (
+                                            <span>Última actualización: {lastUpdated.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
