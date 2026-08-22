@@ -148,25 +148,37 @@ class PortaOneClient
      * Histórico de llamadas finalizadas (AccountAdminService::get_xdr_list)
      * desde $fromDate en adelante, para reportes; no confundir con
      * fetchActiveSessions(), que es la fotografía de llamadas en curso.
+     * A pesar de que el WSDL marca i_account como opcional, PortaOne lo
+     * exige en tiempo de ejecución ("Mandatory field missed: i_account"),
+     * así que hay que consultarlo cuenta por cuenta. Una sola sesión se
+     * reutiliza para todas las cuentas del lote.
      */
-    public function syncXdrs(?\DateTimeInterface $fromDate, callable $onPage, ?callable $onTotal = null): int
+    public function syncXdrsForAccounts(array $iAccounts, ?\DateTimeInterface $fromDate, callable $onPage, ?callable $onTotal = null): int
     {
-        $extraParams = $fromDate !== null
-            ? ['from_date' => $fromDate->format('Y-m-d\TH:i:s')]
-            : [];
+        return $this->withSession(function (string $baseUrl, string $sessionId) use ($iAccounts, $fromDate, $onPage, $onTotal) {
+            $total = 0;
 
-        return $this->withSession(
-            fn (string $baseUrl, string $sessionId) => $this->paginate(
-                $baseUrl,
-                'AccountAdminService',
-                'get_xdr_list',
-                'xdr_list',
-                $extraParams,
-                $sessionId,
-                $onPage,
-                onTotal: $onTotal,
-            ),
-        );
+            foreach ($iAccounts as $iAccount) {
+                $extraParams = ['i_account' => (int) $iAccount];
+
+                if ($fromDate !== null) {
+                    $extraParams['from_date'] = $fromDate->format('Y-m-d\TH:i:s');
+                }
+
+                $total += $this->paginate(
+                    $baseUrl,
+                    'AccountAdminService',
+                    'get_xdr_list',
+                    'xdr_list',
+                    $extraParams,
+                    $sessionId,
+                    $onPage,
+                    onTotal: $onTotal,
+                );
+            }
+
+            return $total;
+        });
     }
 
     private function paginate(

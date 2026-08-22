@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\CallRecord;
 use App\Models\Client;
+use App\Models\PortaoneAccount;
 use App\Models\PortaoneCustomer;
 use App\Models\ProcessRun;
 use App\Services\PortaOneClient;
@@ -43,12 +44,27 @@ class SyncPortaOneCalls implements ShouldQueue
             'started_at' => now(),
         ]);
 
+        $iAccounts = PortaoneAccount::query()
+            ->where('client_id', $client->id)
+            ->active()
+            ->pluck('i_account')
+            ->filter()
+            ->all();
+
+        if ($iAccounts === []) {
+            $run->update(['status' => 'completed', 'finished_at' => now()]);
+
+            return;
+        }
+
         $portaOne = new PortaOneClient($client);
         $maxConnectTime = $client->xdr_synced_until;
         $synced = 0;
+        $totalAcrossAccounts = 0;
 
         try {
-            $portaOne->syncXdrs(
+            $portaOne->syncXdrsForAccounts(
+                $iAccounts,
                 $fromDate,
                 onPage: function (array $rows) use ($client, $run, &$synced, &$maxConnectTime) {
                     foreach ($rows as $row) {
@@ -97,7 +113,10 @@ class SyncPortaOneCalls implements ShouldQueue
 
                     $this->setContext($run, 'calls', ['synced' => $synced], merge: true);
                 },
-                onTotal: fn (int $total) => $this->setContext($run, 'calls', ['total' => $total], merge: true),
+                onTotal: function (int $accountTotal) use ($run, &$totalAcrossAccounts) {
+                    $totalAcrossAccounts += $accountTotal;
+                    $this->setContext($run, 'calls', ['total' => $totalAcrossAccounts], merge: true);
+                },
             );
 
             $client->update(['xdr_synced_until' => $maxConnectTime ?? now()]);
