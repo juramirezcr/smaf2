@@ -34,8 +34,21 @@ interface AccountStat {
     seconds: number;
 }
 
+interface DonutItem {
+    label: string;
+    value: number;
+}
+
+interface CustomerBreakdownItem {
+    customer: string | null;
+    calls: number;
+}
+
 interface DashboardProps {
     period: string;
+    isAdmin: boolean;
+    clientTotals: DonutItem[];
+    prefixCustomerStats: Record<string, CustomerBreakdownItem[]>;
     prefixStats: StatGroup[];
     destinationStats: DestinationGroup[];
     accountStats: AccountStat[];
@@ -108,7 +121,7 @@ const AUTO_REFRESH_OPTIONS = [
     { value: 900_000, label: 'Cada 15 min' },
 ];
 
-export default function Dashboard({ period, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
+export default function Dashboard({ period, isAdmin, clientTotals, prefixCustomerStats, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
     const [autoRefreshInterval, setAutoRefreshInterval] = useState(300_000);
 
     const handlePeriodChange = (newPeriod: string) => {
@@ -121,23 +134,27 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
         }
 
         const interval = setInterval(() => {
-            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts'] });
+            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'clientTotals', 'prefixCustomerStats'] });
         }, autoRefreshInterval);
 
         return () => clearInterval(interval);
     }, [autoRefreshInterval, period]);
 
-    const prefixDonutData = (() => {
-        const flat = prefixStats.flatMap((group) => group.items.map((item) => ({
-            label: group.clientName ? `${group.clientName} · ${item.label ?? '—'}` : (item.label ?? '—'),
-            value: item.calls,
-        })));
-        flat.sort((a, b) => b.value - a.value);
-        const top = flat.slice(0, 6);
-        const restTotal = flat.slice(6).reduce((sum, item) => sum + item.value, 0);
+    const capWithOthers = (items: DonutItem[], max: number): DonutItem[] => {
+        const sorted = [...items].sort((a, b) => b.value - a.value);
+        const top = sorted.slice(0, max);
+        const restTotal = sorted.slice(max).reduce((sum, item) => sum + item.value, 0);
 
         return restTotal > 0 ? [...top, { label: 'Otros', value: restTotal }] : top;
-    })();
+    };
+
+    const clientDonutData = capWithOthers(clientTotals, 6);
+
+    const topPrefixItems = prefixStats[0]?.items ?? [];
+    const prefixDonutData = capWithOthers(
+        topPrefixItems.map((item) => ({ label: item.label ?? '—', value: item.calls })),
+        6,
+    );
 
     const periodLabels: Record<string, string> = {
         '1h': 'Última hora',
@@ -224,11 +241,48 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
                             </div>
                         </Card>
 
-                        <Card color="bg-slate-500" title="Distribución de Prefijos" icon="📊" href={route('prefixes.index')}>
-                            {prefixDonutData.length === 0 ? (
+                        <Card
+                            color="bg-slate-500"
+                            title={isAdmin ? 'Distribución por Cliente' : 'Distribución por Prefijo'}
+                            icon="📊"
+                            href={route(isAdmin ? 'admin.clients.index' : 'prefixes.index')}
+                        >
+                            {isAdmin ? (
+                                clientDonutData.length === 0 ? (
+                                    <p className="p-6 text-sm text-gray-500">Sin llamadas en este período.</p>
+                                ) : (
+                                    <DonutChart items={clientDonutData} />
+                                )
+                            ) : prefixDonutData.length === 0 ? (
                                 <p className="p-6 text-sm text-gray-500">Sin llamadas en este período.</p>
                             ) : (
-                                <DonutChart items={prefixDonutData} />
+                                <>
+                                    <DonutChart items={prefixDonutData} />
+                                    <div className="space-y-3 border-t px-4 py-3">
+                                        <p className="text-xs font-semibold uppercase text-gray-500">Customers por prefijo</p>
+                                        {topPrefixItems.map((item, index) => {
+                                            const customers = item.label ? prefixCustomerStats[item.label] ?? [] : [];
+
+                                            return (
+                                                <div key={index} className="text-xs">
+                                                    <p className="font-mono font-semibold text-gray-700">{item.label ?? '—'}</p>
+                                                    {customers.length === 0 ? (
+                                                        <p className="text-gray-400">Sin datos de customer.</p>
+                                                    ) : (
+                                                        <ul className="ml-2 space-y-0.5">
+                                                            {customers.map((c, cIndex) => (
+                                                                <li key={cIndex} className="flex justify-between text-gray-600">
+                                                                    <span className="truncate">{c.customer ?? '—'}</span>
+                                                                    <span className="ml-2 shrink-0 font-medium">{c.calls}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
                             )}
                         </Card>
                     </div>
