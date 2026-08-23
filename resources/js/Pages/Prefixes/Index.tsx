@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import type { Paginated, PrefixRule } from './types';
+import type { PrefixRule } from './types';
 
 interface ClientOption {
     id: number;
@@ -9,12 +9,69 @@ interface ClientOption {
 }
 
 interface PrefixesIndexProps {
-    rules: Paginated<PrefixRule>;
+    rules: PrefixRule[];
     clients?: ClientOption[] | null;
     selectedClientId?: number | 'all' | null;
     availableCountries: string[];
     selectedCountries: string[];
     prefixSearch: string;
+}
+
+interface CountryGroup {
+    country: string;
+    rules: PrefixRule[];
+}
+
+interface ClientGroup {
+    key: string;
+    label: string;
+    isGlobal: boolean;
+    count: number;
+    countries: CountryGroup[];
+}
+
+function buildGroups(rules: PrefixRule[]): ClientGroup[] {
+    const clientMap = new Map<string, ClientGroup>();
+
+    for (const rule of rules) {
+        const key = rule.isGlobal ? '__global__' : `client-${rule.clientName ?? 'sin-cliente'}`;
+
+        if (!clientMap.has(key)) {
+            clientMap.set(key, {
+                key,
+                label: rule.isGlobal ? 'Todos los clientes (regla global)' : (rule.clientName ?? 'Sin cliente'),
+                isGlobal: Boolean(rule.isGlobal),
+                count: 0,
+                countries: [],
+            });
+        }
+
+        const clientGroup = clientMap.get(key)!;
+        clientGroup.count += 1;
+
+        const countryKey = rule.country ?? 'Sin país';
+        let countryGroup = clientGroup.countries.find((c) => c.country === countryKey);
+        if (!countryGroup) {
+            countryGroup = { country: countryKey, rules: [] };
+            clientGroup.countries.push(countryGroup);
+        }
+        countryGroup.rules.push(rule);
+    }
+
+    const groups = Array.from(clientMap.values());
+    for (const group of groups) {
+        group.countries.sort((a, b) => a.country.localeCompare(b.country));
+        for (const country of group.countries) {
+            country.rules.sort((a, b) => Number(a.prefix) - Number(b.prefix));
+        }
+    }
+
+    groups.sort((a, b) => {
+        if (a.isGlobal !== b.isGlobal) return a.isGlobal ? -1 : 1;
+        return a.label.localeCompare(b.label);
+    });
+
+    return groups;
 }
 
 function Scope({ rule }: { rule: PrefixRule }) {
@@ -92,9 +149,69 @@ function CountryFilter({ available, selected, onChange }: { available: string[];
     );
 }
 
+function RuleRow({ rule }: { rule: PrefixRule }) {
+    return (
+        <article className="flex flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                        href={route('prefixes.show', rule.id)}
+                        className="font-mono text-lg font-semibold text-indigo-700 hover:text-indigo-900"
+                    >
+                        +{rule.prefix}
+                    </Link>
+                    <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            rule.enabled
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-gray-100 text-gray-600'
+                        }`}
+                    >
+                        {rule.enabled ? 'Activa' : 'Inactiva'}
+                    </span>
+                </div>
+                {rule.description && (
+                    <p className="mt-2 text-sm text-gray-800">
+                        {rule.description}
+                    </p>
+                )}
+                <Scope rule={rule} />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-7 gap-y-3 text-sm">
+                <div>
+                    <p className="text-gray-500">Llamadas / hora</p>
+                    <p className="font-semibold text-gray-900">
+                        {rule.hourlyCallLimit.toLocaleString('es-MX')}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-gray-500">Minutos / hora</p>
+                    <p className="font-semibold text-gray-900">
+                        {rule.hourlyMinutesLimit.toLocaleString('es-MX')}
+                    </p>
+                </div>
+                <div>
+                    <p className="text-gray-500">Acción</p>
+                    <p className="font-semibold text-gray-900">
+                        {rule.action === 'notify' ? 'Notificar' : 'Bloquear'}
+                    </p>
+                </div>
+                <Link
+                    href={route('prefixes.show', rule.id)}
+                    className="rounded-md border border-gray-300 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50"
+                >
+                    Ver detalle
+                </Link>
+            </div>
+        </article>
+    );
+}
+
 export default function PrefixesIndex({ rules, clients, selectedClientId, availableCountries, selectedCountries, prefixSearch }: PrefixesIndexProps) {
     const [search, setSearch] = useState(prefixSearch);
-    const showingAll = selectedClientId === 'all';
+    const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+    const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
 
     const changeClient = (clientId: string) => {
         router.get(route('prefixes.index'), { client_id: clientId, country: selectedCountries, prefix_search: search || undefined }, { preserveState: true });
@@ -108,6 +225,24 @@ export default function PrefixesIndex({ rules, clients, selectedClientId, availa
         setSearch(value);
         router.get(route('prefixes.index'), { client_id: selectedClientId ?? undefined, country: selectedCountries, prefix_search: value || undefined }, { preserveState: true });
     };
+
+    const toggleClient = (key: string) => {
+        setExpandedClients((prev) => {
+            const next = new Set(prev);
+            next.has(key) ? next.delete(key) : next.add(key);
+            return next;
+        });
+    };
+
+    const toggleCountry = (key: string) => {
+        setExpandedCountries((prev) => {
+            const next = new Set(prev);
+            next.has(key) ? next.delete(key) : next.add(key);
+            return next;
+        });
+    };
+
+    const groups = buildGroups(rules);
 
     return (
         <AuthenticatedLayout
@@ -154,14 +289,11 @@ export default function PrefixesIndex({ rules, clients, selectedClientId, availa
                     <section className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                             <h2 className="font-semibold text-gray-900">
-                                {rules.total} {rules.total === 1 ? 'regla' : 'reglas'}
+                                {rules.length} {rules.length === 1 ? 'regla' : 'reglas'}
                             </h2>
-                            <span className="text-sm text-gray-500">
-                                10 por página
-                            </span>
                         </div>
 
-                        {rules.data.length === 0 ? (
+                        {groups.length === 0 ? (
                             <div className="px-6 py-14 text-center">
                                 <h3 className="text-lg font-semibold text-gray-900">
                                     Aún no hay reglas de prefijo
@@ -178,127 +310,50 @@ export default function PrefixesIndex({ rules, clients, selectedClientId, availa
                                 </Link>
                             </div>
                         ) : (
-                            <>
-                                <div className="divide-y divide-gray-200">
-                                    {rules.data.map((rule) => (
-                                        <article
-                                            key={rule.id}
-                                            className="flex flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between"
-                                        >
-                                            <div className="min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <Link
-                                                        href={route('prefixes.show', rule.id)}
-                                                        className="font-mono text-lg font-semibold text-indigo-700 hover:text-indigo-900"
-                                                    >
-                                                        +{rule.prefix}
-                                                    </Link>
-                                                    {rule.country && (
-                                                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                                                            {rule.country}
-                                                        </span>
-                                                    )}
-                                                    <span
-                                                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                            rule.enabled
-                                                                ? 'bg-emerald-50 text-emerald-700'
-                                                                : 'bg-gray-100 text-gray-600'
-                                                        }`}
-                                                    >
-                                                        {rule.enabled ? 'Activa' : 'Inactiva'}
-                                                    </span>
-                                                </div>
-                                                {rule.isGlobal ? (
-                                                    <p className="mt-1 text-sm font-medium text-indigo-600">
-                                                        Todos los clientes (regla global)
-                                                    </p>
-                                                ) : showingAll && rule.clientName && (
-                                                    <p className="mt-1 text-sm font-medium text-gray-700">
-                                                        {rule.clientName}
-                                                    </p>
-                                                )}
-                                                {rule.description && (
-                                                    <p className="mt-2 text-sm text-gray-800">
-                                                        {rule.description}
-                                                    </p>
-                                                )}
-                                                <Scope rule={rule} />
-                                            </div>
+                            <div className="divide-y divide-gray-200">
+                                {groups.map((clientGroup) => {
+                                    const isClientOpen = expandedClients.has(clientGroup.key);
 
-                                            <div className="flex flex-wrap items-center gap-x-7 gap-y-3 text-sm">
-                                                <div>
-                                                    <p className="text-gray-500">
-                                                        Llamadas / hora
-                                                    </p>
-                                                    <p className="font-semibold text-gray-900">
-                                                        {rule.hourlyCallLimit.toLocaleString('es-MX')}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-gray-500">
-                                                        Minutos / hora
-                                                    </p>
-                                                    <p className="font-semibold text-gray-900">
-                                                        {rule.hourlyMinutesLimit.toLocaleString('es-MX')}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-gray-500">Acción</p>
-                                                    <p className="font-semibold text-gray-900">
-                                                        {rule.action === 'notify'
-                                                            ? 'Notificar'
-                                                            : 'Bloquear'}
-                                                    </p>
-                                                </div>
-                                                <Link
-                                                    href={route('prefixes.show', rule.id)}
-                                                    className="rounded-md border border-gray-300 px-3 py-2 font-medium text-gray-700 hover:bg-gray-50"
-                                                >
-                                                    Ver detalle
-                                                </Link>
-                                            </div>
-                                        </article>
-                                    ))}
-                                </div>
+                                    return (
+                                        <div key={clientGroup.key}>
+                                            <button
+                                                onClick={() => toggleClient(clientGroup.key)}
+                                                className={`flex w-full items-center gap-2 px-6 py-3 text-left text-sm font-semibold hover:bg-opacity-80 ${
+                                                    clientGroup.isGlobal ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-gray-800'
+                                                }`}
+                                            >
+                                                <span className={`inline-block transition-transform ${isClientOpen ? '' : '-rotate-90'}`}>▼</span>
+                                                {clientGroup.label}
+                                                <span className="ml-2 font-normal text-gray-500">({clientGroup.count} {clientGroup.count === 1 ? 'regla' : 'reglas'})</span>
+                                            </button>
+                                            {isClientOpen && clientGroup.countries.map((countryGroup) => {
+                                                const countryKey = `${clientGroup.key}::${countryGroup.country}`;
+                                                const isCountryOpen = expandedCountries.has(countryKey);
 
-                                {rules.last_page > 1 && (
-                                    <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4">
-                                        {rules.current_page > 1 ? (
-                                            <Link
-                                                href={route('prefixes.index', {
-                                                    page: rules.current_page - 1,
-                                                    client_id: selectedClientId ?? undefined,
-                                                    country: selectedCountries,
-                                                    prefix_search: search || undefined,
-                                                })}
-                                                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                            >
-                                                Anterior
-                                            </Link>
-                                        ) : (
-                                            <span />
-                                        )}
-                                        <p className="text-sm text-gray-600">
-                                            Página {rules.current_page} de {rules.last_page}
-                                        </p>
-                                        {rules.current_page < rules.last_page ? (
-                                            <Link
-                                                href={route('prefixes.index', {
-                                                    page: rules.current_page + 1,
-                                                    client_id: selectedClientId ?? undefined,
-                                                    country: selectedCountries,
-                                                    prefix_search: search || undefined,
-                                                })}
-                                                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                            >
-                                                Siguiente
-                                            </Link>
-                                        ) : (
-                                            <span />
-                                        )}
-                                    </div>
-                                )}
-                            </>
+                                                return (
+                                                    <div key={countryGroup.country}>
+                                                        <button
+                                                            onClick={() => toggleCountry(countryKey)}
+                                                            className="flex w-full items-center gap-2 border-l-4 border-indigo-300 bg-blue-50 px-10 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-blue-100"
+                                                        >
+                                                            <span className={`inline-block text-xs transition-transform ${isCountryOpen ? '' : '-rotate-90'}`}>▼</span>
+                                                            {countryGroup.country}
+                                                            <span className="ml-2 font-normal text-gray-500">({countryGroup.rules.length})</span>
+                                                        </button>
+                                                        {isCountryOpen && (
+                                                            <div className="divide-y divide-gray-100">
+                                                                {countryGroup.rules.map((rule) => (
+                                                                    <RuleRow key={rule.id} rule={rule} />
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
                     </section>
                 </div>

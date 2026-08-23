@@ -56,9 +56,8 @@ class PrefixRuleController extends Controller
                 ->when($selectedCountries !== [], fn (Builder $query) => $query->whereIn('country', $selectedCountries))
                 ->when($prefixSearch !== '', fn (Builder $query) => $query->where('match_value', 'like', $prefixSearch.'%'))
                 ->orderByRaw('CAST(match_value AS UNSIGNED) asc')
-                ->paginate(10)
-                ->withQueryString()
-                ->through(fn (MonitoringRule $rule) => [
+                ->get()
+                ->map(fn (MonitoringRule $rule) => [
                     ...$this->ruleData($rule),
                     'clientName' => $clientNames->get($rule->client_id),
                     'isGlobal' => $rule->client_id === null,
