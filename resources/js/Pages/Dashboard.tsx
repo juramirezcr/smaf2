@@ -47,7 +47,6 @@ interface CustomerBreakdownItem {
 interface DashboardProps {
     period: string;
     isAdmin: boolean;
-    clientTotals: DonutItem[];
     prefixCustomerStats: Record<string, CustomerBreakdownItem[]>;
     prefixStats: StatGroup[];
     destinationStats: DestinationGroup[];
@@ -121,7 +120,7 @@ const AUTO_REFRESH_OPTIONS = [
     { value: 900_000, label: 'Cada 15 min' },
 ];
 
-export default function Dashboard({ period, isAdmin, clientTotals, prefixCustomerStats, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
+export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
     const [autoRefreshInterval, setAutoRefreshInterval] = useState(300_000);
 
     const handlePeriodChange = (newPeriod: string) => {
@@ -134,7 +133,7 @@ export default function Dashboard({ period, isAdmin, clientTotals, prefixCustome
         }
 
         const interval = setInterval(() => {
-            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'clientTotals', 'prefixCustomerStats'] });
+            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'prefixCustomerStats'] });
         }, autoRefreshInterval);
 
         return () => clearInterval(interval);
@@ -148,7 +147,10 @@ export default function Dashboard({ period, isAdmin, clientTotals, prefixCustome
         return restTotal > 0 ? [...top, { label: 'Otros', value: restTotal }] : top;
     };
 
-    const clientDonutData = capWithOthers(clientTotals, 6);
+    const clientPrefixDonuts = prefixStats.map((group) => ({
+        clientName: group.clientName,
+        data: capWithOthers(group.items.map((item) => ({ label: item.label ?? '—', value: item.calls })), 5),
+    }));
 
     const topPrefixItems = prefixStats[0]?.items ?? [];
     const prefixDonutData = capWithOthers(
@@ -243,15 +245,26 @@ export default function Dashboard({ period, isAdmin, clientTotals, prefixCustome
 
                         <Card
                             color="bg-slate-500"
-                            title={isAdmin ? 'Distribución por Cliente' : 'Distribución por Prefijo'}
+                            title={isAdmin ? 'Distribución de Prefijos por Cliente' : 'Distribución por Prefijo'}
                             icon="📊"
                             href={route(isAdmin ? 'admin.clients.index' : 'prefixes.index')}
                         >
                             {isAdmin ? (
-                                clientDonutData.length === 0 ? (
+                                clientPrefixDonuts.length === 0 ? (
                                     <p className="p-6 text-sm text-gray-500">Sin llamadas en este período.</p>
                                 ) : (
-                                    <DonutChart items={clientDonutData} />
+                                    <div className="divide-y">
+                                        {clientPrefixDonuts.map((client, index) => (
+                                            <div key={index} className="px-4 py-3">
+                                                <p className="mb-1 text-xs font-semibold uppercase text-gray-500">{client.clientName}</p>
+                                                {client.data.length === 0 ? (
+                                                    <p className="text-sm text-gray-400">Sin llamadas en este período.</p>
+                                                ) : (
+                                                    <DonutChart items={client.data} />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 )
                             ) : prefixDonutData.length === 0 ? (
                                 <p className="p-6 text-sm text-gray-500">Sin llamadas en este período.</p>

@@ -35,19 +35,6 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'period' => $period,
             'isAdmin' => $isAdmin,
-            'clientTotals' => $isAdmin
-                ? (clone $baseQuery)
-                    ->select('client_id')
-                    ->selectRaw('count(*) as calls')
-                    ->groupBy('client_id')
-                    ->orderByDesc('calls')
-                    ->get()
-                    ->map(fn ($row) => [
-                        'label' => $clientNames->get($row->client_id) ?? 'Sin cliente',
-                        'value' => (int) $row->calls,
-                    ])
-                    ->values()
-                : [],
             'prefixCustomerStats' => $isAdmin
                 ? []
                 : (clone $baseQuery)
