@@ -6,7 +6,7 @@ use App\Models\CallRecord;
 use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class EvaluateMonitoringRules extends Command
 {
@@ -20,50 +20,84 @@ class EvaluateMonitoringRules extends Command
             ->where('scope', 'prefix')
             ->where('enabled', true)
             ->whereNotNull('client_id')
+            ->where(function ($query) {
+                $query->whereNotNull('call_limit')->orWhereNotNull('duration_limit_seconds');
+            })
             ->get();
 
+        if ($rules->isEmpty()) {
+            $this->info('No hay reglas de prefijo activas con límites configurados.');
+
+            return self::SUCCESS;
+        }
+
+        // Una sola consulta para todos los clientes en vez de una por regla:
+        // con ~1400 reglas importadas, hacer un query por regla escaneaba la
+        // tabla de llamadas 1400 veces (el LIKE de destino no usa índice).
+        $recentCalls = CallRecord::query()
+            ->where('connected_at', '>=', now()->subHour())
+            ->whereIn('client_id', $rules->pluck('client_id')->unique())
+            ->get(['client_id', 'prefix', 'destination', 'account', 'customer', 'duration_seconds']);
+
+        $callsByClient = $recentCalls->groupBy('client_id');
+
+        $existingAlertsByRule = MonitoringRuleEvent::query()
+            ->whereIn('monitoring_rule_id', $rules->pluck('id'))
+            ->where('occurred_at', '>=', now()->startOfHour())
+            ->get(['monitoring_rule_id', 'context'])
+            ->groupBy('monitoring_rule_id')
+            ->map(fn (Collection $events) => $events
+                ->map(fn (MonitoringRuleEvent $event) => (string) ($event->context['account'] ?? ''))
+                ->all());
+
         $created = 0;
+        $ruleIds = [];
 
         foreach ($rules as $rule) {
-            $created += $this->evaluateRule($rule);
-            $rule->update(['last_evaluated_at' => now()]);
+            $clientCalls = $callsByClient->get($rule->client_id, collect());
+            $alreadyAlerted = $existingAlertsByRule->get($rule->id, []);
+
+            $created += $this->evaluateRule($rule, $clientCalls, $alreadyAlerted);
+            $ruleIds[] = $rule->id;
         }
+
+        MonitoringRule::query()->whereIn('id', $ruleIds)->update(['last_evaluated_at' => now()]);
 
         $this->info("Reglas evaluadas: {$rules->count()}. Alertas creadas: {$created}.");
 
         return self::SUCCESS;
     }
 
-    private function evaluateRule(MonitoringRule $rule): int
+    /**
+     * @param  Collection<int, CallRecord>  $clientCalls
+     * @param  array<int, string>  $alreadyAlerted
+     */
+    private function evaluateRule(MonitoringRule $rule, Collection $clientCalls, array $alreadyAlerted): int
     {
-        if ($rule->call_limit === null && $rule->duration_limit_seconds === null) {
+        $matching = $clientCalls->filter(function (CallRecord $call) use ($rule) {
+            if ($rule->account !== null && $call->account !== $rule->account) {
+                return false;
+            }
+
+            if ($rule->customer !== null && $call->customer !== $rule->customer) {
+                return false;
+            }
+
+            return $call->prefix === $rule->match_value
+                || str_starts_with((string) $call->destination, $rule->match_value);
+        });
+
+        if ($matching->isEmpty()) {
             return 0;
         }
 
-        $groups = CallRecord::query()
-            ->where('client_id', $rule->client_id)
-            ->where('connected_at', '>=', now()->subHour())
-            ->where(function (Builder $query) use ($rule) {
-                $query->where('prefix', $rule->match_value)
-                    ->orWhere('destination', 'like', $rule->match_value.'%');
-            })
-            ->when($rule->account, fn (Builder $query, string $account) => $query->where('account', $account))
-            ->when($rule->customer, fn (Builder $query, string $customer) => $query->where('customer', $customer))
-            ->select('account', 'customer')
-            ->selectRaw('COUNT(*) as calls, COALESCE(SUM(duration_seconds), 0) as seconds')
-            ->groupBy('account', 'customer')
-            ->get();
+        $groups = $matching->groupBy(fn (CallRecord $call) => ($call->account ?? '').'|'.($call->customer ?? ''));
 
-        if ($groups->isEmpty()) {
-            return 0;
-        }
-
-        $alreadyAlertedAccounts = $this->accountsAlertedThisHour($rule);
         $created = 0;
 
         foreach ($groups as $group) {
-            $calls = (int) $group->calls;
-            $seconds = (int) $group->seconds;
+            $calls = $group->count();
+            $seconds = (int) $group->sum('duration_seconds');
 
             $callBreach = $rule->call_limit !== null && $calls > $rule->call_limit;
             $durationBreach = $rule->duration_limit_seconds !== null && $seconds > $rule->duration_limit_seconds;
@@ -72,15 +106,16 @@ class EvaluateMonitoringRules extends Command
                 continue;
             }
 
-            $accountKey = $group->account ?? '';
+            $first = $group->first();
+            $accountKey = $first->account ?? '';
 
-            if (in_array($accountKey, $alreadyAlertedAccounts, true)) {
+            if (in_array($accountKey, $alreadyAlerted, true)) {
                 continue;
             }
 
             $rule->recordAction('triggered', [
-                'account' => $group->account,
-                'customer' => $group->customer,
+                'account' => $first->account,
+                'customer' => $first->customer,
                 'calls' => $calls,
                 'seconds' => $seconds,
                 'call_limit' => $rule->call_limit,
@@ -92,18 +127,5 @@ class EvaluateMonitoringRules extends Command
         }
 
         return $created;
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function accountsAlertedThisHour(MonitoringRule $rule): array
-    {
-        return MonitoringRuleEvent::query()
-            ->where('monitoring_rule_id', $rule->id)
-            ->where('occurred_at', '>=', now()->startOfHour())
-            ->get()
-            ->map(fn (MonitoringRuleEvent $event) => (string) ($event->context['account'] ?? ''))
-            ->all();
     }
 }
