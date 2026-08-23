@@ -27,11 +27,16 @@ interface DestinationGroup {
     items: DestinationItem[];
 }
 
-interface AccountStat {
+interface AccountItem {
     customer: string | null;
     account: string | null;
     calls: number;
     seconds: number;
+}
+
+interface AccountGroup {
+    clientName: string | null;
+    items: AccountItem[];
 }
 
 interface DonutItem {
@@ -50,7 +55,7 @@ interface DashboardProps {
     prefixCustomerStats: Record<string, CustomerBreakdownItem[]>;
     prefixStats: StatGroup[];
     destinationStats: DestinationGroup[];
-    accountStats: AccountStat[];
+    accountStats: AccountGroup[];
     alertCounts: Record<string, number>;
 }
 
@@ -339,7 +344,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-100 text-xs uppercase text-gray-500">
                                     <tr>
-                                        <th className="px-4 py-2 text-left">Cliente</th>
+                                        {isAdmin && <th className="px-4 py-2 text-left">Customer</th>}
                                         <th className="px-4 py-2 text-left">Cuenta</th>
                                         <th className="px-4 py-2 text-right">Llamadas</th>
                                         <th className="px-4 py-2 text-right">Segundos</th>
@@ -347,14 +352,23 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {accountStats.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
-                                    ) : accountStats.map((row, index) => (
-                                        <tr key={index}>
-                                            <td className="px-4 py-2">{row.customer ?? '—'}</td>
-                                            <td className="px-4 py-2">{row.account ?? '—'}</td>
-                                            <td className="px-4 py-2 text-right">{row.calls}</td>
-                                            <td className="px-4 py-2 text-right">{row.seconds}</td>
-                                        </tr>
+                                        <tr><td colSpan={isAdmin ? 4 : 3} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
+                                    ) : accountStats.map((group, groupIndex) => (
+                                        <Fragment key={groupIndex}>
+                                            {group.clientName && (
+                                                <tr className="bg-gray-50">
+                                                    <td colSpan={isAdmin ? 4 : 3} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
+                                                </tr>
+                                            )}
+                                            {group.items.map((item, itemIndex) => (
+                                                <tr key={itemIndex}>
+                                                    {isAdmin && <td className="px-4 py-2">{item.customer ?? '—'}</td>}
+                                                    <td className="px-4 py-2">{item.account ?? '—'}</td>
+                                                    <td className="px-4 py-2 text-right">{item.calls}</td>
+                                                    <td className="px-4 py-2 text-right">{item.seconds}</td>
+                                                </tr>
+                                            ))}
+                                        </Fragment>
                                     ))}
                                 </tbody>
                             </table>

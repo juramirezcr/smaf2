@@ -61,21 +61,25 @@ class DashboardController extends Controller
             ),
             'destinationStats' => $this->topDestinations(
                 (clone $baseQuery)
-                    ->selectRaw("client_id, prefix, destination, {$bucketExpression} as bucket")
+                    ->selectRaw("client_id, customer, prefix, destination, {$bucketExpression} as bucket")
                     ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
-                    ->groupBy('client_id', 'prefix', 'destination', 'bucket')
+                    ->groupBy('client_id', 'customer', 'prefix', 'destination', 'bucket')
                     ->get(),
                 bucketCount: $bucketCount,
                 clientNames: $clientNames,
+                isAdmin: $isAdmin,
                 limit: 10,
             ),
-            'accountStats' => (clone $baseQuery)
-                ->select('customer', 'account')
-                ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
-                ->groupBy('customer', 'account')
-                ->orderByDesc('calls')
-                ->limit(8)
-                ->get(),
+            'accountStats' => $this->groupedAccounts(
+                (clone $baseQuery)
+                    ->select('client_id', 'customer', 'account')
+                    ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
+                    ->groupBy('client_id', 'customer', 'account')
+                    ->get(),
+                clientNames: $clientNames,
+                isAdmin: $isAdmin,
+                perGroupLimit: 5,
+            ),
             'alertCounts' => MonitoringRuleEvent::query()
                 ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
                 ->where('occurred_at', '>=', now()->subDay())
@@ -145,15 +149,22 @@ class DashboardController extends Controller
         return $groups;
     }
 
-    private function topDestinations($rows, int $bucketCount, $clientNames, int $limit): array
+    /**
+     * Admin: rango top 10 por destino combinando todos los customers de cada
+     * cliente, agrupado por Cliente interno (visión de fraude a nivel tenant).
+     * Cliente (no admin): rango top 10 por combinación customer+destino
+     * dentro de su propio tráfico, agrupado por Customer.
+     */
+    private function topDestinations($rows, int $bucketCount, $clientNames, bool $isAdmin, int $limit): array
     {
-        $aggregated = [];
+        $perCustomer = [];
 
         foreach ($rows as $row) {
-            $key = $row->client_id.'|'.$row->prefix.'|'.$row->destination;
+            $key = $row->client_id.'|'.$row->customer.'|'.$row->prefix.'|'.$row->destination;
 
-            $aggregated[$key] ??= [
+            $perCustomer[$key] ??= [
                 'client_id' => $row->client_id,
+                'customer' => $row->customer,
                 'prefix' => $row->prefix,
                 'destination' => $row->destination,
                 'calls' => 0,
@@ -161,16 +172,56 @@ class DashboardController extends Controller
                 'history' => array_fill(0, $bucketCount, 0),
             ];
 
-            $aggregated[$key]['calls'] += (int) $row->calls;
-            $aggregated[$key]['seconds'] += (int) $row->seconds;
+            $perCustomer[$key]['calls'] += (int) $row->calls;
+            $perCustomer[$key]['seconds'] += (int) $row->seconds;
 
             $bucketIndex = (int) $row->bucket;
             if ($bucketIndex >= 0 && $bucketIndex < $bucketCount) {
-                $aggregated[$key]['history'][$bucketIndex] += (int) $row->calls;
+                $perCustomer[$key]['history'][$bucketIndex] += (int) $row->calls;
             }
         }
 
-        $top = array_values($aggregated);
+        if (! $isAdmin) {
+            $top = array_values($perCustomer);
+            usort($top, fn ($a, $b) => $b['calls'] <=> $a['calls']);
+            $top = array_slice($top, 0, $limit);
+
+            $byCustomer = [];
+            foreach ($top as $item) {
+                $byCustomer[$item['customer'] ?? '']['label'] = $item['customer'] ?: 'Sin customer';
+                $byCustomer[$item['customer'] ?? '']['items'][] = $item;
+            }
+
+            $groups = array_values($byCustomer);
+            usort($groups, fn ($a, $b) => ($b['items'][0]['calls'] ?? 0) <=> ($a['items'][0]['calls'] ?? 0));
+
+            return array_map(fn ($g) => ['clientName' => $g['label'], 'items' => $g['items']], $groups);
+        }
+
+        // Admin: combinar todos los customers de un mismo cliente+destino
+        // para rankear y mostrar el total, sin desglosar por customer.
+        $combined = [];
+        foreach ($perCustomer as $item) {
+            $key = $item['client_id'].'|'.$item['prefix'].'|'.$item['destination'];
+
+            $combined[$key] ??= [
+                'client_id' => $item['client_id'],
+                'prefix' => $item['prefix'],
+                'destination' => $item['destination'],
+                'calls' => 0,
+                'seconds' => 0,
+                'history' => array_fill(0, $bucketCount, 0),
+            ];
+
+            $combined[$key]['calls'] += $item['calls'];
+            $combined[$key]['seconds'] += $item['seconds'];
+
+            foreach ($item['history'] as $index => $value) {
+                $combined[$key]['history'][$index] += $value;
+            }
+        }
+
+        $top = array_values($combined);
         usort($top, fn ($a, $b) => $b['calls'] <=> $a['calls']);
         $top = array_slice($top, 0, $limit);
 
@@ -184,6 +235,46 @@ class DashboardController extends Controller
             $groups[] = [
                 'clientName' => $clientNames?->get($clientIdKey),
                 'items' => $items,
+            ];
+        }
+
+        usort($groups, fn ($a, $b) => ($b['items'][0]['calls'] ?? 0) <=> ($a['items'][0]['calls'] ?? 0));
+
+        return $groups;
+    }
+
+    /**
+     * Admin: agrupa cuentas por Cliente interno (cada item conserva el
+     * customer al que pertenece, ya que un cliente tiene varios).
+     * Cliente (no admin): agrupa por Customer (el item solo necesita la
+     * cuenta, el customer ya es el encabezado del grupo).
+     */
+    private function groupedAccounts($rows, $clientNames, bool $isAdmin, int $perGroupLimit): array
+    {
+        $groupsByKey = [];
+
+        foreach ($rows as $row) {
+            $key = $isAdmin ? $row->client_id : ($row->customer ?? '');
+
+            $groupsByKey[$key]['label'] ??= $isAdmin
+                ? $clientNames?->get($row->client_id)
+                : ($row->customer ?: 'Sin customer');
+
+            $groupsByKey[$key]['items'][] = [
+                'customer' => $row->customer,
+                'account' => $row->account,
+                'calls' => (int) $row->calls,
+                'seconds' => (int) $row->seconds,
+            ];
+        }
+
+        $groups = [];
+        foreach ($groupsByKey as $group) {
+            usort($group['items'], fn ($a, $b) => $b['calls'] <=> $a['calls']);
+
+            $groups[] = [
+                'clientName' => $group['label'],
+                'items' => array_slice($group['items'], 0, $perGroupLimit),
             ];
         }
 
