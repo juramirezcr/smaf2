@@ -231,7 +231,7 @@ export default function CallsIndex({
                                 <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-semibold text-gray-700">Auto-actualizar:</span>
-                                        {([3000, 5000, 10000, 30000, 0] as const).map((interval) => (
+                                        {([5000, 10000, 30000, 0] as const).map((interval) => (
                                             <button
                                                 key={interval}
                                                 onClick={() => setAutoRefreshInterval(interval)}
@@ -241,7 +241,7 @@ export default function CallsIndex({
                                                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                                 }`}
                                             >
-                                                {interval === 0 ? 'Off' : interval === 3000 ? '3s' : interval === 5000 ? '5s' : interval === 10000 ? '10s' : '30s'}
+                                                {interval === 0 ? 'Off' : interval === 5000 ? '5s' : interval === 10000 ? '10s' : '30s'}
                                             </button>
                                         ))}
                                     </div>
