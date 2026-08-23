@@ -32,6 +32,7 @@ interface AccountItem {
     account: string | null;
     calls: number;
     seconds: number;
+    history: number[];
 }
 
 interface AccountGroup {
@@ -348,16 +349,17 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                         <th className="px-4 py-2 text-left">Cuenta</th>
                                         <th className="px-4 py-2 text-right">Llamadas</th>
                                         <th className="px-4 py-2 text-right">Segundos</th>
+                                        <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {accountStats.length === 0 ? (
-                                        <tr><td colSpan={isAdmin ? 4 : 3} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
+                                        <tr><td colSpan={isAdmin ? 5 : 4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
                                     ) : accountStats.map((group, groupIndex) => (
                                         <Fragment key={groupIndex}>
                                             {group.clientName && (
                                                 <tr className="bg-gray-50">
-                                                    <td colSpan={isAdmin ? 4 : 3} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
+                                                    <td colSpan={isAdmin ? 5 : 4} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
                                                 </tr>
                                             )}
                                             {group.items.map((item, itemIndex) => (
@@ -366,6 +368,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                                     <td className="px-4 py-2">{item.account ?? '—'}</td>
                                                     <td className="px-4 py-2 text-right">{item.calls}</td>
                                                     <td className="px-4 py-2 text-right">{item.seconds}</td>
+                                                    <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
                                                 </tr>
                                             ))}
                                         </Fragment>

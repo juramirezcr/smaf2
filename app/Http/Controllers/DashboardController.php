@@ -72,10 +72,11 @@ class DashboardController extends Controller
             ),
             'accountStats' => $this->groupedAccounts(
                 (clone $baseQuery)
-                    ->select('client_id', 'customer', 'account')
+                    ->selectRaw("client_id, customer, account, {$bucketExpression} as bucket")
                     ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
-                    ->groupBy('client_id', 'customer', 'account')
+                    ->groupBy('client_id', 'customer', 'account', 'bucket')
                     ->get(),
+                bucketCount: $bucketCount,
                 clientNames: $clientNames,
                 isAdmin: $isAdmin,
                 perGroupLimit: 5,
@@ -249,22 +250,46 @@ class DashboardController extends Controller
      * Cliente (no admin): agrupa por Customer (el item solo necesita la
      * cuenta, el customer ya es el encabezado del grupo).
      */
-    private function groupedAccounts($rows, $clientNames, bool $isAdmin, int $perGroupLimit): array
+    private function groupedAccounts($rows, int $bucketCount, $clientNames, bool $isAdmin, int $perGroupLimit): array
     {
-        $groupsByKey = [];
+        $accounts = [];
 
         foreach ($rows as $row) {
-            $key = $isAdmin ? $row->client_id : ($row->customer ?? '');
+            $accountKey = $row->client_id.'|'.$row->customer.'|'.$row->account;
 
-            $groupsByKey[$key]['label'] ??= $isAdmin
-                ? $clientNames?->get($row->client_id)
-                : ($row->customer ?: 'Sin customer');
-
-            $groupsByKey[$key]['items'][] = [
+            $accounts[$accountKey] ??= [
+                'client_id' => $row->client_id,
                 'customer' => $row->customer,
                 'account' => $row->account,
-                'calls' => (int) $row->calls,
-                'seconds' => (int) $row->seconds,
+                'calls' => 0,
+                'seconds' => 0,
+                'history' => array_fill(0, $bucketCount, 0),
+            ];
+
+            $accounts[$accountKey]['calls'] += (int) $row->calls;
+            $accounts[$accountKey]['seconds'] += (int) $row->seconds;
+
+            $bucketIndex = (int) $row->bucket;
+            if ($bucketIndex >= 0 && $bucketIndex < $bucketCount) {
+                $accounts[$accountKey]['history'][$bucketIndex] += (int) $row->calls;
+            }
+        }
+
+        $groupsByKey = [];
+
+        foreach ($accounts as $item) {
+            $key = $isAdmin ? $item['client_id'] : ($item['customer'] ?? '');
+
+            $groupsByKey[$key]['label'] ??= $isAdmin
+                ? $clientNames?->get($item['client_id'])
+                : ($item['customer'] ?: 'Sin customer');
+
+            $groupsByKey[$key]['items'][] = [
+                'customer' => $item['customer'],
+                'account' => $item['account'],
+                'calls' => $item['calls'],
+                'seconds' => $item['seconds'],
+                'history' => $item['history'],
             ];
         }
 
