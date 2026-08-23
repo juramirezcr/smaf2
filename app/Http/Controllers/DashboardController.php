@@ -17,7 +17,7 @@ class DashboardController extends Controller
         $clientId = $user->client_id;
         $isAdmin = $clientId === null;
 
-        $period = $request->input('period', '24h');
+        $period = $request->input('period', '1h');
 
         [$since, $bucketUnitSeconds, $bucketCount] = $this->periodBuckets($period);
         $sinceTimestamp = $since->timestamp;

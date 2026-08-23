@@ -121,7 +121,7 @@ const AUTO_REFRESH_OPTIONS = [
 ];
 
 export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
-    const [autoRefreshInterval, setAutoRefreshInterval] = useState(300_000);
+    const [autoRefreshInterval, setAutoRefreshInterval] = useState(60_000);
 
     const handlePeriodChange = (newPeriod: string) => {
         router.get(route('dashboard'), { period: newPeriod }, { preserveState: true });
