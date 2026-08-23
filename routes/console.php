@@ -32,3 +32,8 @@ Schedule::call(function () {
         ->whereNotNull('portaone_token')
         ->each(fn (Client $client) => SyncPortaOneCalls::dispatch($client->id));
 })->everyFifteenMinutes()->name('portaone-xdr-sync')->withoutOverlapping();
+
+Schedule::command('smaf:evaluate-monitoring-rules')
+    ->everyFiveMinutes()
+    ->name('evaluate-monitoring-rules')
+    ->withoutOverlapping();
