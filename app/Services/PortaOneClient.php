@@ -308,12 +308,16 @@ class PortaOneClient
     private function call(string $baseUrl, string $service, string $method, array $params, ?string $sessionId = null): object
     {
         try {
+            // connection_timeout de SoapClient solo cubre el establecimiento de la
+            // conexión TCP; sin un timeout de socket explícito, una respuesta lenta
+            // de PortaOne puede bloquear el worker de la cola por tiempo indefinido.
             $client = new SoapClient("{$baseUrl}/wsdl/{$service}.wsdl", [
                 'exceptions' => true,
                 'connection_timeout' => 10,
                 'cache_wsdl' => WSDL_CACHE_NONE,
                 'stream_context' => stream_context_create([
                     'ssl' => ['verify_peer' => false, 'verify_peer_name' => false],
+                    'http' => ['timeout' => 30],
                 ]),
             ]);
 

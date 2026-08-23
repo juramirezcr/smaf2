@@ -23,7 +23,7 @@ Schedule::call(function () {
     Client::query()
         ->whereNotNull('portaone_username')
         ->whereNotNull('portaone_token')
-        ->each(fn (Client $client) => PollPortaOneActiveSessions::dispatch($client->id));
+        ->each(fn (Client $client) => PollPortaOneActiveSessions::dispatch($client->id)->onQueue('sessions'));
 })->everyMinute()->name('portaone-active-sessions')->withoutOverlapping();
 
 Schedule::call(function () {

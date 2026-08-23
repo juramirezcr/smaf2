@@ -29,7 +29,26 @@ services:
     build:
       context: .
       target: application
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    command: php artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=300 --max-time=3600
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - app-storage:/var/www/html/storage
+
+  queue-sessions:
+    build:
+      context: .
+      target: application
+    # Worker dedicado para las sesiones activas de PortaOne: si se comparte
+    # cola con SyncPortaOneCalls (que puede tardar horas la primera vez que
+    # sincroniza el histórico), el poll de llamadas activas queda bloqueado
+    # detrás de ese backlog y la vista de "Llamadas" muestra datos viejos.
+    command: php artisan queue:work --queue=sessions --sleep=1 --tries=3 --timeout=60 --max-time=3600
     env_file: .env
     depends_on:
       db:
