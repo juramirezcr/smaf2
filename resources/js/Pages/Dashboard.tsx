@@ -56,6 +56,39 @@ function Sparkline({ data }: { data: number[] }) {
     );
 }
 
+const DONUT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#94a3b8'];
+
+function DonutChart({ items }: { items: { label: string; value: number }[] }) {
+    const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
+    let cumulative = 0;
+    const stops = items.map((item, index) => {
+        const start = (cumulative / total) * 360;
+        cumulative += item.value;
+        const end = (cumulative / total) * 360;
+        return `${DONUT_COLORS[index % DONUT_COLORS.length]} ${start}deg ${end}deg`;
+    }).join(', ');
+
+    return (
+        <div className="flex items-center gap-6 p-4">
+            <div className="relative h-32 w-32 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops})` }}>
+                <div className="absolute inset-3 flex items-center justify-center rounded-full bg-white text-xs font-semibold text-gray-500">
+                    {total}
+                </div>
+            </div>
+            <ul className="min-w-0 flex-1 space-y-1.5 text-xs">
+                {items.map((item, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: DONUT_COLORS[index % DONUT_COLORS.length] }} />
+                        <span className="truncate text-gray-700">{item.label}</span>
+                        <span className="ml-auto shrink-0 font-medium text-gray-900">{item.value}</span>
+                        <span className="w-10 shrink-0 text-right text-gray-400">{Math.round((item.value / total) * 100)}%</span>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
 function Card({ color, title, icon, href, children }: { color: string; title: string; icon: string; href: string; children: React.ReactNode }) {
     return (
         <Link href={href} className="block overflow-hidden rounded-lg bg-white shadow-sm">
@@ -93,6 +126,18 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
 
         return () => clearInterval(interval);
     }, [autoRefreshInterval, period]);
+
+    const prefixDonutData = (() => {
+        const flat = prefixStats.flatMap((group) => group.items.map((item) => ({
+            label: group.clientName ? `${group.clientName} · ${item.label ?? '—'}` : (item.label ?? '—'),
+            value: item.calls,
+        })));
+        flat.sort((a, b) => b.value - a.value);
+        const top = flat.slice(0, 6);
+        const restTotal = flat.slice(6).reduce((sum, item) => sum + item.value, 0);
+
+        return restTotal > 0 ? [...top, { label: 'Otros', value: restTotal }] : top;
+    })();
 
     const periodLabels: Record<string, string> = {
         '1h': 'Última hora',
@@ -142,8 +187,9 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="mb-4">
+                    <div className="mb-4 grid gap-4 md:grid-cols-2">
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
+                            <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-100 text-xs uppercase text-gray-500">
                                     <tr>
@@ -175,6 +221,15 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
+                        </Card>
+
+                        <Card color="bg-slate-500" title="Distribución de Prefijos" icon="📊" href={route('prefixes.index')}>
+                            {prefixDonutData.length === 0 ? (
+                                <p className="p-6 text-sm text-gray-500">Sin llamadas en este período.</p>
+                            ) : (
+                                <DonutChart items={prefixDonutData} />
+                            )}
                         </Card>
                     </div>
 
