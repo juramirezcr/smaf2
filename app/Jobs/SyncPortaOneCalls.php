@@ -9,13 +9,22 @@ use App\Models\PortaoneCustomer;
 use App\Models\ProcessRun;
 use App\Services\PortaOneClient;
 use Carbon\Carbon;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
 
-class SyncPortaOneCalls implements ShouldQueue
+class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
 {
     use Queueable;
+
+    /**
+     * Evita apilar corridas: si el sync anterior de este cliente sigue
+     * corriendo (puede tardar horas en la primera carga histórica), el
+     * scheduler simplemente omite el disparo actual en vez de encolar
+     * otro job detrás; el siguiente tick lo vuelve a intentar.
+     */
+    public int $uniqueFor = 3600;
 
     /**
      * @var array<int, string|null>
@@ -24,6 +33,11 @@ class SyncPortaOneCalls implements ShouldQueue
 
     public function __construct(public readonly int $clientId)
     {
+    }
+
+    public function uniqueId(): string
+    {
+        return (string) $this->clientId;
     }
 
     public function handle(): void

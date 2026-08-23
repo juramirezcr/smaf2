@@ -5,16 +5,28 @@ namespace App\Jobs;
 use App\Models\Client;
 use App\Models\PortaoneActiveSession;
 use App\Services\PortaOneClient;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
 
-class PollPortaOneActiveSessions implements ShouldQueue
+class PollPortaOneActiveSessions implements ShouldQueue, ShouldBeUnique
 {
     use Queueable;
 
+    /**
+     * Se dispara cada minuto; si la corrida anterior de este cliente aún no
+     * termina, se omite el disparo actual en vez de apilar otro job detrás.
+     */
+    public int $uniqueFor = 120;
+
     public function __construct(public readonly int $clientId)
     {
+    }
+
+    public function uniqueId(): string
+    {
+        return (string) $this->clientId;
     }
 
     public function handle(): void
