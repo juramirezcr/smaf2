@@ -103,7 +103,17 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
     };
 
     const header = (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-between gap-2">
+            <Link
+                href={route('alerts.index')}
+                className="flex items-center gap-4 rounded-md px-3 py-1.5 text-sm hover:bg-gray-50"
+            >
+                <span className="font-semibold text-gray-700">Alertas (24h):</span>
+                <span title="Bloqueadas">🚫 {alertCounts.block ?? 0}</span>
+                <span title="Notificadas">🔔 {alertCounts.notify ?? 0}</span>
+                <span title="Ignoradas">➖ {alertCounts.ignore ?? 0}</span>
+            </Link>
+            <div className="flex items-center gap-2">
             <select
                 value={autoRefreshInterval}
                 onChange={(event) => setAutoRefreshInterval(Number(event.target.value))}
@@ -122,6 +132,7 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
                     <option key={value} value={value}>{label}</option>
                 ))}
             </select>
+            </div>
         </div>
     );
 
@@ -131,16 +142,6 @@ export default function Dashboard({ period, prefixStats, destinationStats, accou
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <Link
-                        href={route('alerts.index')}
-                        className="mb-4 flex items-center gap-6 rounded-lg bg-white px-4 py-3 text-sm shadow-sm hover:bg-gray-50"
-                    >
-                        <span className="font-semibold text-gray-700">Alertas (24h):</span>
-                        <span title="Bloqueadas">🚫 {alertCounts.block ?? 0}</span>
-                        <span title="Notificadas">🔔 {alertCounts.notify ?? 0}</span>
-                        <span title="Ignoradas">➖ {alertCounts.ignore ?? 0}</span>
-                    </Link>
-
                     <div className="mb-4">
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
                             <table className="w-full text-sm">
