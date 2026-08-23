@@ -13,6 +13,7 @@ export interface PrefixRule {
     createdAt: string;
     updatedAt: string;
     clientName?: string | null;
+    isGlobal?: boolean;
 }
 
 export interface Paginated<T> {

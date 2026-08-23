@@ -4,6 +4,7 @@ import type { Paginated, PrefixRule } from './types';
 
 interface CallRecord {
     id: number;
+    clientName?: string | null;
     account: string;
     customer: string | null;
     origin: string | null;
@@ -50,7 +51,7 @@ export default function PrefixRuleShow({
     calls,
 }: PrefixRuleShowProps) {
     const scope = [
-        rule.customer && `Cliente: ${rule.customer}`,
+        rule.customer && `Customer: ${rule.customer}`,
         rule.account && `Cuenta: ${rule.account}`,
     ]
         .filter(Boolean)
@@ -109,7 +110,12 @@ export default function PrefixRuleShow({
                                     {rule.description ?? 'Sin descripción registrada.'}
                                 </p>
                                 <p className="mt-3 text-sm font-medium text-gray-800">
-                                    {scope || 'Todos los clientes y cuentas'}
+                                    {rule.isGlobal && (
+                                        <span className="mr-2 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                                            Regla global · todos los clientes
+                                        </span>
+                                    )}
+                                    {scope || (rule.isGlobal ? 'Todas las cuentas' : 'Todas las cuentas de este cliente')}
                                 </p>
                             </div>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
@@ -208,7 +214,8 @@ export default function PrefixRuleShow({
                                             <tr>
                                                 <th className="px-6 py-3">Conectada</th>
                                                 <th className="px-6 py-3">Destino</th>
-                                                <th className="px-6 py-3">Cliente / cuenta</th>
+                                                {rule.isGlobal && <th className="px-6 py-3">Cliente</th>}
+                                                <th className="px-6 py-3">Customer / cuenta</th>
                                                 <th className="px-6 py-3">Origen</th>
                                                 <th className="px-6 py-3 text-right">Duración</th>
                                             </tr>
@@ -222,6 +229,11 @@ export default function PrefixRuleShow({
                                                     <td className="px-6 py-4 font-mono font-medium text-gray-900">
                                                         {call.destination}
                                                     </td>
+                                                    {rule.isGlobal && (
+                                                        <td className="px-6 py-4 text-gray-600">
+                                                            {call.clientName ?? '—'}
+                                                        </td>
+                                                    )}
                                                     <td className="px-6 py-4">
                                                         <p>{call.customer ?? '—'}</p>
                                                         <p className="text-xs text-gray-500">

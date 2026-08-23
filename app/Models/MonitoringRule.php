@@ -42,11 +42,15 @@ class MonitoringRule extends Model
         return $this->hasMany(MonitoringRuleEvent::class);
     }
 
-    public function recordAction(string $status, array $context = []): MonitoringRuleEvent
+    /**
+     * $clientId permite registrar el evento contra el cliente realmente
+     * afectado cuando la regla es global (client_id null aplica a todos).
+     */
+    public function recordAction(string $status, array $context = [], ?int $clientId = null): MonitoringRuleEvent
     {
         return $this->auditEvents()->create([
             'user_id' => $this->user_id,
-            'client_id' => $this->client_id,
+            'client_id' => $clientId ?? $this->client_id,
             'action' => $this->action,
             'status' => $status,
             'context' => $context ?: null,

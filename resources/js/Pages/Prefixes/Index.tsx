@@ -19,13 +19,17 @@ interface PrefixesIndexProps {
 
 function Scope({ rule }: { rule: PrefixRule }) {
     const parts = [
-        rule.customer && `Cliente: ${rule.customer}`,
+        rule.customer && `Customer: ${rule.customer}`,
         rule.account && `Cuenta: ${rule.account}`,
     ].filter(Boolean);
 
+    if (parts.length === 0) {
+        return null;
+    }
+
     return (
         <p className="mt-1 text-sm text-gray-500">
-            {parts.length > 0 ? parts.join(' · ') : 'Todos los clientes y cuentas'}
+            {parts.join(' · ')}
         </p>
     );
 }
@@ -204,7 +208,11 @@ export default function PrefixesIndex({ rules, clients, selectedClientId, availa
                                                         {rule.enabled ? 'Activa' : 'Inactiva'}
                                                     </span>
                                                 </div>
-                                                {showingAll && rule.clientName && (
+                                                {rule.isGlobal ? (
+                                                    <p className="mt-1 text-sm font-medium text-indigo-600">
+                                                        Todos los clientes (regla global)
+                                                    </p>
+                                                ) : showingAll && rule.clientName && (
                                                     <p className="mt-1 text-sm font-medium text-gray-700">
                                                         {rule.clientName}
                                                     </p>

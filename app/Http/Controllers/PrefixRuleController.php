@@ -30,10 +30,16 @@ class PrefixRuleController extends Controller
             $clientId = $showAll ? null : ((int) $selected ?: optional($clients->first())->id);
         }
 
-        $clientNames = $showAll ? $clients->pluck('name', 'id') : null;
+        $clientNames = Client::query()->pluck('name', 'id');
+
+        // Las reglas globales (client_id null) aplican a todos los clientes,
+        // así que siempre se incluyen además de las propias del cliente.
+        $clientScope = fn (Builder $query) => $query->where(
+            fn (Builder $inner) => $inner->where('client_id', $clientId)->orWhereNull('client_id'),
+        );
 
         $availableCountries = MonitoringRule::query()
-            ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
+            ->when(! $showAll, $clientScope)
             ->where('scope', 'prefix')
             ->whereNotNull('country')
             ->distinct()
@@ -45,7 +51,7 @@ class PrefixRuleController extends Controller
 
         return Inertia::render('Prefixes/Index', [
             'rules' => MonitoringRule::query()
-                ->when(! $showAll, fn (Builder $query) => $query->where('client_id', $clientId))
+                ->when(! $showAll, $clientScope)
                 ->where('scope', 'prefix')
                 ->when($selectedCountries !== [], fn (Builder $query) => $query->whereIn('country', $selectedCountries))
                 ->when($prefixSearch !== '', fn (Builder $query) => $query->where('match_value', 'like', $prefixSearch.'%'))
@@ -54,7 +60,8 @@ class PrefixRuleController extends Controller
                 ->withQueryString()
                 ->through(fn (MonitoringRule $rule) => [
                     ...$this->ruleData($rule),
-                    'clientName' => $clientNames?->get($rule->client_id),
+                    'clientName' => $clientNames->get($rule->client_id),
+                    'isGlobal' => $rule->client_id === null,
                 ]),
             'clients' => $clients,
             'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
@@ -80,12 +87,21 @@ class PrefixRuleController extends Controller
         $isAdmin = $user->client_id === null;
 
         if ($isAdmin) {
-            $client = Client::query()->findOrFail($request->input('client_id'));
-            $targetUser = User::query()->where('client_id', $client->id)->orderBy('id')->first();
-            abort_if($targetUser === null, 422, 'El cliente seleccionado no tiene usuarios.');
+            $selected = $request->input('client_id');
 
-            $clientId = $client->id;
-            $userId = $targetUser->id;
+            if (in_array($selected, [null, 'all'], true)) {
+                // Regla global: aplica a todos los clientes y cuentas. La
+                // atribuye al admin que la crea, no hay "usuario del cliente".
+                $clientId = null;
+                $userId = $user->id;
+            } else {
+                $client = Client::query()->findOrFail($selected);
+                $targetUser = User::query()->where('client_id', $client->id)->orderBy('id')->first();
+                abort_if($targetUser === null, 422, 'El cliente seleccionado no tiene usuarios.');
+
+                $clientId = $client->id;
+                $userId = $targetUser->id;
+            }
         } else {
             $clientId = $user->client_id;
             $userId = $user->id;
@@ -108,13 +124,19 @@ class PrefixRuleController extends Controller
         $period = $request->string('period', '24h')->value();
         abort_unless(array_key_exists($period, $this->periodHours()), 404);
 
+        $isGlobal = $rule->client_id === null;
+        $clientNames = $isGlobal ? Client::query()->pluck('name', 'id') : null;
+
         $matchingCalls = $this->matchingCalls($rule, $period);
         $summary = (clone $matchingCalls)
             ->selectRaw('COUNT(*) as call_count, COALESCE(SUM(duration_seconds), 0) as duration_seconds')
             ->first();
 
         return Inertia::render('Prefixes/Show', [
-            'rule' => $this->ruleData($rule),
+            'rule' => [
+                ...$this->ruleData($rule),
+                'isGlobal' => $isGlobal,
+            ],
             'period' => $period,
             'summary' => [
                 'callCount' => (int) $summary->call_count,
@@ -126,6 +148,7 @@ class PrefixRuleController extends Controller
                 ->withQueryString()
                 ->through(fn (CallRecord $call) => [
                     'id' => $call->id,
+                    'clientName' => $clientNames?->get($call->client_id),
                     'account' => $call->account,
                     'customer' => $call->customer,
                     'origin' => $call->origin,
@@ -210,7 +233,7 @@ class PrefixRuleController extends Controller
     private function matchingCalls(MonitoringRule $rule, string $period): Builder
     {
         return CallRecord::query()
-            ->where('client_id', $rule->client_id)
+            ->when($rule->client_id !== null, fn (Builder $query) => $query->where('client_id', $rule->client_id))
             ->where('connected_at', '>=', now()->subHours($this->periodHours()[$period]))
             ->where(function (Builder $query) use ($rule) {
                 $query->where('prefix', $rule->match_value)
