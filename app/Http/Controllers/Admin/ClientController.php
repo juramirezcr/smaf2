@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -170,6 +171,37 @@ class ClientController extends Controller
         ]);
 
         return to_route('admin.clients.index')->with('success', 'El usuario fue creado.');
+    }
+
+    public function updateUser(Request $request, Client $client, User $user): RedirectResponse
+    {
+        abort_unless($user->client_id === $client->id, 404);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->where('client_id', $client->id)->ignore($user->id)],
+            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'in:client_admin,client_user'],
+        ]);
+
+        if ($user->role === 'client_admin'
+            && $validated['role'] === 'client_user'
+            && $client->users()->where('role', 'client_admin')->count() === 1) {
+            throw ValidationException::withMessages([
+                'role' => 'El cliente debe conservar al menos un administrador.',
+            ]);
+        }
+
+        $user->update([
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+            ...($validated['password'] ? ['password' => Hash::make($validated['password'])] : []),
+        ]);
+
+        return to_route('admin.clients.index')->with('success', 'El usuario fue actualizado.');
     }
 
     public function destroy(Request $request, Client $client): RedirectResponse

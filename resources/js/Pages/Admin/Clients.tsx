@@ -133,6 +133,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
     });
 
     const [userModalClient, setUserModalClient] = useState<ClientItem | null>(null);
+    const [editingUser, setEditingUser] = useState<ClientUser | null>(null);
     const userForm = useForm({
         name: '',
         username: '',
@@ -145,17 +146,41 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
     const openUserModal = (client: ClientItem) => {
         userForm.reset();
         userForm.clearErrors();
+        setEditingUser(null);
+        setUserModalClient(client);
+    };
+
+    const openEditUserModal = (client: ClientItem, user: ClientUser) => {
+        userForm.clearErrors();
+        userForm.setData({
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            password: '',
+            password_confirmation: '',
+            role: user.role,
+        });
+        setEditingUser(user);
         setUserModalClient(client);
     };
 
     const closeUserModal = () => {
         userForm.reset();
+        setEditingUser(null);
         setUserModalClient(null);
     };
 
     const submitUser: FormEventHandler = (event) => {
         event.preventDefault();
         if (!userModalClient) return;
+
+        if (editingUser) {
+            userForm.patch(route('admin.clients.users.update', [userModalClient.id, editingUser.id]), {
+                onSuccess: closeUserModal,
+            });
+
+            return;
+        }
 
         userForm.post(route('admin.clients.users.store', userModalClient.id), {
             onSuccess: closeUserModal,
@@ -448,8 +473,17 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                             {client.users.map((user) => (
                                                 <li key={user.id} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
                                                     <span className="truncate">{user.name} <span className="text-gray-400 dark:text-gray-500">({user.username})</span></span>
-                                                    <span className="ml-2 shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                                                        {user.role === 'client_admin' ? 'Admin' : 'Usuario'}
+                                                    <span className="ml-2 flex shrink-0 items-center gap-2">
+                                                        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                                            {user.role === 'client_admin' ? 'Admin' : 'Usuario'}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openEditUserModal(client, user)}
+                                                            className="font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                                        >
+                                                            Editar
+                                                        </button>
                                                     </span>
                                                 </li>
                                             ))}
@@ -592,7 +626,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
             <Modal show={userModalClient !== null} onClose={closeUserModal} maxWidth="md">
                 <form onSubmit={submitUser} className="p-6">
                     <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                        Agregar usuario a {userModalClient?.name}
+                        {editingUser ? `Editar usuario de ${userModalClient?.name}` : `Agregar usuario a ${userModalClient?.name}`}
                     </h3>
                     <div className="mt-4 space-y-4">
                         <div>
@@ -624,18 +658,18 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                             <InputError message={userForm.errors.role} className="mt-2" />
                         </div>
                         <div>
-                            <InputLabel htmlFor="user_password" value="Contraseña" />
-                            <TextInput id="user_password" type="password" value={userForm.data.password} className="mt-1 block w-full" onChange={(event) => userForm.setData('password', event.target.value)} required />
+                            <InputLabel htmlFor="user_password" value={editingUser ? 'Nueva contraseña (dejar en blanco para no cambiarla)' : 'Contraseña'} />
+                            <TextInput id="user_password" type="password" value={userForm.data.password} className="mt-1 block w-full" onChange={(event) => userForm.setData('password', event.target.value)} required={!editingUser} />
                             <InputError message={userForm.errors.password} className="mt-2" />
                         </div>
                         <div>
                             <InputLabel htmlFor="user_password_confirmation" value="Confirmar contraseña" />
-                            <TextInput id="user_password_confirmation" type="password" value={userForm.data.password_confirmation} className="mt-1 block w-full" onChange={(event) => userForm.setData('password_confirmation', event.target.value)} required />
+                            <TextInput id="user_password_confirmation" type="password" value={userForm.data.password_confirmation} className="mt-1 block w-full" onChange={(event) => userForm.setData('password_confirmation', event.target.value)} required={!editingUser} />
                         </div>
                     </div>
                     <div className="mt-6 flex justify-end gap-3">
                         <SecondaryButton type="button" onClick={closeUserModal}>Cancelar</SecondaryButton>
-                        <PrimaryButton disabled={userForm.processing}>Crear usuario</PrimaryButton>
+                        <PrimaryButton disabled={userForm.processing}>{editingUser ? 'Guardar cambios' : 'Crear usuario'}</PrimaryButton>
                     </div>
                 </form>
             </Modal>

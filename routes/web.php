@@ -39,6 +39,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
         Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
         Route::post('/clients/{client}/users', [ClientController::class, 'storeUser'])->name('clients.users.store');
+        Route::patch('/clients/{client}/users/{user}', [ClientController::class, 'updateUser'])->name('clients.users.update');
         Route::post('/clients/{client}/test-connection', [ClientController::class, 'testConnection'])->name('clients.test-connection');
         Route::post('/clients/{client}/sync', [ClientController::class, 'sync'])->name('clients.sync');
         Route::post('/clients/{client}/test-telegram', [NotificationTestController::class, 'telegram'])->name('clients.test-telegram');
