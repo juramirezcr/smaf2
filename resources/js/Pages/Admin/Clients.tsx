@@ -56,6 +56,11 @@ interface ConnectionTestResult {
     message: string;
 }
 
+interface NotificationTestResult {
+    status: 'loading' | 'success' | 'error';
+    message: string;
+}
+
 function StatTile({ label, value, href, progress }: { label: string; value: number; href: string; progress?: SyncProgress }) {
     const pct = progress && progress.total > 0 ? Math.min(100, Math.round((progress.synced / progress.total) * 100)) : null;
 
@@ -107,6 +112,8 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [step, setStep] = useState<1 | 2>(1);
     const [testResults, setTestResults] = useState<Record<number, ConnectionTestResult>>({});
+    const [telegramTestResults, setTelegramTestResults] = useState<Record<number, NotificationTestResult>>({});
+    const [emailTestResults, setEmailTestResults] = useState<Record<number, NotificationTestResult>>({});
     const { data, setData, post, patch, processing, errors, reset } = useForm({
         name: '',
         portaone_environment: '',
@@ -250,6 +257,40 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
         }
     };
 
+    const testTelegram = async (client: ClientItem) => {
+        setTelegramTestResults((previous) => ({ ...previous, [client.id]: { status: 'loading', message: '' } }));
+
+        try {
+            const response = await axios.post(route('admin.clients.test-telegram', client.id));
+            setTelegramTestResults((previous) => ({
+                ...previous,
+                [client.id]: { status: 'success', message: response.data.message },
+            }));
+        } catch (error) {
+            const message = axios.isAxiosError(error) && error.response?.data?.error
+                ? error.response.data.error
+                : 'No fue posible enviar el mensaje de prueba.';
+            setTelegramTestResults((previous) => ({ ...previous, [client.id]: { status: 'error', message } }));
+        }
+    };
+
+    const testEmail = async (client: ClientItem) => {
+        setEmailTestResults((previous) => ({ ...previous, [client.id]: { status: 'loading', message: '' } }));
+
+        try {
+            const response = await axios.post(route('admin.clients.test-email', client.id));
+            setEmailTestResults((previous) => ({
+                ...previous,
+                [client.id]: { status: 'success', message: response.data.message },
+            }));
+        } catch (error) {
+            const message = axios.isAxiosError(error) && error.response?.data?.error
+                ? error.response.data.error
+                : 'No fue posible enviar el correo de prueba.';
+            setEmailTestResults((previous) => ({ ...previous, [client.id]: { status: 'error', message } }));
+        }
+    };
+
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Clientes</h2>}>
             <Head title="Clientes" />
@@ -339,13 +380,45 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                         <StatTile label="Llamadas" value={client.callsCount} href={`/calls?client_id=${client.id}`} />
                                     </div>
 
-                                    <div className="flex flex-wrap gap-1.5 text-xs">
-                                        <span className={`rounded-full px-2 py-0.5 ${client.telegramChatId ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
-                                            Telegram {client.telegramChatId ? 'activo' : 'sin configurar'}
-                                        </span>
-                                        <span className={`rounded-full px-2 py-0.5 ${client.notificationEmail ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
-                                            Correo {client.notificationEmail ? 'activo' : 'sin configurar'}
-                                        </span>
+                                    <div className="space-y-1.5">
+                                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                                            <span className={`rounded-full px-2 py-0.5 ${client.telegramChatId ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                                                Telegram {client.telegramChatId ? 'activo' : 'sin configurar'}
+                                            </span>
+                                            {client.telegramChatId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => testTelegram(client)}
+                                                    disabled={telegramTestResults[client.id]?.status === 'loading'}
+                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                                >
+                                                    {telegramTestResults[client.id]?.status === 'loading' ? 'Enviando...' : 'Probar'}
+                                                </button>
+                                            )}
+                                            <span className={`rounded-full px-2 py-0.5 ${client.notificationEmail ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                                                Correo {client.notificationEmail ? 'activo' : 'sin configurar'}
+                                            </span>
+                                            {client.notificationEmail && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => testEmail(client)}
+                                                    disabled={emailTestResults[client.id]?.status === 'loading'}
+                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                                >
+                                                    {emailTestResults[client.id]?.status === 'loading' ? 'Enviando...' : 'Probar'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {telegramTestResults[client.id] && telegramTestResults[client.id].status !== 'loading' && (
+                                            <p className={`text-xs ${telegramTestResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                                Telegram: {telegramTestResults[client.id].message}
+                                            </p>
+                                        )}
+                                        {emailTestResults[client.id] && emailTestResults[client.id].status !== 'loading' && (
+                                            <p className={`text-xs ${emailTestResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                                Correo: {emailTestResults[client.id].message}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

@@ -22,8 +22,10 @@ class AlertTriggeredMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
+        $prefix = ($this->alert['isTest'] ?? false) ? '[PRUEBA] ' : '';
+
         return new Envelope(
-            subject: "Alerta SMAF2: {$this->alert['clientName']} · {$this->alert['account']}",
+            subject: "{$prefix}Alerta SMAF2: {$this->alert['clientName']} · {$this->alert['account']}",
         );
     }
 

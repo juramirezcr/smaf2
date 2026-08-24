@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\EmailSettingController;
+use App\Http\Controllers\Admin\NotificationTestController;
 use App\Http\Controllers\Admin\PlatformUserController;
 use App\Http\Controllers\Admin\PortaoneProductController;
 use App\Http\Controllers\Admin\PortaoneSettingController;
@@ -38,6 +39,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/clients/{client}/users', [ClientController::class, 'storeUser'])->name('clients.users.store');
         Route::post('/clients/{client}/test-connection', [ClientController::class, 'testConnection'])->name('clients.test-connection');
         Route::post('/clients/{client}/sync', [ClientController::class, 'sync'])->name('clients.sync');
+        Route::post('/clients/{client}/test-telegram', [NotificationTestController::class, 'telegram'])->name('clients.test-telegram');
+        Route::post('/clients/{client}/test-email', [NotificationTestController::class, 'email'])->name('clients.test-email');
         Route::get('/clients/{client}/products', [PortaoneProductController::class, 'index'])->name('clients.products.index');
         Route::post('/clients/{client}/products/refresh', [PortaoneProductController::class, 'refresh'])->name('clients.products.refresh');
         Route::patch('/clients/{client}/products', [PortaoneProductController::class, 'update'])->name('clients.products.update');

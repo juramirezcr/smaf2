@@ -6,6 +6,7 @@ use App\Mail\AlertTriggeredMail;
 use App\Models\Client;
 use App\Models\MonitoringRuleEvent;
 use App\Models\NotificationSetting;
+use App\Services\AlertMessageFormatter;
 use App\Services\TelegramNotifier;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -55,7 +56,7 @@ class SendAlertNotification implements ShouldQueue
         ];
 
         if ($client->telegram_chat_id) {
-            $telegram->send($client->telegram_chat_id, $this->telegramText($alert));
+            $telegram->send($client->telegram_chat_id, AlertMessageFormatter::telegramText($alert));
         }
 
         if ($client->notification_email) {
@@ -66,28 +67,5 @@ class SendAlertNotification implements ShouldQueue
                 Mail::to($client->notification_email)->send(new AlertTriggeredMail($alert));
             }
         }
-    }
-
-    /**
-     * @param  array<string, mixed>  $alert
-     */
-    private function telegramText(array $alert): string
-    {
-        $lines = [
-            '🚨 <b>Alerta de tráfico</b>',
-            '',
-            "Cliente: <b>{$alert['clientName']}</b>",
-            'Cuenta: '.($alert['account'] ?? '—'),
-            'Customer: '.($alert['customer'] ?? '—'),
-            'Prefijo: +'.$alert['prefix'],
-            '',
-            'Llamadas: '.$alert['calls'].($alert['callLimit'] !== null ? ' / límite '.$alert['callLimit'] : ''),
-            'Segundos: '.$alert['seconds'].($alert['durationLimitSeconds'] !== null ? ' / límite '.$alert['durationLimitSeconds'] : ''),
-            '',
-            'Acción: '.($alert['action'] === 'block' ? 'Bloquear' : 'Notificar'),
-            'Hora: '.$alert['occurredAt'],
-        ];
-
-        return implode("\n", $lines);
     }
 }

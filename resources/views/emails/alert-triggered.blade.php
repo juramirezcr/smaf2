@@ -15,6 +15,11 @@
                     </tr>
                     <tr>
                         <td style="padding:24px;">
+                            @if($alert['isTest'] ?? false)
+                                <p style="margin:0 0 16px; padding:8px 12px; background-color:#fef3c7; color:#92400e; font-size:13px; border-radius:4px;">
+                                    Este es un mensaje de prueba con datos de ejemplo. No corresponde a una alerta real.
+                                </p>
+                            @endif
                             <p style="margin:0 0 16px; color:#374151; font-size:14px;">
                                 Se superó el límite configurado para el prefijo <strong>+{{ $alert['prefix'] }}</strong>.
                             </p>
