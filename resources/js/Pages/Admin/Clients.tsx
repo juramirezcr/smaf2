@@ -26,12 +26,21 @@ interface SyncRun {
     finishedAt: string | null;
 }
 
+interface ClientUser {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+    role: 'client_admin' | 'client_user';
+}
+
 interface ClientItem {
     id: number;
     name: string;
     portaoneEnvironment: string;
     portaoneUsername: string;
     usersCount: number;
+    users: ClientUser[];
     productsCount: number;
     customersCount: number;
     accountsCount: number;
@@ -83,6 +92,36 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
         admin_password: '',
         admin_password_confirmation: '',
     });
+
+    const [userModalClient, setUserModalClient] = useState<ClientItem | null>(null);
+    const userForm = useForm({
+        name: '',
+        username: '',
+        email: '',
+        password: '',
+        password_confirmation: '',
+        role: 'client_admin' as 'client_admin' | 'client_user',
+    });
+
+    const openUserModal = (client: ClientItem) => {
+        userForm.reset();
+        userForm.clearErrors();
+        setUserModalClient(client);
+    };
+
+    const closeUserModal = () => {
+        userForm.reset();
+        setUserModalClient(null);
+    };
+
+    const submitUser: FormEventHandler = (event) => {
+        event.preventDefault();
+        if (!userModalClient) return;
+
+        userForm.post(route('admin.clients.users.store', userModalClient.id), {
+            onSuccess: closeUserModal,
+        });
+    };
 
     const isWizard = !editingClient;
     const stepOneComplete = data.name.trim() !== '' && data.portaone_environment.trim() !== '' && data.portaone_username.trim() !== '' && data.portaone_token.trim() !== '';
@@ -272,6 +311,33 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                <div className="mt-3 border-t pt-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-semibold uppercase text-gray-500">Usuarios ({client.usersCount})</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openUserModal(client)}
+                                                            className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
+                                                        >
+                                                            + Agregar usuario
+                                                        </button>
+                                                    </div>
+                                                    {client.users.length === 0 ? (
+                                                        <p className="mt-1 text-xs text-gray-400">Sin usuarios todavía.</p>
+                                                    ) : (
+                                                        <ul className="mt-1 space-y-0.5">
+                                                            {client.users.map((user) => (
+                                                                <li key={user.id} className="flex items-center justify-between text-xs text-gray-600">
+                                                                    <span>{user.name} <span className="text-gray-400">({user.username})</span></span>
+                                                                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-500">
+                                                                        {user.role === 'client_admin' ? 'Admin' : 'Usuario'}
+                                                                    </span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
@@ -361,6 +427,57 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                 <PrimaryButton disabled={processing}>{editingClient ? 'Guardar cambios' : 'Crear cliente'}</PrimaryButton>
                             )}
                         </div>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal show={userModalClient !== null} onClose={closeUserModal} maxWidth="md">
+                <form onSubmit={submitUser} className="p-6">
+                    <h3 className="text-lg font-medium text-gray-900">
+                        Agregar usuario a {userModalClient?.name}
+                    </h3>
+                    <div className="mt-4 space-y-4">
+                        <div>
+                            <InputLabel htmlFor="user_name" value="Nombre" />
+                            <TextInput id="user_name" value={userForm.data.name} className="mt-1 block w-full" onChange={(event) => userForm.setData('name', event.target.value)} required />
+                            <InputError message={userForm.errors.name} className="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="user_username" value="Usuario" />
+                            <TextInput id="user_username" value={userForm.data.username} className="mt-1 block w-full" onChange={(event) => userForm.setData('username', event.target.value)} required />
+                            <InputError message={userForm.errors.username} className="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="user_email" value="Correo electrónico" />
+                            <TextInput id="user_email" type="email" value={userForm.data.email} className="mt-1 block w-full" onChange={(event) => userForm.setData('email', event.target.value)} required />
+                            <InputError message={userForm.errors.email} className="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="user_role" value="Rol" />
+                            <select
+                                id="user_role"
+                                value={userForm.data.role}
+                                onChange={(event) => userForm.setData('role', event.target.value as 'client_admin' | 'client_user')}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="client_admin">Administrador del cliente</option>
+                                <option value="client_user">Usuario</option>
+                            </select>
+                            <InputError message={userForm.errors.role} className="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="user_password" value="Contraseña" />
+                            <TextInput id="user_password" type="password" value={userForm.data.password} className="mt-1 block w-full" onChange={(event) => userForm.setData('password', event.target.value)} required />
+                            <InputError message={userForm.errors.password} className="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="user_password_confirmation" value="Confirmar contraseña" />
+                            <TextInput id="user_password_confirmation" type="password" value={userForm.data.password_confirmation} className="mt-1 block w-full" onChange={(event) => userForm.setData('password_confirmation', event.target.value)} required />
+                        </div>
+                    </div>
+                    <div className="mt-6 flex justify-end gap-3">
+                        <SecondaryButton type="button" onClick={closeUserModal}>Cancelar</SecondaryButton>
+                        <PrimaryButton disabled={userForm.processing}>Crear usuario</PrimaryButton>
                     </div>
                 </form>
             </Modal>

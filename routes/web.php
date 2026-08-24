@@ -33,6 +33,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
         Route::patch('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
         Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+        Route::post('/clients/{client}/users', [ClientController::class, 'storeUser'])->name('clients.users.store');
         Route::post('/clients/{client}/test-connection', [ClientController::class, 'testConnection'])->name('clients.test-connection');
         Route::post('/clients/{client}/sync', [ClientController::class, 'sync'])->name('clients.sync');
         Route::get('/clients/{client}/products', [PortaoneProductController::class, 'index'])->name('clients.products.index');

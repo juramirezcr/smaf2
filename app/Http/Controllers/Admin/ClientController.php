@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,6 +43,7 @@ class ClientController extends Controller
                     'portaoneAccounts as accounts_count' => fn ($query) => $query->whereNull('archived_at'),
                     'callRecords as calls_count',
                 ])
+                ->with(['users' => fn ($query) => $query->orderBy('name')->select('id', 'client_id', 'name', 'username', 'email', 'role')])
                 ->latest()
                 ->get()
                 ->map(function (Client $client) use ($latestSyncRuns): array {
@@ -53,6 +55,13 @@ class ClientController extends Controller
                         'portaoneEnvironment' => $client->portaone_environment,
                         'portaoneUsername' => $client->portaone_username,
                         'usersCount' => $client->users_count,
+                        'users' => $client->users->map(fn (User $user) => [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'username' => $user->username,
+                            'email' => $user->email,
+                            'role' => $user->role,
+                        ]),
                         'productsCount' => $client->products_count,
                         'customersCount' => $client->customers_count,
                         'accountsCount' => $client->accounts_count,
@@ -120,6 +129,27 @@ class ClientController extends Controller
         ]);
 
         return to_route('admin.clients.index');
+    }
+
+    public function storeUser(Request $request, Client $client): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:'.User::class.',username'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->where('client_id', $client->id)],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'in:client_admin,client_user'],
+        ]);
+
+        $client->users()->create([
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+        ]);
+
+        return to_route('admin.clients.index')->with('success', 'El usuario fue creado.');
     }
 
     public function destroy(Request $request, Client $client): RedirectResponse
