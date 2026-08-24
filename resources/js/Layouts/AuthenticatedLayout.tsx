@@ -57,7 +57,7 @@ export default function Authenticated({
         user.isSystemAdmin && { name: 'PortaOne', href: route('admin.portaone.edit'), active: route().current('admin.portaone.*') },
         user.isSystemAdmin && { name: 'Administradores', href: route('admin.platform-users.index'), active: route().current('admin.platform-users.*') },
         user.isSystemAdmin && { name: 'Cola de jobs', href: route('admin.queue.index'), active: route().current('admin.queue.*') },
-        user.role === 'client_admin' && { name: 'Usuarios', href: route('users.index'), active: route().current('users.*') },
+        ! user.isSystemAdmin && user.role === 'client_admin' && { name: 'Usuarios', href: route('users.index'), active: route().current('users.*') },
         { name: 'Ejecuciones', href: route('process-runs.index'), active: route().current('process-runs.*') },
     ].filter((item): item is Exclude<typeof item, false> => item !== false);
 
