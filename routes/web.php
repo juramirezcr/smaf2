@@ -14,6 +14,7 @@ use App\Http\Controllers\AccountReportController;
 use App\Http\Controllers\CallRecordController;
 use App\Http\Controllers\ClientUserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DashboardDetailController;
 use App\Http\Controllers\DestinationReportController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\ImportBatchController;
@@ -29,6 +30,13 @@ Route::redirect('/', '/login');
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard.')->group(function () {
+    Route::get('/prefix-history', [DashboardDetailController::class, 'prefixHistory'])->name('prefix-history');
+    Route::get('/account-history', [DashboardDetailController::class, 'accountHistory'])->name('account-history');
+    Route::get('/prefix-rule', [DashboardDetailController::class, 'prefixRule'])->name('prefix-rule');
+    Route::post('/prefix-rule', [DashboardDetailController::class, 'updatePrefixRule'])->name('prefix-rule.update');
+});
 
 Route::middleware('auth')->group(function () {
     Route::middleware('system-admin')->prefix('admin')->name('admin.')->group(function () {

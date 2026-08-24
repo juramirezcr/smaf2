@@ -32,6 +32,8 @@ class DashboardController extends Controller
 
         $bucketExpression = "FLOOR((UNIX_TIMESTAMP(connected_at) - {$sinceTimestamp}) / {$bucketUnitSeconds})";
 
+        [$alertedPrefixKeys, $alertedAccountKeys] = $this->alertedKeys($isAdmin, $clientId);
+
         return Inertia::render('Dashboard', [
             'period' => $period,
             'isAdmin' => $isAdmin,
@@ -58,6 +60,7 @@ class DashboardController extends Controller
                 bucketCount: $bucketCount,
                 clientNames: $clientNames,
                 perClientLimit: 5,
+                alertedKeys: $alertedPrefixKeys,
             ),
             'destinationStats' => $this->topDestinations(
                 (clone $baseQuery)
@@ -80,6 +83,7 @@ class DashboardController extends Controller
                 clientNames: $clientNames,
                 isAdmin: $isAdmin,
                 perGroupLimit: 5,
+                alertedKeys: $alertedAccountKeys,
             ),
             'alertCounts' => MonitoringRuleEvent::query()
                 ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
@@ -89,6 +93,42 @@ class DashboardController extends Controller
                 ->groupBy('action')
                 ->pluck('total', 'action'),
         ]);
+    }
+
+    /**
+     * Construye los conjuntos de claves "client_id|prefijo" y
+     * "client_id|customer|account" que tuvieron una alerta en la última hora,
+     * para resaltar esas filas en las tablas del dashboard.
+     *
+     * @return array{0: array<string, bool>, 1: array<string, bool>}
+     */
+    private function alertedKeys(bool $isAdmin, ?int $clientId): array
+    {
+        $events = MonitoringRuleEvent::query()
+            ->with('rule:id,match_value')
+            ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
+            ->where('occurred_at', '>=', now()->subHour())
+            ->get(['id', 'client_id', 'monitoring_rule_id', 'context']);
+
+        $prefixKeys = [];
+        $accountKeys = [];
+
+        foreach ($events as $event) {
+            $prefix = $event->rule?->match_value;
+
+            if ($prefix !== null) {
+                $prefixKeys[$event->client_id.'|'.$prefix] = true;
+            }
+
+            $account = $event->context['account'] ?? null;
+            $customer = $event->context['customer'] ?? null;
+
+            if ($account !== null) {
+                $accountKeys[$event->client_id.'|'.$customer.'|'.$account] = true;
+            }
+        }
+
+        return [$prefixKeys, $accountKeys];
     }
 
     /**
@@ -106,7 +146,7 @@ class DashboardController extends Controller
         };
     }
 
-    private function groupedByClient($rows, string $labelField, int $bucketCount, $clientNames, int $perClientLimit): array
+    private function groupedByClient($rows, string $labelField, int $bucketCount, $clientNames, int $perClientLimit, array $alertedKeys = []): array
     {
         $aggregated = [];
 
@@ -119,6 +159,7 @@ class DashboardController extends Controller
                 'calls' => 0,
                 'seconds' => 0,
                 'history' => array_fill(0, $bucketCount, 0),
+                'alerted' => isset($alertedKeys[$key]),
             ];
 
             $aggregated[$key]['calls'] += (int) $row->calls;
@@ -250,7 +291,7 @@ class DashboardController extends Controller
      * Cliente (no admin): agrupa por Customer (el item solo necesita la
      * cuenta, el customer ya es el encabezado del grupo).
      */
-    private function groupedAccounts($rows, int $bucketCount, $clientNames, bool $isAdmin, int $perGroupLimit): array
+    private function groupedAccounts($rows, int $bucketCount, $clientNames, bool $isAdmin, int $perGroupLimit, array $alertedKeys = []): array
     {
         $accounts = [];
 
@@ -264,6 +305,7 @@ class DashboardController extends Controller
                 'calls' => 0,
                 'seconds' => 0,
                 'history' => array_fill(0, $bucketCount, 0),
+                'alerted' => isset($alertedKeys[$accountKey]),
             ];
 
             $accounts[$accountKey]['calls'] += (int) $row->calls;
@@ -285,11 +327,13 @@ class DashboardController extends Controller
                 : ($item['customer'] ?: 'Sin customer');
 
             $groupsByKey[$key]['items'][] = [
+                'client_id' => $item['client_id'],
                 'customer' => $item['customer'],
                 'account' => $item['account'],
                 'calls' => $item['calls'],
                 'seconds' => $item['seconds'],
                 'history' => $item['history'],
+                'alerted' => $item['alerted'],
             ];
         }
 
