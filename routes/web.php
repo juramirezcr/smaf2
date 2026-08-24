@@ -14,6 +14,7 @@ use App\Http\Controllers\CallRecordController;
 use App\Http\Controllers\ClientUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DestinationReportController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\ImportBatchController;
 use App\Http\Controllers\MonitoringRuleEventController;
 use App\Http\Controllers\PortaoneAccountController;
@@ -69,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/portaone-customers/{customer}', [PortaoneAccountController::class, 'show'])->name('portaone-customers.show');
     Route::get('/portaone-accounts/{account}/calls', [PortaoneAccountController::class, 'accountCalls'])->name('portaone-accounts.calls');
     Route::get('/alerts', [MonitoringRuleEventController::class, 'index'])->name('alerts.index');
+    Route::get('/ayuda', [HelpController::class, 'index'])->name('help.index');
     Route::get('/process-runs', [ProcessRunController::class, 'index'])->name('process-runs.index');
     Route::get('/users', [ClientUserController::class, 'index'])->name('users.index');
     Route::post('/users', [ClientUserController::class, 'store'])->name('users.store');
