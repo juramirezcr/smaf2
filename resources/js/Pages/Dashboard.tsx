@@ -545,12 +545,12 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
         <div className="flex items-center justify-between gap-2">
             <Link
                 href={route('alerts.index')}
-                className="flex items-center gap-4 rounded-md px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex items-center gap-4 rounded-md px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Alertas (24h):</span>
-                <span title="Bloqueadas">🚫 {alertCounts.block ?? 0}</span>
-                <span title="Notificadas">🔔 {alertCounts.notify ?? 0}</span>
-                <span title="Ignoradas">➖ {alertCounts.ignore ?? 0}</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-white">Alertas (24h):</span>
+                <span title="Bloqueadas" className="text-2xl font-semibold text-gray-900 dark:text-white">🚫 {alertCounts.block ?? 0}</span>
+                <span title="Notificadas" className="text-2xl font-semibold text-gray-900 dark:text-white">🔔 {alertCounts.notify ?? 0}</span>
+                <span title="Ignoradas" className="text-2xl font-semibold text-gray-900 dark:text-white">➖ {alertCounts.ignore ?? 0}</span>
             </Link>
             <div className="flex items-center gap-2">
             <select
