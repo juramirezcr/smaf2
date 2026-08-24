@@ -201,6 +201,7 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
     const [rule, setRule] = useState<PrefixRuleData | null>(null);
     const [matchedScope, setMatchedScope] = useState<'client' | 'global' | 'none'>('none');
     const [canEdit, setCanEdit] = useState(false);
+    const [ruleLoadError, setRuleLoadError] = useState<string | null>(null);
     const [form, setForm] = useState({ country: '', description: '', hourly_call_limit: 100, hourly_minutes_limit: 60, action: 'notify' as 'notify' | 'block', enabled: true });
     const [saving, setSaving] = useState(false);
     const [saveResult, setSaveResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
@@ -209,11 +210,13 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
         setLoadingHistory(true);
         axios.get(route('dashboard.prefix-history'), { params: { client_id: clientId, prefix, period } })
             .then((response) => setBuckets(response.data.buckets))
+            .catch(() => setBuckets([]))
             .finally(() => setLoadingHistory(false));
     }, [clientId, prefix, period]);
 
     useEffect(() => {
         setLoadingRule(true);
+        setRuleLoadError(null);
         axios.get(route('dashboard.prefix-rule'), { params: { client_id: clientId, prefix } })
             .then((response) => {
                 const data = response.data as { rule: PrefixRuleData | null; matchedScope: 'client' | 'global' | 'none'; canEdit: boolean };
@@ -228,6 +231,12 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
                     action: data.rule?.action ?? 'notify',
                     enabled: data.rule?.enabled ?? true,
                 });
+            })
+            .catch((error) => {
+                const message = axios.isAxiosError(error) && error.response
+                    ? `Error ${error.response.status} al cargar la configuración.`
+                    : 'No fue posible conectar con el servidor.';
+                setRuleLoadError(message);
             })
             .finally(() => setLoadingRule(false));
     }, [clientId, prefix]);
@@ -289,6 +298,10 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
                 {tab === 'config' && (
                     loadingRule ? (
                         <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Cargando configuración...</p>
+                    ) : ruleLoadError ? (
+                        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                            {ruleLoadError}
+                        </p>
                     ) : (
                         <div className="mt-4 space-y-4">
                             {matchedScope === 'global' && (
@@ -375,6 +388,7 @@ function AccountDetailModal({ clientId, customer, account, onClose }: { clientId
         setLoadingHistory(true);
         axios.get(route('dashboard.account-history'), { params: { client_id: clientId, customer: customer ?? '', account, period } })
             .then((response) => setBuckets(response.data.buckets))
+            .catch(() => setBuckets([]))
             .finally(() => setLoadingHistory(false));
     }, [clientId, customer, account, period]);
 
