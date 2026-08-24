@@ -37,7 +37,7 @@ export default function Authenticated({
     const user = usePage().props.auth.user;
     const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
-    const canSeeConfig = user.isSystemAdmin || user.role === 'client_admin';
+    const canSeeConfig = (user.isSystemAdmin || user.role === 'client_admin') && !user.readOnly;
     const configActive = Boolean(
         route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.status.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
     );

@@ -7,6 +7,7 @@ export interface User {
     clientName: string | null;
     role: 'client_admin' | 'client_user';
     isSystemAdmin: boolean;
+    readOnly: boolean;
     email_verified_at?: string;
 }
 
