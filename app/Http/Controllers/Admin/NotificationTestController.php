@@ -43,14 +43,14 @@ class NotificationTestController extends Controller
             return response()->json(['error' => 'Este cliente no tiene un Chat ID de Telegram configurado.'], 422);
         }
 
-        $settings = NotificationSetting::current();
+        $botToken = $client->effectiveTelegramBotToken();
 
-        if (! $settings->isTelegramConfigured()) {
+        if ($botToken === null && ! NotificationSetting::current()->isTelegramConfigured()) {
             return response()->json(['error' => 'Aún no se ha configurado el bot de Telegram en Configuraciones.'], 422);
         }
 
         $alert = AlertMessageFormatter::sampleAlert($client->name);
-        $sent = $telegram->send($client->telegram_chat_id, AlertMessageFormatter::telegramText($alert));
+        $sent = $telegram->send($client->telegram_chat_id, AlertMessageFormatter::telegramText($alert), $botToken);
 
         if (! $sent) {
             return response()->json(['error' => 'Telegram rechazó el mensaje de prueba. Verifica el Chat ID y el token del bot.'], 422);

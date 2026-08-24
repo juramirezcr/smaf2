@@ -18,6 +18,8 @@ class Client extends Model
         'portaone_token',
         'telegram_chat_id',
         'notification_email',
+        'use_custom_telegram_bot',
+        'telegram_bot_token',
         'xdr_synced_until',
     ];
 
@@ -25,8 +27,24 @@ class Client extends Model
     {
         return [
             'portaone_token' => 'encrypted',
+            'telegram_bot_token' => 'encrypted',
+            'use_custom_telegram_bot' => 'boolean',
             'xdr_synced_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Token del bot de Telegram a usar para las notificaciones de este
+     * cliente: el propio si tiene el interruptor activado y uno guardado,
+     * o null para que el llamador use el bot global.
+     */
+    public function effectiveTelegramBotToken(): ?string
+    {
+        if ($this->use_custom_telegram_bot && filled($this->telegram_bot_token)) {
+            return $this->telegram_bot_token;
+        }
+
+        return null;
     }
 
     public function users(): HasMany

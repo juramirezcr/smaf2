@@ -9,17 +9,22 @@ use Illuminate\Support\Facades\Log;
 class TelegramNotifier
 {
     /**
+     * @param  string|null  $botToken  Token a usar en vez del bot global (p. ej. el bot propio de un cliente).
      * @return bool true si Telegram confirmó el envío.
      */
-    public function send(string $chatId, string $text): bool
+    public function send(string $chatId, string $text, ?string $botToken = null): bool
     {
-        $settings = NotificationSetting::current();
+        if ($botToken === null) {
+            $settings = NotificationSetting::current();
 
-        if (! $settings->isTelegramConfigured()) {
-            return false;
+            if (! $settings->isTelegramConfigured()) {
+                return false;
+            }
+
+            $botToken = $settings->telegram_bot_token;
         }
 
-        $response = Http::post("https://api.telegram.org/bot{$settings->telegram_bot_token}/sendMessage", [
+        $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
             'chat_id' => $chatId,
             'text' => $text,
             'parse_mode' => 'HTML',

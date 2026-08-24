@@ -41,6 +41,8 @@ interface ClientItem {
     portaoneUsername: string;
     telegramChatId: string | null;
     notificationEmail: string | null;
+    useCustomTelegramBot: boolean;
+    hasCustomTelegramBotToken: boolean;
     usersCount: number;
     users: ClientUser[];
     productsCount: number;
@@ -121,6 +123,8 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
         portaone_token: '',
         telegram_chat_id: '',
         notification_email: '',
+        use_custom_telegram_bot: false,
+        telegram_bot_token: '',
         admin_name: '',
         admin_username: '',
         admin_email: '',
@@ -197,6 +201,8 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
             portaone_token: '',
             telegram_chat_id: client.telegramChatId ?? '',
             notification_email: client.notificationEmail ?? '',
+            use_custom_telegram_bot: client.useCustomTelegramBot,
+            telegram_bot_token: '',
             admin_name: '',
             admin_username: '',
             admin_email: '',
@@ -495,6 +501,39 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                         <TextInput id="telegram_chat_id" value={data.telegram_chat_id} className="mt-1 block w-full" placeholder="Opcional" onChange={(event) => setData('telegram_chat_id', event.target.value)} />
                                         <InputError message={errors.telegram_chat_id} className="mt-2" />
                                     </div>
+
+                                    <div>
+                                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.use_custom_telegram_bot}
+                                                onChange={(event) => setData('use_custom_telegram_bot', event.target.checked)}
+                                                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                            />
+                                            Usar un bot de Telegram propio para este cliente
+                                        </label>
+                                        <p className="mt-1 text-xs text-gray-400">
+                                            Si no se activa, se usa el bot configurado en Configuraciones/Telegram.
+                                        </p>
+                                        {data.use_custom_telegram_bot && (
+                                            <div className="mt-2">
+                                                <InputLabel
+                                                    htmlFor="telegram_bot_token"
+                                                    value={editingClient?.hasCustomTelegramBotToken ? 'Nuevo token del bot (dejar en blanco para no cambiarlo)' : 'Token del bot'}
+                                                />
+                                                <TextInput
+                                                    id="telegram_bot_token"
+                                                    type="password"
+                                                    value={data.telegram_bot_token}
+                                                    className="mt-1 block w-full font-mono"
+                                                    placeholder="123456789:AAExampleTokenValue"
+                                                    onChange={(event) => setData('telegram_bot_token', event.target.value)}
+                                                />
+                                                <InputError message={errors.telegram_bot_token} className="mt-2" />
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div>
                                         <InputLabel htmlFor="notification_email" value="Correo para notificaciones" />
                                         <TextInput id="notification_email" type="email" value={data.notification_email} className="mt-1 block w-full" placeholder="Opcional" onChange={(event) => setData('notification_email', event.target.value)} />

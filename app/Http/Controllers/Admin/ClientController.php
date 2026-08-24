@@ -56,6 +56,8 @@ class ClientController extends Controller
                         'portaoneUsername' => $client->portaone_username,
                         'telegramChatId' => $client->telegram_chat_id,
                         'notificationEmail' => $client->notification_email,
+                        'useCustomTelegramBot' => $client->use_custom_telegram_bot,
+                        'hasCustomTelegramBotToken' => filled($client->telegram_bot_token),
                         'usersCount' => $client->users_count,
                         'users' => $client->users->map(fn (User $user) => [
                             'id' => $user->id,
@@ -90,6 +92,8 @@ class ClientController extends Controller
             'portaone_token' => ['required', 'string'],
             'telegram_chat_id' => ['nullable', 'string', 'max:255'],
             'notification_email' => ['nullable', 'string', 'email', 'max:255'],
+            'use_custom_telegram_bot' => ['boolean'],
+            'telegram_bot_token' => ['nullable', 'string'],
             'admin_name' => ['required', 'string', 'max:255'],
             'admin_username' => ['required', 'string', 'max:255', 'unique:'.User::class.',username'],
             'admin_email' => ['required', 'string', 'lowercase', 'email', 'max:255'],
@@ -104,6 +108,8 @@ class ClientController extends Controller
                 'portaone_token' => $validated['portaone_token'],
                 'telegram_chat_id' => $validated['telegram_chat_id'] ?: null,
                 'notification_email' => $validated['notification_email'] ?: null,
+                'use_custom_telegram_bot' => $validated['use_custom_telegram_bot'] ?? false,
+                'telegram_bot_token' => $validated['telegram_bot_token'] ?: null,
             ]);
 
             $client->users()->create([
@@ -127,6 +133,8 @@ class ClientController extends Controller
             'portaone_token' => ['nullable', 'string'],
             'telegram_chat_id' => ['nullable', 'string', 'max:255'],
             'notification_email' => ['nullable', 'string', 'email', 'max:255'],
+            'use_custom_telegram_bot' => ['boolean'],
+            'telegram_bot_token' => ['nullable', 'string'],
         ]);
 
         $client->update([
@@ -135,7 +143,9 @@ class ClientController extends Controller
             'portaone_username' => $validated['portaone_username'],
             'telegram_chat_id' => $validated['telegram_chat_id'] ?: null,
             'notification_email' => $validated['notification_email'] ?: null,
+            'use_custom_telegram_bot' => $validated['use_custom_telegram_bot'] ?? false,
             ...($validated['portaone_token'] ? ['portaone_token' => $validated['portaone_token']] : []),
+            ...($validated['telegram_bot_token'] ? ['telegram_bot_token' => $validated['telegram_bot_token']] : []),
         ]);
 
         return to_route('admin.clients.index');

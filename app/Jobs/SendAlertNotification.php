@@ -56,7 +56,11 @@ class SendAlertNotification implements ShouldQueue
         ];
 
         if ($client->telegram_chat_id) {
-            $telegram->send($client->telegram_chat_id, AlertMessageFormatter::telegramText($alert));
+            $telegram->send(
+                $client->telegram_chat_id,
+                AlertMessageFormatter::telegramText($alert),
+                $client->effectiveTelegramBotToken(),
+            );
         }
 
         if ($client->notification_email) {
