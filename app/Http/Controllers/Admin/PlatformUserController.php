@@ -19,12 +19,13 @@ class PlatformUserController extends Controller
             'users' => User::query()
                 ->whereNull('client_id')
                 ->latest()
-                ->get(['id', 'name', 'username', 'email', 'created_at'])
+                ->get(['id', 'name', 'username', 'email', 'read_only', 'created_at'])
                 ->map(fn (User $user): array => [
                     'id' => $user->id,
                     'name' => $user->name,
                     'username' => $user->username,
                     'email' => $user->email,
+                    'readOnly' => $user->read_only,
                     'createdAt' => $user->created_at,
                 ]),
         ]);
@@ -37,12 +38,14 @@ class PlatformUserController extends Controller
             'username' => ['required', 'string', 'max:255', 'unique:'.User::class.',username'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'read_only' => ['boolean'],
         ]);
 
         User::create([
             ...$validated,
             'client_id' => null,
             'password' => Hash::make($validated['password']),
+            'read_only' => $validated['read_only'] ?? false,
         ]);
 
         return to_route('admin.platform-users.index');
@@ -57,12 +60,14 @@ class PlatformUserController extends Controller
             'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255'],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'read_only' => ['boolean'],
         ]);
 
         $user->update([
             'name' => $validated['name'],
             'username' => $validated['username'],
             'email' => $validated['email'],
+            'read_only' => $validated['read_only'] ?? false,
             ...($validated['password'] ? ['password' => Hash::make($validated['password'])] : []),
         ]);
 

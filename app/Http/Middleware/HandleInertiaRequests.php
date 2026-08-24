@@ -43,7 +43,8 @@ class HandleInertiaRequests extends Middleware
                     'email_verified_at' => $user->email_verified_at,
                     'role' => $user->role,
                     'clientName' => $user->client?->name,
-                    'isSystemAdmin' => $user->email === config('smaf.admin_email'),
+                    'isSystemAdmin' => $user->isSystemAdmin(),
+                    'readOnly' => $user->read_only,
                 ] : null,
             ],
         ];

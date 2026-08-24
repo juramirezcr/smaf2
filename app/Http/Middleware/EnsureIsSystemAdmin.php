@@ -10,7 +10,7 @@ class EnsureIsSystemAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()->email === config('smaf.admin_email'), 403);
+        abort_unless($request->user()->isSystemAdmin(), 403);
 
         return $next($request);
     }

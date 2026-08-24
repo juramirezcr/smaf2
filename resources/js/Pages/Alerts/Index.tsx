@@ -1,6 +1,10 @@
+import InputLabel from '@/Components/InputLabel';
+import Modal from '@/Components/Modal';
 import Pagination from '@/Components/Pagination';
+import PrimaryButton from '@/Components/PrimaryButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
 
 interface AlertItem {
     id: number;
@@ -19,6 +23,11 @@ interface AlertItem {
         matchValue: string;
         description: string | null;
     } | null;
+    reviewStatus: 'pending' | 'cleared' | 'maintained';
+    feedbackNotes: string | null;
+    reviewedByName: string | null;
+    reviewedAt: string | null;
+    canReview: boolean;
 }
 
 interface PaginationLink {
@@ -53,8 +62,91 @@ const ACTION_COLOR: Record<AlertItem['action'], string> = {
     ignore: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
 
+const REVIEW_LABEL: Record<AlertItem['reviewStatus'], string> = {
+    pending: 'Pendiente de revisión',
+    cleared: 'Bloqueo levantado',
+    maintained: 'Bloqueo mantenido',
+};
+
+const REVIEW_COLOR: Record<AlertItem['reviewStatus'], string> = {
+    pending: 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400',
+    cleared: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400',
+    maintained: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400',
+};
+
+function ReviewModal({ alert, onClose }: { alert: AlertItem; onClose: () => void }) {
+    const [decision, setDecision] = useState<'cleared' | 'maintained'>('maintained');
+    const [notes, setNotes] = useState('');
+    const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const submit = () => {
+        setProcessing(true);
+        setError(null);
+
+        router.patch(route('alerts.review', alert.id), { decision, notes }, {
+            preserveScroll: true,
+            onSuccess: () => onClose(),
+            onError: (errors) => setError(Object.values(errors)[0] as string ?? 'No fue posible guardar la revisión.'),
+            onFinish: () => setProcessing(false),
+        });
+    };
+
+    return (
+        <Modal show onClose={onClose} maxWidth="md">
+            <div className="p-6">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Revisar alerta de bloqueo</h3>
+                <ul className="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                    <li>Cuenta: <span className="font-mono">{alert.account ?? '—'}</span></li>
+                    <li>Customer: {alert.customer ?? '—'}</li>
+                    <li>Regla: {alert.rule?.description || alert.rule?.matchValue || '—'}</li>
+                    <li>Llamadas: {alert.calls ?? '—'}{alert.callLimit !== null ? ` / límite ${alert.callLimit}` : ''}</li>
+                    <li>Segundos: {alert.seconds ?? '—'}{alert.durationLimitSeconds !== null ? ` / límite ${alert.durationLimitSeconds}` : ''}</li>
+                </ul>
+
+                <div className="mt-5">
+                    <InputLabel value="Decisión tras validar con el cliente" />
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                        <label className={`cursor-pointer rounded-lg border p-3 text-sm transition ${decision === 'cleared' ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'}`}>
+                            <input type="radio" name="decision" className="sr-only" checked={decision === 'cleared'} onChange={() => setDecision('cleared')} />
+                            <span className="block font-medium text-gray-900 dark:text-gray-100">Levantar bloqueo</span>
+                            <span className="mt-1 block text-xs text-gray-600 dark:text-gray-300">Las llamadas son legítimas.</span>
+                        </label>
+                        <label className={`cursor-pointer rounded-lg border p-3 text-sm transition ${decision === 'maintained' ? 'border-red-500 bg-red-50 dark:border-red-500 dark:bg-red-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'}`}>
+                            <input type="radio" name="decision" className="sr-only" checked={decision === 'maintained'} onChange={() => setDecision('maintained')} />
+                            <span className="block font-medium text-gray-900 dark:text-gray-100">Mantener bloqueo</span>
+                            <span className="mt-1 block text-xs text-gray-600 dark:text-gray-300">Se confirma tráfico sospechoso.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="mt-4">
+                    <InputLabel htmlFor="notes" value="Notas de la llamada al cliente" />
+                    <textarea
+                        id="notes"
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        rows={3}
+                        maxLength={2000}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="Ej. Se llamó al cliente, confirma que las llamadas fueron autorizadas."
+                    />
+                </div>
+
+                {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+                <div className="mt-6 flex justify-end gap-3">
+                    <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">Cancelar</button>
+                    <PrimaryButton disabled={processing} onClick={submit}>Guardar revisión</PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
 export default function AlertsIndex({ clients, selectedClientId, alerts }: AlertsProps) {
     const showingAll = selectedClientId === 'all';
+    const [reviewingAlert, setReviewingAlert] = useState<AlertItem | null>(null);
 
     const changeClient = (clientId: string) => {
         router.get('/alerts', { client_id: clientId }, { preserveState: true });
@@ -93,7 +185,7 @@ export default function AlertsIndex({ clients, selectedClientId, alerts }: Alert
                                         <th className="px-6 py-3 text-right">Llamadas</th>
                                         <th className="px-6 py-3 text-right">Segundos</th>
                                         <th className="px-6 py-3">Acción</th>
-                                        <th className="px-6 py-3">Estado</th>
+                                        <th className="px-6 py-3">Revisión</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -104,7 +196,14 @@ export default function AlertsIndex({ clients, selectedClientId, alerts }: Alert
                                             </td>
                                         </tr>
                                     ) : alerts.data.map((alert) => (
-                                        <tr key={alert.id} className="dark:hover:bg-gray-700">
+                                        <tr
+                                            key={alert.id}
+                                            className={
+                                                alert.action === 'block' && alert.reviewStatus === 'pending'
+                                                    ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20'
+                                                    : 'dark:hover:bg-gray-700'
+                                            }
+                                        >
                                             <td className="px-6 py-4 dark:text-gray-300">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(alert.occurredAt))}</td>
                                             {showingAll && <td className="px-6 py-4 dark:text-gray-300">{alert.clientName ?? '—'}</td>}
                                             <td className="px-6 py-4 font-mono dark:text-gray-300">{alert.account ?? '—'}</td>
@@ -119,7 +218,29 @@ export default function AlertsIndex({ clients, selectedClientId, alerts }: Alert
                                                 {alert.durationLimitSeconds !== null && <span className="text-gray-400 dark:text-gray-500"> / {alert.durationLimitSeconds}</span>}
                                             </td>
                                             <td className="px-6 py-4"><span className={`rounded-full px-2 py-1 text-xs font-medium ${ACTION_COLOR[alert.action]}`}>{ACTION_LABEL[alert.action]}</span></td>
-                                            <td className="px-6 py-4 dark:text-gray-300">{alert.status}</td>
+                                            <td className="px-6 py-4">
+                                                {alert.action === 'block' ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span
+                                                            className={`rounded-full px-2 py-1 text-xs font-medium ${REVIEW_COLOR[alert.reviewStatus]}`}
+                                                            title={alert.feedbackNotes ?? undefined}
+                                                        >
+                                                            {REVIEW_LABEL[alert.reviewStatus]}
+                                                        </span>
+                                                        {alert.canReview && alert.reviewStatus === 'pending' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setReviewingAlert(alert)}
+                                                                className="text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                                            >
+                                                                Revisar
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 dark:text-gray-500">—</span>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -129,6 +250,10 @@ export default function AlertsIndex({ clients, selectedClientId, alerts }: Alert
                     </div>
                 </div>
             </div>
+
+            {reviewingAlert && (
+                <ReviewModal alert={reviewingAlert} onClose={() => setReviewingAlert(null)} />
+            )}
         </AuthenticatedLayout>
     );
 }

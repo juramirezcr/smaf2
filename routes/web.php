@@ -31,7 +31,7 @@ Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard.')->group(function () {
+Route::middleware(['auth', 'verified', 'not-read-only'])->prefix('dashboard')->name('dashboard.')->group(function () {
     Route::get('/prefix-history', [DashboardDetailController::class, 'prefixHistory'])->name('prefix-history');
     Route::get('/account-history', [DashboardDetailController::class, 'accountHistory'])->name('account-history');
     Route::get('/prefix-rule', [DashboardDetailController::class, 'prefixRule'])->name('prefix-rule');
@@ -39,7 +39,7 @@ Route::middleware(['auth', 'verified'])->prefix('dashboard')->name('dashboard.')
 });
 
 Route::middleware('auth')->group(function () {
-    Route::middleware('system-admin')->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['system-admin', 'not-read-only'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/releases', [ReleaseController::class, 'index'])->name('releases');
         Route::post('/releases/deploy', [ReleaseController::class, 'deploy'])->name('releases.deploy');
         Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
@@ -72,8 +72,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/queue/failed/{uuid}', [QueueMonitorController::class, 'forgetFailed'])->name('queue.failed.forget');
     });
     Route::get('/imports', [ImportBatchController::class, 'index'])->name('imports.index');
-    Route::post('/imports', [ImportBatchController::class, 'store'])->name('imports.store');
-    Route::resource('prefixes', PrefixRuleController::class)->except('destroy');
+    Route::post('/imports', [ImportBatchController::class, 'store'])->name('imports.store')->middleware('not-read-only');
+    Route::resource('prefixes', PrefixRuleController::class)->except('destroy')->middleware('not-read-only');
     Route::get('/calls', [CallRecordController::class, 'index'])->name('calls.index');
     Route::get('/destinations', [DestinationReportController::class, 'index'])->name('destinations.index');
     Route::get('/accounts', [AccountReportController::class, 'index'])->name('accounts.index');
@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/portaone-customers/{customer}', [PortaoneAccountController::class, 'show'])->name('portaone-customers.show');
     Route::get('/portaone-accounts/{account}/calls', [PortaoneAccountController::class, 'accountCalls'])->name('portaone-accounts.calls');
     Route::get('/alerts', [MonitoringRuleEventController::class, 'index'])->name('alerts.index');
+    Route::patch('/alerts/{alert}/review', [MonitoringRuleEventController::class, 'review'])->name('alerts.review');
     Route::get('/ayuda', [HelpController::class, 'index'])->name('help.index');
     Route::get('/process-runs', [ProcessRunController::class, 'index'])->name('process-runs.index');
     Route::get('/users', [ClientUserController::class, 'index'])->name('users.index');

@@ -15,6 +15,10 @@ class MonitoringRuleEvent extends Model
         'status',
         'context',
         'occurred_at',
+        'review_status',
+        'feedback_notes',
+        'reviewed_by',
+        'reviewed_at',
     ];
 
     protected function casts(): array
@@ -22,6 +26,7 @@ class MonitoringRuleEvent extends Model
         return [
             'context' => 'array',
             'occurred_at' => 'datetime',
+            'reviewed_at' => 'datetime',
         ];
     }
 
@@ -33,5 +38,10 @@ class MonitoringRuleEvent extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 }

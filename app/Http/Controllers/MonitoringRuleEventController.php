@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\MonitoringRuleEvent;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,13 +28,14 @@ class MonitoringRuleEventController extends Controller
         }
 
         $clientNames = $showAll ? $clients->pluck('name', 'id') : null;
+        $canReviewAnyClient = $user->client_id === null;
 
         return Inertia::render('Alerts/Index', [
             'clients' => $clients,
             'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
             'alerts' => MonitoringRuleEvent::query()
                 ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
-                ->with('rule:id,scope,match_value,description')
+                ->with(['rule:id,scope,match_value,description', 'reviewer:id,name'])
                 ->latest('occurred_at')
                 ->paginate(25)
                 ->withQueryString()
@@ -54,7 +56,39 @@ class MonitoringRuleEventController extends Controller
                         'matchValue' => $event->rule->match_value,
                         'description' => $event->rule->description,
                     ] : null,
+                    'reviewStatus' => $event->review_status,
+                    'feedbackNotes' => $event->feedback_notes,
+                    'reviewedByName' => $event->reviewer?->name,
+                    'reviewedAt' => $event->reviewed_at,
+                    'canReview' => $event->action === 'block'
+                        && ($canReviewAnyClient || ($user->client_id === $event->client_id && $user->isClientAdmin())),
                 ]),
         ]);
+    }
+
+    public function review(Request $request, MonitoringRuleEvent $alert): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user->client_id === null || ($user->client_id === $alert->client_id && $user->isClientAdmin()),
+            403,
+        );
+
+        abort_unless($alert->action === 'block', 422, 'Solo las alertas de bloqueo se pueden revisar.');
+
+        $validated = $request->validate([
+            'decision' => ['required', 'in:cleared,maintained'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $alert->update([
+            'review_status' => $validated['decision'],
+            'feedback_notes' => $validated['notes'] ?: null,
+            'reviewed_by' => $user->id,
+            'reviewed_at' => now(),
+        ]);
+
+        return back()->with('success', 'La alerta fue revisada.');
     }
 }

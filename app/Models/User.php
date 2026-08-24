@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['client_id', 'legacy_sub_user_id', 'name', 'username', 'email', 'password', 'role'])]
+#[Fillable(['client_id', 'legacy_sub_user_id', 'name', 'username', 'email', 'password', 'role', 'read_only'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,7 +29,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'read_only' => 'boolean',
         ];
+    }
+
+    public function isSystemAdmin(): bool
+    {
+        return $this->client_id === null;
     }
 
     public function monitoringRules(): HasMany

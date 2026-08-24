@@ -11,6 +11,7 @@ interface PlatformUser {
     name: string;
     username: string;
     email: string;
+    readOnly: boolean;
     createdAt: string;
 }
 
@@ -23,6 +24,7 @@ export default function PlatformUsers({ users }: { users: PlatformUser[] }) {
         email: '',
         password: '',
         password_confirmation: '',
+        read_only: false,
     });
 
     const submit: FormEventHandler = (event) => {
@@ -45,7 +47,7 @@ export default function PlatformUsers({ users }: { users: PlatformUser[] }) {
 
     const startEditing = (user: PlatformUser) => {
         setEditingUser(user);
-        setData({ name: user.name, username: user.username, email: user.email, password: '', password_confirmation: '' });
+        setData({ name: user.name, username: user.username, email: user.email, password: '', password_confirmation: '', read_only: user.readOnly });
     };
 
     const cancelEditing = () => {
@@ -106,6 +108,20 @@ export default function PlatformUsers({ users }: { users: PlatformUser[] }) {
                         <InputLabel htmlFor="password_confirmation" value={editingUser ? 'Confirmar nueva contraseña' : 'Confirmar contraseña'} />
                         <TextInput id="password_confirmation" type="password" value={data.password_confirmation} className="mt-1 block w-full" onChange={(event) => setData('password_confirmation', event.target.value)} required={!editingUser} />
                     </div>
+                    <div className="mt-4">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <input
+                                type="checkbox"
+                                checked={data.read_only}
+                                onChange={(event) => setData('read_only', event.target.checked)}
+                                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                            />
+                            Solo lectura
+                        </label>
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                            Puede ver todo pero no crear, editar ni eliminar nada, salvo revisar y resolver alertas de bloqueo. Pensado para soporte/NOC.
+                        </p>
+                    </div>
 
                     <div className="mt-6 flex gap-3">
                         <PrimaryButton disabled={processing}>{editingUser ? 'Guardar cambios' : 'Crear administrador'}</PrimaryButton>
@@ -129,7 +145,14 @@ export default function PlatformUsers({ users }: { users: PlatformUser[] }) {
                             ) : (
                                 users.map((user) => (
                                     <tr key={user.id}>
-                                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{user.name}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                                            {user.name}
+                                            {user.readOnly && (
+                                                <span className="ms-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                                    Solo lectura
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.username}</td>
                                         <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
                                         <td className="px-6 py-4 text-right">

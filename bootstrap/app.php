@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureIsSystemAdmin;
+use App\Http\Middleware\EnsureNotReadOnly;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'system-admin' => EnsureIsSystemAdmin::class,
+            'not-read-only' => EnsureNotReadOnly::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
