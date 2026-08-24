@@ -54,22 +54,46 @@ interface ConnectionTestResult {
     message: string;
 }
 
-function ProgressBar({ progress }: { progress?: SyncProgress }) {
-    if (!progress) {
+function StatTile({ label, value, href, progress }: { label: string; value: number; href: string; progress?: SyncProgress }) {
+    const pct = progress && progress.total > 0 ? Math.min(100, Math.round((progress.synced / progress.total) * 100)) : null;
+
+    return (
+        <Link
+            href={href}
+            className="block rounded-md border border-gray-100 bg-gray-50 px-3 py-2 transition hover:border-indigo-200 hover:bg-indigo-50"
+        >
+            <p className="text-xs text-gray-500">{label}</p>
+            <p className="text-lg font-semibold text-gray-900">{value.toLocaleString('es-CR')}</p>
+            {pct !== null && (
+                <>
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
+                        <div className="h-1.5 rounded-full bg-indigo-600" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="mt-0.5 text-xs text-gray-400">{progress!.synced} / {progress!.total}</p>
+                </>
+            )}
+        </Link>
+    );
+}
+
+function SyncStatusBadge({ syncRun }: { syncRun: SyncRun | null }) {
+    if (!syncRun || syncRun.status === 'completed') {
         return null;
     }
 
-    const pct = progress.total > 0 ? Math.min(100, Math.round((progress.synced / progress.total) * 100)) : 0;
+    if (syncRun.status === 'started') {
+        return (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
+                Sincronizando
+            </span>
+        );
+    }
 
     return (
-        <div className="mt-0.5">
-            <div className="flex justify-end text-xs text-gray-400">
-                <span>sincronizando {progress.synced} / {progress.total}</span>
-            </div>
-            <div className="mt-0.5 h-1.5 w-full rounded-full bg-gray-200">
-                <div className="h-1.5 rounded-full bg-indigo-600" style={{ width: `${pct}%` }} />
-            </div>
-        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700" title={syncRun.message ?? undefined}>
+            Sync falló
+        </span>
     );
 }
 
@@ -233,123 +257,115 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                     <PrimaryButton onClick={openCreateModal}>+ Agregar cliente</PrimaryButton>
                 </div>
 
-                <div className="overflow-hidden rounded-lg bg-white shadow">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Conexión</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {clients.length === 0 ? (
-                                    <tr><td colSpan={3} className="px-6 py-4 text-sm text-gray-500">Aún no hay clientes.</td></tr>
-                                ) : (
-                                    clients.map((client) => (
-                                        <tr key={client.id}>
-                                            <td className="px-6 py-4 text-sm text-gray-900">{client.name}</td>
-                                            <td className="px-6 py-4 text-sm">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => testConnection(client)}
-                                                    disabled={testResults[client.id]?.status === 'loading'}
-                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
-                                                >
-                                                    {testResults[client.id]?.status === 'loading' ? 'Probando...' : 'Probar conexión'}
-                                                </button>
-                                                {testResults[client.id] && testResults[client.id].status !== 'loading' && (
-                                                    <p className={`mt-1 text-xs ${testResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {testResults[client.id].message}
-                                                    </p>
-                                                )}
-
-                                                <div className="mt-3 border-t pt-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => syncClient(client)}
-                                                        disabled={client.syncRun?.status === 'started'}
-                                                        className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
-                                                    >
-                                                        {client.syncRun?.status === 'started' ? 'Sincronizando...' : 'Sincronizar'}
-                                                    </button>
-                                                    {client.syncRun?.status === 'failed' && (
-                                                        <p className="mt-1 text-xs text-red-600">Falló: {client.syncRun.message}</p>
-                                                    )}
-
-                                                    <div className="mt-2 w-56 space-y-1.5">
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <Link href={route('admin.clients.products.index', client.id)} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
-                                                                Productos
-                                                            </Link>
-                                                            <span className="text-xs text-gray-500">{client.productsCount}</span>
-                                                        </div>
-                                                        {client.syncRun?.status === 'started' && <ProgressBar progress={client.syncRun.context?.products} />}
-
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <Link href={`/portaone-customers?client_id=${client.id}`} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
-                                                                Customers
-                                                            </Link>
-                                                            <span className="text-xs text-gray-500">{client.customersCount}</span>
-                                                        </div>
-                                                        {client.syncRun?.status === 'started' && <ProgressBar progress={client.syncRun.context?.customers} />}
-
-                                                        <div className="flex items-center justify-between gap-2">
-                                                            <Link href={`/accounts?client_id=${client.id}`} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
-                                                                Accounts de telefonía
-                                                            </Link>
-                                                            <span className="text-xs text-gray-500">{client.accountsCount}</span>
-                                                        </div>
-                                                        {client.syncRun?.status === 'started' && <ProgressBar progress={client.syncRun.context?.accounts} />}
-
-                                                        <div className="flex items-center justify-between gap-2 border-t pt-1.5">
-                                                            <Link href={`/calls?client_id=${client.id}`} className="text-xs font-medium text-indigo-600 hover:text-indigo-900">
-                                                                Llamadas
-                                                            </Link>
-                                                            <span className="text-xs text-gray-500">{client.callsCount}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-3 border-t pt-2">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-semibold uppercase text-gray-500">Usuarios ({client.usersCount})</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openUserModal(client)}
-                                                            className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
-                                                        >
-                                                            + Agregar usuario
-                                                        </button>
-                                                    </div>
-                                                    {client.users.length === 0 ? (
-                                                        <p className="mt-1 text-xs text-gray-400">Sin usuarios todavía.</p>
-                                                    ) : (
-                                                        <ul className="mt-1 space-y-0.5">
-                                                            {client.users.map((user) => (
-                                                                <li key={user.id} className="flex items-center justify-between text-xs text-gray-600">
-                                                                    <span>{user.name} <span className="text-gray-400">({user.username})</span></span>
-                                                                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-500">
-                                                                        {user.role === 'client_admin' ? 'Admin' : 'Usuario'}
-                                                                    </span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
-                                                <button type="button" onClick={() => deleteClient(client)} className="ms-4 text-sm font-medium text-red-600 hover:text-red-900">Eliminar</button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                {clients.length === 0 ? (
+                    <div className="rounded-lg bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+                        Aún no hay clientes.
                     </div>
-                </div>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {clients.map((client) => (
+                            <div key={client.id} className="flex flex-col overflow-hidden rounded-lg bg-white shadow-sm">
+                                <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                                    <div className="min-w-0">
+                                        <h3 className="truncate font-semibold text-gray-900">{client.name}</h3>
+                                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                                            {client.portaoneUsername} · entorno {client.portaoneEnvironment}
+                                        </p>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-3">
+                                        <SyncStatusBadge syncRun={client.syncRun} />
+                                        <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                                            Editar
+                                        </button>
+                                        <button type="button" onClick={() => deleteClient(client)} className="text-sm font-medium text-red-600 hover:text-red-900">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 space-y-4 px-5 py-4">
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <button
+                                            type="button"
+                                            onClick={() => testConnection(client)}
+                                            disabled={testResults[client.id]?.status === 'loading'}
+                                            className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                        >
+                                            {testResults[client.id]?.status === 'loading' ? 'Probando conexión...' : 'Probar conexión'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => syncClient(client)}
+                                            disabled={client.syncRun?.status === 'started'}
+                                            className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                        >
+                                            {client.syncRun?.status === 'started' ? 'Sincronizando...' : 'Sincronizar ahora'}
+                                        </button>
+                                    </div>
+                                    {testResults[client.id] && testResults[client.id].status !== 'loading' && (
+                                        <p className={`text-xs ${testResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                            {testResults[client.id].message}
+                                        </p>
+                                    )}
+                                    {client.syncRun?.status === 'failed' && (
+                                        <p className="text-xs text-red-600">Sync falló: {client.syncRun.message}</p>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        <StatTile
+                                            label="Productos"
+                                            value={client.productsCount}
+                                            href={route('admin.clients.products.index', client.id)}
+                                            progress={client.syncRun?.status === 'started' ? client.syncRun.context?.products : undefined}
+                                        />
+                                        <StatTile
+                                            label="Customers"
+                                            value={client.customersCount}
+                                            href={`/portaone-customers?client_id=${client.id}`}
+                                            progress={client.syncRun?.status === 'started' ? client.syncRun.context?.customers : undefined}
+                                        />
+                                        <StatTile
+                                            label="Cuentas"
+                                            value={client.accountsCount}
+                                            href={`/accounts?client_id=${client.id}`}
+                                            progress={client.syncRun?.status === 'started' ? client.syncRun.context?.accounts : undefined}
+                                        />
+                                        <StatTile label="Llamadas" value={client.callsCount} href={`/calls?client_id=${client.id}`} />
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            Usuarios ({client.usersCount})
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => openUserModal(client)}
+                                            className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
+                                        >
+                                            + Agregar usuario
+                                        </button>
+                                    </div>
+                                    {client.users.length === 0 ? (
+                                        <p className="mt-1.5 text-xs text-gray-400">Sin usuarios todavía.</p>
+                                    ) : (
+                                        <ul className="mt-1.5 space-y-1">
+                                            {client.users.map((user) => (
+                                                <li key={user.id} className="flex items-center justify-between text-xs text-gray-600">
+                                                    <span className="truncate">{user.name} <span className="text-gray-400">({user.username})</span></span>
+                                                    <span className="ml-2 shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-gray-600">
+                                                        {user.role === 'client_admin' ? 'Admin' : 'Usuario'}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <Modal show={modalOpen} onClose={closeModal} maxWidth="md">
