@@ -83,6 +83,22 @@ function Sparkline({ data }: { data: number[] }) {
     );
 }
 
+function CallsMinutesBadge({ calls, seconds, alerted }: { calls: number; seconds: number; alerted: boolean }) {
+    const minutes = Math.round(seconds / 60);
+
+    return (
+        <span
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium tabular-nums ${
+                alerted
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400'
+                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400'
+            }`}
+        >
+            {calls} / {minutes} min
+        </span>
+    );
+}
+
 const HISTORY_PERIOD_LABELS: Record<string, string> = {
     '1h': 'Última hora',
     '6h': 'Últimas 6 horas',
@@ -558,19 +574,18 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                 <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                     <tr>
                                         <th className="px-4 py-2 text-left">Prefijo</th>
-                                        <th className="px-4 py-2 text-right">Llamadas</th>
-                                        <th className="px-4 py-2 text-right">Segundos</th>
+                                        <th className="px-4 py-2 text-right">Llamadas/Minutos</th>
                                         <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
                                     {prefixStats.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
+                                        <tr><td colSpan={3} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
                                     ) : prefixStats.map((group, groupIndex) => (
                                         <Fragment key={groupIndex}>
                                             {group.clientName && (
                                                 <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                    <td colSpan={3} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
                                                 </tr>
                                             )}
                                             {group.items.map((item, itemIndex) => (
@@ -584,8 +599,9 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                                     className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                                                 >
                                                     <td className="px-4 py-2 font-mono">{item.label ?? '—'}</td>
-                                                    <td className="px-4 py-2 text-right">{item.calls}</td>
-                                                    <td className="px-4 py-2 text-right">{item.seconds}</td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        <CallsMinutesBadge calls={item.calls} seconds={item.seconds} alerted={item.alerted} />
+                                                    </td>
                                                     <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
                                                 </tr>
                                             ))}
@@ -692,19 +708,18 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                     <tr>
                                         {isAdmin && <th className="px-4 py-2 text-left">Customer</th>}
                                         <th className="px-4 py-2 text-left">Cuenta</th>
-                                        <th className="px-4 py-2 text-right">Llamadas</th>
-                                        <th className="px-4 py-2 text-right">Segundos</th>
+                                        <th className="px-4 py-2 text-right">Llamadas/Minutos</th>
                                         <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
                                     {accountStats.length === 0 ? (
-                                        <tr><td colSpan={isAdmin ? 5 : 4} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
+                                        <tr><td colSpan={isAdmin ? 4 : 3} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
                                     ) : accountStats.map((group, groupIndex) => (
                                         <Fragment key={groupIndex}>
                                             {group.clientName && (
                                                 <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                    <td colSpan={isAdmin ? 5 : 4} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                    <td colSpan={isAdmin ? 4 : 3} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
                                                 </tr>
                                             )}
                                             {group.items.map((item, itemIndex) => (
@@ -721,8 +736,9 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                                 >
                                                     {isAdmin && <td className="px-4 py-2">{item.customer ?? '—'}</td>}
                                                     <td className="px-4 py-2">{item.account ?? '—'}</td>
-                                                    <td className="px-4 py-2 text-right">{item.calls}</td>
-                                                    <td className="px-4 py-2 text-right">{item.seconds}</td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        <CallsMinutesBadge calls={item.calls} seconds={item.seconds} alerted={item.alerted} />
+                                                    </td>
                                                     <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
                                                 </tr>
                                             ))}
