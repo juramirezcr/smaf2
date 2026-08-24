@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class DashboardDetailController extends Controller
 {
@@ -161,6 +162,18 @@ class DashboardDetailController extends Controller
         }
 
         $clientId = $request->integer('client_id');
+
+        if ($clientId === 0) {
+            Log::warning('resolveClientId: client_id missing/zero', [
+                'route' => $request->path(),
+                'query' => $request->query(),
+                'all' => $request->all(),
+                'raw_client_id' => $request->input('client_id'),
+                'user_id' => $request->user()?->id,
+                'user_client_id' => $request->user()?->client_id,
+            ]);
+        }
+
         abort_if($clientId === 0, 422, 'client_id es requerido.');
 
         return $clientId;
