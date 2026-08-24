@@ -86,21 +86,16 @@ class PrefixRuleController extends Controller
         $isAdmin = $user->client_id === null;
 
         if ($isAdmin) {
-            $selected = $request->input('client_id');
+            // No se permiten reglas globales: toda regla pertenece a un
+            // cliente específico.
+            $request->validate(['client_id' => ['required']]);
 
-            if (in_array($selected, [null, 'all'], true)) {
-                // Regla global: aplica a todos los clientes y cuentas. La
-                // atribuye al admin que la crea, no hay "usuario del cliente".
-                $clientId = null;
-                $userId = $user->id;
-            } else {
-                $client = Client::query()->findOrFail($selected);
-                $targetUser = User::query()->where('client_id', $client->id)->orderBy('id')->first();
-                abort_if($targetUser === null, 422, 'El cliente seleccionado no tiene usuarios.');
+            $client = Client::query()->findOrFail($request->input('client_id'));
+            $targetUser = User::query()->where('client_id', $client->id)->orderBy('id')->first();
+            abort_if($targetUser === null, 422, 'El cliente seleccionado no tiene usuarios.');
 
-                $clientId = $client->id;
-                $userId = $targetUser->id;
-            }
+            $clientId = $client->id;
+            $userId = $targetUser->id;
         } else {
             $clientId = $user->client_id;
             $userId = $user->id;

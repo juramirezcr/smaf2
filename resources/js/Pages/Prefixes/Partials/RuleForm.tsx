@@ -31,7 +31,7 @@ interface RuleFormData {
 
 export default function RuleForm({ rule, clients, initialClientId }: RuleFormProps) {
     const form = useForm<RuleFormData>({
-        client_id: initialClientId ?? 'all',
+        client_id: initialClientId ?? clients?.[0]?.id ?? '',
         prefix: rule?.prefix ?? '',
         country: rule?.country ?? '',
         description: rule?.description ?? '',
@@ -66,14 +66,12 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         required
                     >
-                        <option value="all">Todos los clientes (regla global)</option>
                         {clients.map((client) => (
                             <option key={client.id} value={client.id}>{client.name}</option>
                         ))}
                     </select>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Una regla global aplica a todos los clientes y cuentas. Elige un
-                        cliente específico solo si necesita un límite distinto al global.
+                        Toda regla pertenece a un cliente específico; no se permiten reglas globales.
                     </p>
                     <InputError message={form.errors.client_id} className="mt-2" />
                 </div>
