@@ -75,31 +75,31 @@ export default function QueueMonitor({ summary, byQueue, byJobType, runningJobs,
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Cola de jobs</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Cola de jobs</h2>}>
             <Head title="Cola de jobs" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                     <div className="grid gap-4 md:grid-cols-3">
-                        <div className="rounded-lg bg-white p-5 shadow-sm">
-                            <p className="text-sm text-gray-500">Pendientes</p>
-                            <p className="mt-1 text-3xl font-semibold text-gray-900">{summary.pending}</p>
+                        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Pendientes</p>
+                            <p className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{summary.pending}</p>
                         </div>
-                        <div className="rounded-lg bg-white p-5 shadow-sm">
-                            <p className="text-sm text-gray-500">En ejecución ahora</p>
-                            <p className="mt-1 text-3xl font-semibold text-indigo-600">{summary.running}</p>
+                        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">En ejecución ahora</p>
+                            <p className="mt-1 text-3xl font-semibold text-indigo-600 dark:text-indigo-400">{summary.running}</p>
                         </div>
-                        <div className="rounded-lg bg-white p-5 shadow-sm">
-                            <p className="text-sm text-gray-500">Fallidos</p>
-                            <p className="mt-1 text-3xl font-semibold text-red-600">{summary.failed}</p>
+                        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Fallidos</p>
+                            <p className="mt-1 text-3xl font-semibold text-red-600 dark:text-red-400">{summary.failed}</p>
                         </div>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                        <section className="rounded-lg bg-white shadow-sm">
-                            <div className="border-b px-6 py-4 font-semibold text-gray-900">Por cola</div>
+                        <section className="rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                            <div className="border-b px-6 py-4 font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100">Por cola</div>
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                                <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                     <tr>
                                         <th className="px-6 py-2 text-left">Cola</th>
                                         <th className="px-6 py-2 text-right">Pendientes</th>
@@ -107,15 +107,15 @@ export default function QueueMonitor({ summary, byQueue, byJobType, runningJobs,
                                         <th className="px-6 py-2 text-right">Más antiguo</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {byQueue.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-6 py-4 text-gray-500">Sin jobs en cola.</td></tr>
+                                        <tr><td colSpan={4} className="px-6 py-4 text-gray-500 dark:text-gray-400">Sin jobs en cola.</td></tr>
                                     ) : byQueue.map((row) => (
-                                        <tr key={row.queue}>
+                                        <tr key={row.queue} className="dark:text-gray-100">
                                             <td className="px-6 py-3 font-mono">{row.queue}</td>
                                             <td className="px-6 py-3 text-right">{row.pending}</td>
                                             <td className="px-6 py-3 text-right">{row.running}</td>
-                                            <td className="px-6 py-3 text-right text-gray-500">
+                                            <td className="px-6 py-3 text-right text-gray-500 dark:text-gray-400">
                                                 {row.oldestPendingAt ? formatAge(row.oldestPendingAt) : '—'}
                                             </td>
                                         </tr>
@@ -124,10 +124,10 @@ export default function QueueMonitor({ summary, byQueue, byJobType, runningJobs,
                             </table>
                         </section>
 
-                        <section className="rounded-lg bg-white shadow-sm">
-                            <div className="border-b px-6 py-4 font-semibold text-gray-900">Por tipo de job</div>
+                        <section className="rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                            <div className="border-b px-6 py-4 font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100">Por tipo de job</div>
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                                <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                     <tr>
                                         <th className="px-6 py-2 text-left">Job</th>
                                         <th className="px-6 py-2 text-right">Total</th>
@@ -135,11 +135,11 @@ export default function QueueMonitor({ summary, byQueue, byJobType, runningJobs,
                                         <th className="px-6 py-2 text-right">Intentos (máx)</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {byJobType.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-6 py-4 text-gray-500">Sin jobs en cola.</td></tr>
+                                        <tr><td colSpan={4} className="px-6 py-4 text-gray-500 dark:text-gray-400">Sin jobs en cola.</td></tr>
                                     ) : byJobType.map((row) => (
-                                        <tr key={row.job}>
+                                        <tr key={row.job} className="dark:text-gray-100">
                                             <td className="px-6 py-3 font-mono text-xs">{row.job.split('\\').pop()}</td>
                                             <td className="px-6 py-3 text-right">{row.total}</td>
                                             <td className="px-6 py-3 text-right">{row.running}</td>
@@ -151,15 +151,15 @@ export default function QueueMonitor({ summary, byQueue, byJobType, runningJobs,
                         </section>
                     </div>
 
-                    <section className="rounded-lg bg-white shadow-sm">
-                        <div className="border-b px-6 py-4">
-                            <h3 className="font-semibold text-gray-900">En ejecución ahora</h3>
-                            <p className="mt-1 text-sm text-gray-500">
+                    <section className="rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                        <div className="border-b px-6 py-4 dark:border-gray-700">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">En ejecución ahora</h3>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 Si un job lleva mucho tiempo aquí, probablemente está atascado. Mostrando hasta {runningListLimit}.
                             </p>
                         </div>
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                 <tr>
                                     <th className="px-6 py-2 text-left">Job</th>
                                     <th className="px-6 py-2 text-left">Cola</th>
@@ -168,29 +168,29 @@ export default function QueueMonitor({ summary, byQueue, byJobType, runningJobs,
                                     <th className="px-6 py-2 text-right">Creado</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {runningJobs.length === 0 ? (
-                                    <tr><td colSpan={5} className="px-6 py-4 text-gray-500">No hay jobs en ejecución en este momento.</td></tr>
+                                    <tr><td colSpan={5} className="px-6 py-4 text-gray-500 dark:text-gray-400">No hay jobs en ejecución en este momento.</td></tr>
                                 ) : runningJobs.map((job) => (
-                                    <tr key={job.id} className={job.runningSeconds > 300 ? 'bg-amber-50' : undefined}>
+                                    <tr key={job.id} className={job.runningSeconds > 300 ? 'bg-amber-50 dark:bg-amber-500/10' : 'dark:text-gray-100'}>
                                         <td className="px-6 py-3 font-mono text-xs">{job.job.split('\\').pop()}</td>
                                         <td className="px-6 py-3 font-mono">{job.queue}</td>
                                         <td className="px-6 py-3 text-right">{job.attempts}</td>
                                         <td className="px-6 py-3 text-right font-medium">{formatDuration(job.runningSeconds)}</td>
-                                        <td className="px-6 py-3 text-right text-gray-500">{formatDateTime(job.createdAtIso)}</td>
+                                        <td className="px-6 py-3 text-right text-gray-500 dark:text-gray-400">{formatDateTime(job.createdAtIso)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </section>
 
-                    <section className="rounded-lg bg-white shadow-sm">
-                        <div className="border-b px-6 py-4">
-                            <h3 className="font-semibold text-gray-900">Fallidos recientes</h3>
-                            <p className="mt-1 text-sm text-gray-500">Mostrando hasta {failedListLimit}.</p>
+                    <section className="rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                        <div className="border-b px-6 py-4 dark:border-gray-700">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Fallidos recientes</h3>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Mostrando hasta {failedListLimit}.</p>
                         </div>
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                 <tr>
                                     <th className="px-6 py-2 text-left">Job</th>
                                     <th className="px-6 py-2 text-left">Cola</th>
@@ -199,25 +199,25 @@ export default function QueueMonitor({ summary, byQueue, byJobType, runningJobs,
                                     <th className="px-6 py-2 text-right">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {failedJobs.length === 0 ? (
-                                    <tr><td colSpan={5} className="px-6 py-4 text-gray-500">Sin jobs fallidos.</td></tr>
+                                    <tr><td colSpan={5} className="px-6 py-4 text-gray-500 dark:text-gray-400">Sin jobs fallidos.</td></tr>
                                 ) : failedJobs.map((job) => (
-                                    <tr key={job.id}>
+                                    <tr key={job.id} className="dark:text-gray-100">
                                         <td className="px-6 py-3 font-mono text-xs">{job.job.split('\\').pop()}</td>
                                         <td className="px-6 py-3 font-mono">{job.queue}</td>
-                                        <td className="max-w-md truncate px-6 py-3 text-red-600" title={job.message ?? ''}>{job.message ?? '—'}</td>
-                                        <td className="px-6 py-3 text-gray-500">{formatDateTime(job.failedAt)}</td>
+                                        <td className="max-w-md truncate px-6 py-3 text-red-600 dark:text-red-400" title={job.message ?? ''}>{job.message ?? '—'}</td>
+                                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDateTime(job.failedAt)}</td>
                                         <td className="px-6 py-3 text-right">
                                             <button
                                                 onClick={() => retryFailed(job.uuid)}
-                                                className="mr-3 text-sm font-medium text-indigo-600 hover:text-indigo-900"
+                                                className="mr-3 text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                                             >
                                                 Reintentar
                                             </button>
                                             <button
                                                 onClick={() => forgetFailed(job.uuid)}
-                                                className="text-sm font-medium text-red-600 hover:text-red-900"
+                                                className="text-sm font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                                             >
                                                 Eliminar
                                             </button>

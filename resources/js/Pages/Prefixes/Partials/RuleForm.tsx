@@ -63,7 +63,7 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                         id="client_id"
                         value={form.data.client_id}
                         onChange={(event) => form.setData('client_id', event.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         required
                     >
                         <option value="all">Todos los clientes (regla global)</option>
@@ -71,7 +71,7 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                             <option key={client.id} value={client.id}>{client.name}</option>
                         ))}
                     </select>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Una regla global aplica a todos los clientes y cuentas. Elige un
                         cliente específico solo si necesita un límite distinto al global.
                     </p>
@@ -98,7 +98,7 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                         autoFocus
                         required
                     />
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Solo dígitos, sin + ni 00.
                     </p>
                     <InputError message={form.errors.prefix} className="mt-2" />
@@ -128,7 +128,7 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                         onChange={(event) =>
                             form.setData('description', event.target.value)
                         }
-                        className="mt-1 block min-h-24 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="mt-1 block min-h-24 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         maxLength={500}
                         placeholder="Contexto para identificar la regla."
                     />
@@ -147,7 +147,7 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                         className="mt-1 block w-full"
                         placeholder="Todos los customers"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Déjalo vacío para todos.
                     </p>
                     <InputError message={form.errors.customer} className="mt-2" />
@@ -165,18 +165,18 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                         className="mt-1 block w-full"
                         placeholder="Todas las cuentas"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Acota la regla a una cuenta específica.
                     </p>
                     <InputError message={form.errors.account} className="mt-2" />
                 </div>
             </div>
 
-            <div className="border-y border-gray-200 py-6">
-                <h3 className="text-base font-semibold text-gray-900">
+            <div className="border-y border-gray-200 py-6 dark:border-gray-700">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                     Umbrales por hora
                 </h3>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                     La futura evaluación comparará estos límites con las llamadas
                     que coincidan con el prefijo y alcance definidos.
                 </p>
@@ -235,10 +235,10 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
             </div>
 
             <fieldset>
-                <legend className="text-base font-semibold text-gray-900">
+                <legend className="text-base font-semibold text-gray-900 dark:text-gray-100">
                     Acción al superar el límite
                 </legend>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                     Solo se guarda la intención. Esta versión no envía
                     notificaciones ni bloquea en PortaOne.
                 </p>
@@ -259,8 +259,8 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                             key={option.value}
                             className={`cursor-pointer rounded-lg border p-4 transition ${
                                 form.data.action === option.value
-                                    ? 'border-indigo-600 bg-indigo-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-indigo-600 bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-500/10'
+                                    : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
                             }`}
                         >
                             <input
@@ -271,10 +271,10 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                                 onChange={() => form.setData('action', option.value)}
                                 className="sr-only"
                             />
-                            <span className="block font-medium text-gray-900">
+                            <span className="block font-medium text-gray-900 dark:text-gray-100">
                                 {option.label}
                             </span>
-                            <span className="mt-1 block text-sm text-gray-600">
+                            <span className="mt-1 block text-sm text-gray-600 dark:text-gray-300">
                                 {option.description}
                             </span>
                         </label>
@@ -283,20 +283,20 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                 <InputError message={form.errors.action} className="mt-2" />
             </fieldset>
 
-            <label className="flex items-start gap-3 rounded-lg bg-gray-50 p-4">
+            <label className="flex items-start gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-900/40">
                 <input
                     type="checkbox"
                     checked={form.data.enabled}
                     onChange={(event) =>
                         form.setData('enabled', event.target.checked)
                     }
-                    className="mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                    className="mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
                 />
                 <span>
-                    <span className="block font-medium text-gray-900">
+                    <span className="block font-medium text-gray-900 dark:text-gray-100">
                         Regla activa
                     </span>
-                    <span className="mt-1 block text-sm text-gray-600">
+                    <span className="mt-1 block text-sm text-gray-600 dark:text-gray-300">
                         Una regla inactiva conserva su configuración sin participar
                         en futuras evaluaciones.
                     </span>
@@ -304,10 +304,10 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
             </label>
             <InputError message={form.errors.enabled} className="mt-2" />
 
-            <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-6">
+            <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-6 dark:border-gray-700">
                 <Link
                     href={rule ? route('prefixes.show', rule.id) : route('prefixes.index')}
-                    className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                    className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                     Cancelar
                 </Link>

@@ -22,8 +22,8 @@ export default function Pagination({ links }: { links: PaginationLink[] }) {
                         link.active
                             ? 'bg-indigo-600 text-white'
                             : link.url
-                              ? 'text-gray-700 hover:bg-gray-100'
-                              : 'cursor-not-allowed text-gray-400'
+                              ? 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                              : 'cursor-not-allowed text-gray-400 dark:text-gray-600'
                     }`}
                 />
             ))}

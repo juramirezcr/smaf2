@@ -48,7 +48,7 @@ function Sparkline({ data }: { data: number[] }) {
             <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
                 <polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.5" className="text-indigo-400" />
             </svg>
-            <span className="text-xs font-normal text-gray-500">{total} / 24h</span>
+            <span className="text-xs font-normal text-gray-500 dark:text-gray-400">{total} / 24h</span>
         </span>
     );
 }
@@ -177,7 +177,7 @@ export default function CallsIndex({
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Llamadas</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Llamadas</h2>}>
             <Head title="Llamadas" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -187,7 +187,7 @@ export default function CallsIndex({
                                 <select
                                     value={selectedClientId ?? ''}
                                     onChange={(event) => changeClient(event.target.value)}
-                                    className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                                 >
                                     <option value="all">Todos</option>
                                     {clients.map((option) => (
@@ -211,8 +211,8 @@ export default function CallsIndex({
 
                         {activeCalls.length > 0 && (
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 overflow-x-auto">
-                                    <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Agrupar por:</span>
+                                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3 overflow-x-auto">
+                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">Agrupar por:</span>
                                     {(['none', 'client', 'customer', 'account', 'customer+account'] as GroupBy[]).map((option) => (
                                         <button
                                             key={option}
@@ -220,7 +220,7 @@ export default function CallsIndex({
                                             className={`px-3 py-1.5 text-sm font-medium rounded transition-colors whitespace-nowrap ${
                                                 groupBy === option
                                                     ? 'bg-indigo-600 text-white'
-                                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700'
                                             }`}
                                         >
                                             {option === 'none' ? 'Sin agrupar' : option === 'client' ? 'Cliente' : option === 'customer' ? 'Customer' : option === 'account' ? 'Account' : 'Customer + Account'}
@@ -228,9 +228,9 @@ export default function CallsIndex({
                                     ))}
                                 </div>
 
-                                <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
+                                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm font-semibold text-gray-700">Auto-actualizar:</span>
+                                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Auto-actualizar:</span>
                                         {([5000, 10000, 30000, 0] as const).map((interval) => (
                                             <button
                                                 key={interval}
@@ -238,14 +238,14 @@ export default function CallsIndex({
                                                 className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                                                     autoRefreshInterval === interval
                                                         ? 'bg-blue-600 text-white'
-                                                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                                                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700'
                                                 }`}
                                             >
                                                 {interval === 0 ? 'Off' : interval === 5000 ? '5s' : interval === 10000 ? '10s' : '30s'}
                                             </button>
                                         ))}
                                     </div>
-                                    <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
+                                    <div className="ml-auto flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                                         {isRefreshing && (
                                             <div className="flex items-center gap-1">
                                                 <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
@@ -262,15 +262,15 @@ export default function CallsIndex({
                     </div>
 
                     {activeCalls.length > 0 && (
-                        <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-emerald-200">
-                            <div className="border-b bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-800">
+                        <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-emerald-200 dark:bg-gray-800 dark:ring-emerald-800">
+                            <div className="border-b bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-gray-700">
                                 Llamadas activas ({activeCalls.length})
                             </div>
                             <div className="overflow-x-auto">
                                 {groupBy === 'none' ? (
                                     // Sin agrupar
-                                    <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                        <thead className="bg-gray-50 text-left text-gray-500">
+                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                                        <thead className="bg-gray-50 dark:bg-gray-900/40 text-left text-gray-500 dark:text-gray-400">
                                             <tr>
                                                 {showingAll && <th className="px-6 py-3">Cliente (interno del sistema)</th>}
                                                 <th className="px-6 py-3">Customer</th>
@@ -283,7 +283,7 @@ export default function CallsIndex({
                                                 <th className="px-6 py-3 text-right">Segundos</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200">
+                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 dark:text-gray-100">
                                             {activeCalls.map((call) => (
                                                 <tr key={call.id}>
                                                     {showingAll && <td className="px-6 py-4">{call.clientName ?? '—'}</td>}
@@ -291,7 +291,7 @@ export default function CallsIndex({
                                                         {call.customerName ? (
                                                             <button
                                                                 onClick={() => applyFilters({ customer: selectedCustomers.includes(call.customerName!) ? selectedCustomers.filter(c => c !== call.customerName) : [...selectedCustomers, call.customerName!] })}
-                                                                className="text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                                className="text-indigo-600 hover:text-indigo-900 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
                                                             >
                                                                 {call.customerName}
                                                             </button>
@@ -301,7 +301,7 @@ export default function CallsIndex({
                                                         {call.accountId ? (
                                                             <button
                                                                 onClick={() => applyFilters({ account: selectedAccounts.includes(call.accountId!) ? selectedAccounts.filter(a => a !== call.accountId) : [...selectedAccounts, call.accountId!] })}
-                                                                className="text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                                className="text-indigo-600 hover:text-indigo-900 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
                                                             >
                                                                 {call.accountId}
                                                             </button>
@@ -309,7 +309,7 @@ export default function CallsIndex({
                                                     </td>
                                                     <td className="px-6 py-4">{call.cli ?? '—'}</td>
                                                     <td className="px-6 py-4">{call.cld ?? '—'}</td>
-                                                    <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
+                                                    <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
                                                     <td className="px-6 py-4">{call.prefixCountry ?? call.country ?? '—'}</td>
                                                     <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
                                                     <td className="px-6 py-4 text-right">{call.durationSeconds}</td>
@@ -319,19 +319,19 @@ export default function CallsIndex({
                                     </table>
                                 ) : groupBy === 'customer' || groupBy === 'customer+account' ? (
                                     // Agrupado por Customer (con sub-grupo por Account)
-                                    <div className="divide-y divide-gray-200">
+                                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
                                         {Object.entries(groupedCalls).map(([customer, groupData]) => {
                                             const isCollapsed = !expandedGroups.has(customer);
                                             const history = customerCallHistory[customer];
                                             return (
-                                                <div key={customer} className="border-t">
+                                                <div key={customer} className="border-t dark:border-gray-700">
                                                     <button
                                                         onClick={() => toggleGroup(customer)}
-                                                        className="w-full flex items-center gap-2 bg-blue-50 px-6 py-3 font-semibold text-gray-800 hover:bg-blue-100 transition-colors text-left"
+                                                        className="w-full flex items-center gap-2 bg-blue-50 px-6 py-3 font-semibold text-gray-800 hover:bg-blue-100 transition-colors text-left dark:bg-blue-900/20 dark:text-gray-100 dark:hover:bg-blue-900/30"
                                                     >
                                                         <span className={`inline-block transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>▼</span>
                                                         {customer}
-                                                        <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                                        <span className="ml-2 text-sm font-normal text-gray-600 dark:text-gray-300">({groupData.calls.length} llamadas)</span>
                                                         {history && <Sparkline data={history} />}
                                                     </button>
                                                     {!isCollapsed && Object.entries(groupData.subGroups || {}).map(([account, calls]) => {
@@ -341,21 +341,21 @@ export default function CallsIndex({
                                                             <div key={account}>
                                                                 <button
                                                                     onClick={() => toggleSubGroup(subKey)}
-                                                                    className="w-full flex items-center gap-2 bg-indigo-50 px-8 py-2 text-sm font-medium text-gray-700 border-l-4 border-indigo-400 hover:bg-indigo-100 transition-colors text-left"
+                                                                    className="w-full flex items-center gap-2 bg-indigo-50 px-8 py-2 text-sm font-medium text-gray-700 border-l-4 border-indigo-400 hover:bg-indigo-100 transition-colors text-left dark:bg-indigo-900/20 dark:text-gray-300 dark:border-indigo-500 dark:hover:bg-indigo-900/30"
                                                                 >
                                                                     <span className={`inline-block transition-transform text-xs ${isSubCollapsed ? '-rotate-90' : ''}`}>▼</span>
                                                                     Account: {account}
-                                                                    <span className="ml-2 text-xs font-normal text-gray-600">({calls.length})</span>
+                                                                    <span className="ml-2 text-xs font-normal text-gray-600 dark:text-gray-300">({calls.length})</span>
                                                                 </button>
                                                                 {!isSubCollapsed && (
                                                                     <table className="min-w-full text-sm">
-                                                                        <tbody className="divide-y divide-gray-200">
+                                                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 dark:text-gray-100">
                                                                             {calls.map((call) => (
-                                                                                <tr key={call.id} className="hover:bg-gray-50">
-                                                                                    {showingAll && <td className="px-6 py-4 text-gray-600 text-xs">{call.clientName ?? '—'}</td>}
+                                                                                <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                                                                    {showingAll && <td className="px-6 py-4 text-gray-600 text-xs dark:text-gray-400">{call.clientName ?? '—'}</td>}
                                                                                     <td className="px-6 py-4">{call.cli ?? '—'}</td>
                                                                                     <td className="px-6 py-4">{call.cld ?? '—'}</td>
-                                                                                    <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
+                                                                                    <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
                                                                                     <td className="px-6 py-4 text-sm">{call.prefixCountry ?? call.country ?? '—'}</td>
                                                                                     <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
                                                                                     <td className="px-6 py-4 text-right font-semibold text-emerald-600">{call.durationSeconds}</td>
@@ -373,29 +373,29 @@ export default function CallsIndex({
                                     </div>
                                 ) : (
                                     // Agrupado por Client o Account
-                                    <div className="divide-y divide-gray-200">
+                                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
                                         {Object.entries(groupedCalls).map(([groupName, groupData]) => {
                                             const isCollapsed = !expandedGroups.has(groupName);
                                             return (
-                                                <div key={groupName} className="border-t">
+                                                <div key={groupName} className="border-t dark:border-gray-700">
                                                     <button
                                                         onClick={() => toggleGroup(groupName)}
-                                                        className="w-full flex items-center gap-2 bg-blue-50 px-6 py-3 font-semibold text-gray-800 hover:bg-blue-100 transition-colors text-left"
+                                                        className="w-full flex items-center gap-2 bg-blue-50 px-6 py-3 font-semibold text-gray-800 hover:bg-blue-100 transition-colors text-left dark:bg-blue-900/20 dark:text-gray-100 dark:hover:bg-blue-900/30"
                                                     >
                                                         <span className={`inline-block transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>▼</span>
                                                         {groupBy === 'client' ? 'Cliente' : 'Account'}: {groupName}
-                                                        <span className="ml-2 text-sm font-normal text-gray-600">({groupData.calls.length} llamadas)</span>
+                                                        <span className="ml-2 text-sm font-normal text-gray-600 dark:text-gray-300">({groupData.calls.length} llamadas)</span>
                                                     </button>
                                                     {!isCollapsed && (
                                                         <table className="min-w-full text-sm w-full">
-                                                            <tbody className="divide-y divide-gray-200">
+                                                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 dark:text-gray-100">
                                                                 {groupData.calls.map((call) => (
-                                                                    <tr key={call.id} className="hover:bg-gray-50">
-                                                                        {showingAll && groupBy !== 'client' && <td className="px-6 py-4 text-gray-600 text-xs">{call.clientName ?? '—'}</td>}
-                                                                        {groupBy === 'account' && <td className="px-6 py-4 text-sm text-gray-600"><button onClick={() => applyFilters({ customer: [...new Set([...selectedCustomers, call.customerName || ''])] })} className="text-indigo-600 hover:underline">{call.customerName ?? '—'}</button></td>}
+                                                                    <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                                                        {showingAll && groupBy !== 'client' && <td className="px-6 py-4 text-gray-600 text-xs dark:text-gray-400">{call.clientName ?? '—'}</td>}
+                                                                        {groupBy === 'account' && <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300"><button onClick={() => applyFilters({ customer: [...new Set([...selectedCustomers, call.customerName || ''])] })} className="text-indigo-600 hover:underline dark:text-indigo-400">{call.customerName ?? '—'}</button></td>}
                                                                         <td className="px-6 py-4">{call.cli ?? '—'}</td>
                                                                         <td className="px-6 py-4">{call.cld ?? '—'}</td>
-                                                                        <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
+                                                                        <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
                                                                         <td className="px-6 py-4 text-sm">{call.prefixCountry ?? call.country ?? '—'}</td>
                                                                         <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
                                                                         <td className="px-6 py-4 text-right font-semibold text-emerald-600">{call.durationSeconds}</td>

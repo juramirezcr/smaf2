@@ -36,23 +36,23 @@ interface CustomerAccountsProps {
 
 export default function CustomerAccounts({ customer, accounts, indexPath }: CustomerAccountsProps) {
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">{customer.name ?? 'Customer'}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">{customer.name ?? 'Customer'}</h2>}>
             <Head title={customer.name ?? 'Customer'} />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <Link href={indexPath} className="mb-4 inline-block text-sm text-indigo-600 hover:text-indigo-900">
+                    <Link href={indexPath} className="mb-4 inline-block text-sm text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                         &larr; Volver a Customers
                     </Link>
 
-                    <div className="mb-6 rounded-lg bg-white p-4 shadow-sm text-sm text-gray-600">
-                        <p><span className="font-medium text-gray-900">Empresa:</span> {customer.company_name ?? '—'}</p>
-                        <p><span className="font-medium text-gray-900">Email:</span> {customer.email ?? '—'}</p>
-                        <p className="flex items-center gap-2"><span className="font-medium text-gray-900">Estado:</span> <BillStatusBadge status={customer.bill_status} /></p>
+                    <div className="mb-6 rounded-lg bg-white p-4 shadow-sm text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        <p><span className="font-medium text-gray-900 dark:text-gray-100">Empresa:</span> {customer.company_name ?? '—'}</p>
+                        <p><span className="font-medium text-gray-900 dark:text-gray-100">Email:</span> {customer.email ?? '—'}</p>
+                        <p className="flex items-center gap-2"><span className="font-medium text-gray-900 dark:text-gray-100">Estado:</span> <BillStatusBadge status={customer.bill_status} /></p>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead className="bg-gray-50 text-left text-gray-500">
+                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                            <thead className="bg-gray-50 text-left text-gray-500 dark:bg-gray-900/40 dark:text-gray-400">
                                 <tr>
                                     <th className="px-6 py-3">Account</th>
                                     <th className="px-6 py-3">Producto</th>
@@ -60,19 +60,19 @@ export default function CustomerAccounts({ customer, accounts, indexPath }: Cust
                                     <th className="px-6 py-3">Bloqueada</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {accounts.data.length === 0 ? (
-                                    <tr><td colSpan={4} className="px-6 py-4 text-gray-500">Este customer no tiene accounts de telefonía sincronizadas.</td></tr>
+                                    <tr><td colSpan={4} className="px-6 py-4 text-gray-500 dark:text-gray-400">Este customer no tiene accounts de telefonía sincronizadas.</td></tr>
                                 ) : accounts.data.map((account) => (
-                                    <tr key={account.id}>
+                                    <tr key={account.id} className="dark:hover:bg-gray-700">
                                         <td className="px-6 py-4">
-                                            <Link href={`/portaone-accounts/${account.id}/calls`} className="font-medium text-indigo-600 hover:text-indigo-900">
+                                            <Link href={`/portaone-accounts/${account.id}/calls`} className="font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                                 {account.account_id ?? '—'}
                                             </Link>
                                         </td>
-                                        <td className="px-6 py-4">{account.product_name ?? '—'}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{account.product_name ?? '—'}</td>
                                         <td className="px-6 py-4"><BillStatusBadge status={account.bill_status} /></td>
-                                        <td className="px-6 py-4">{account.blocked ?? '—'}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{account.blocked ?? '—'}</td>
                                     </tr>
                                 ))}
                             </tbody>

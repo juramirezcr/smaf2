@@ -64,17 +64,17 @@ export default function PrefixRuleShow({
                     <div>
                         <Link
                             href={route('prefixes.index')}
-                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
                         >
                             ← Reglas de prefijo
                         </Link>
-                        <h2 className="mt-1 text-xl font-semibold leading-tight text-gray-800">
+                        <h2 className="mt-1 text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">
                             Prefijo +{rule.prefix}
                         </h2>
                     </div>
                     <Link
                         href={route('prefixes.edit', rule.id)}
-                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                         Editar regla
                     </Link>
@@ -84,34 +84,34 @@ export default function PrefixRuleShow({
             <Head title={`Prefijo +${rule.prefix}`} />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <section className="bg-white px-6 py-6 shadow-sm sm:rounded-lg">
+                    <section className="bg-white px-6 py-6 shadow-sm sm:rounded-lg dark:bg-gray-800">
                         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                             <div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-mono text-3xl font-semibold tracking-tight text-gray-900">
+                                    <span className="font-mono text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
                                         +{rule.prefix}
                                     </span>
                                     {rule.country && (
-                                        <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
+                                        <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                                             {rule.country}
                                         </span>
                                     )}
                                     <span
                                         className={`rounded-full px-3 py-1 text-sm font-medium ${
                                             rule.enabled
-                                                ? 'bg-emerald-50 text-emerald-700'
-                                                : 'bg-gray-100 text-gray-600'
+                                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                                         }`}
                                     >
                                         {rule.enabled ? 'Activa' : 'Inactiva'}
                                     </span>
                                 </div>
-                                <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+                                <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
                                     {rule.description ?? 'Sin descripción registrada.'}
                                 </p>
-                                <p className="mt-3 text-sm font-medium text-gray-800">
+                                <p className="mt-3 text-sm font-medium text-gray-800 dark:text-gray-200">
                                     {rule.isGlobal && (
-                                        <span className="mr-2 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                                        <span className="mr-2 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">
                                             Regla global · todos los clientes
                                         </span>
                                     )}
@@ -120,26 +120,26 @@ export default function PrefixRuleShow({
                             </div>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
                                 <div>
-                                    <p className="text-gray-500">Llamadas / hora</p>
-                                    <p className="mt-1 text-lg font-semibold text-gray-900">
+                                    <p className="text-gray-500 dark:text-gray-400">Llamadas / hora</p>
+                                    <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                         {rule.hourlyCallLimit.toLocaleString('es-MX')}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-500">Minutos / hora</p>
-                                    <p className="mt-1 text-lg font-semibold text-gray-900">
+                                    <p className="text-gray-500 dark:text-gray-400">Minutos / hora</p>
+                                    <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                         {rule.hourlyMinutesLimit.toLocaleString('es-MX')}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-500">Acción configurada</p>
-                                    <p className="mt-1 font-semibold text-gray-900">
+                                    <p className="text-gray-500 dark:text-gray-400">Acción configurada</p>
+                                    <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">
                                         {rule.action === 'notify' ? 'Notificar' : 'Bloquear'}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-500">Última evaluación</p>
-                                    <p className="mt-1 font-semibold text-gray-900">
+                                    <p className="text-gray-500 dark:text-gray-400">Última evaluación</p>
+                                    <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">
                                         {rule.lastEvaluatedAt
                                             ? formatDate(rule.lastEvaluatedAt)
                                             : 'Aún no evaluada'}
@@ -149,12 +149,12 @@ export default function PrefixRuleShow({
                         </div>
                     </section>
 
-                    <section className="bg-white shadow-sm sm:rounded-lg">
-                        <div className="border-b border-gray-200 px-6 py-5">
-                            <h1 className="text-lg font-semibold text-gray-900">
+                    <section className="bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
+                        <div className="border-b border-gray-200 px-6 py-5 dark:border-gray-700">
+                            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Llamadas que coinciden
                             </h1>
-                            <p className="mt-1 text-sm text-gray-600">
+                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                                 Registros con este prefijo y el alcance de cliente o
                                 cuenta configurado.
                             </p>
@@ -169,7 +169,7 @@ export default function PrefixRuleShow({
                                         className={`rounded-md px-3 py-2 text-sm font-medium transition ${
                                             period === option.value
                                                 ? 'bg-indigo-600 text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                                         }`}
                                     >
                                         {option.label}
@@ -178,20 +178,20 @@ export default function PrefixRuleShow({
                             </div>
                         </div>
 
-                        <div className="grid border-b border-gray-200 sm:grid-cols-2">
+                        <div className="grid border-b border-gray-200 sm:grid-cols-2 dark:border-gray-700">
                             <div className="px-6 py-4">
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
                                     Llamadas en {periods.find((item) => item.value === period)?.label}
                                 </p>
-                                <p className="mt-1 text-2xl font-semibold text-gray-900">
+                                <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
                                     {summary.callCount.toLocaleString('es-MX')}
                                 </p>
                             </div>
-                            <div className="border-t border-gray-200 px-6 py-4 sm:border-l sm:border-t-0">
-                                <p className="text-sm text-gray-500">
+                            <div className="border-t border-gray-200 px-6 py-4 sm:border-l sm:border-t-0 dark:border-gray-700">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
                                     Duración acumulada
                                 </p>
-                                <p className="mt-1 text-2xl font-semibold text-gray-900">
+                                <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
                                     {formatDuration(summary.durationSeconds)}
                                 </p>
                             </div>
@@ -199,18 +199,18 @@ export default function PrefixRuleShow({
 
                         {calls.data.length === 0 ? (
                             <div className="px-6 py-14 text-center">
-                                <h2 className="text-base font-semibold text-gray-900">
+                                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                                     No hay llamadas en este período
                                 </h2>
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
                                     Cambia el período o espera nuevos registros importados.
                                 </p>
                             </div>
                         ) : (
                             <>
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
-                                        <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <table className="min-w-full divide-y divide-gray-200 text-left text-sm dark:divide-gray-700">
+                                        <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-900/40 dark:text-gray-400">
                                             <tr>
                                                 <th className="px-6 py-3">Conectada</th>
                                                 <th className="px-6 py-3">Destino</th>
@@ -220,23 +220,23 @@ export default function PrefixRuleShow({
                                                 <th className="px-6 py-3 text-right">Duración</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200 text-gray-700">
+                                        <tbody className="divide-y divide-gray-200 text-gray-700 dark:divide-gray-700 dark:text-gray-300">
                                             {calls.data.map((call) => (
                                                 <tr key={call.id}>
                                                     <td className="whitespace-nowrap px-6 py-4">
                                                         {formatDate(call.connectedAt)}
                                                     </td>
-                                                    <td className="px-6 py-4 font-mono font-medium text-gray-900">
+                                                    <td className="px-6 py-4 font-mono font-medium text-gray-900 dark:text-gray-100">
                                                         {call.destination}
                                                     </td>
                                                     {rule.isGlobal && (
-                                                        <td className="px-6 py-4 text-gray-600">
+                                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
                                                             {call.clientName ?? '—'}
                                                         </td>
                                                     )}
                                                     <td className="px-6 py-4">
                                                         <p>{call.customer ?? '—'}</p>
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
                                                             {call.account}
                                                         </p>
                                                     </td>
@@ -253,7 +253,7 @@ export default function PrefixRuleShow({
                                 </div>
 
                                 {calls.last_page > 1 && (
-                                    <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4">
+                                    <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4 dark:border-gray-700">
                                         {calls.current_page > 1 ? (
                                             <Link
                                                 href={route('prefixes.show', {
@@ -261,14 +261,14 @@ export default function PrefixRuleShow({
                                                     period,
                                                     page: calls.current_page - 1,
                                                 })}
-                                                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
                                             >
                                                 Anterior
                                             </Link>
                                         ) : (
                                             <span />
                                         )}
-                                        <p className="text-sm text-gray-600">
+                                        <p className="text-sm text-gray-600 dark:text-gray-300">
                                             Página {calls.current_page} de {calls.last_page}
                                         </p>
                                         {calls.current_page < calls.last_page ? (
@@ -278,7 +278,7 @@ export default function PrefixRuleShow({
                                                     period,
                                                     page: calls.current_page + 1,
                                                 })}
-                                                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
                                             >
                                                 Siguiente
                                             </Link>

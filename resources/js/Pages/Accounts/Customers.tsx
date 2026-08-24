@@ -51,7 +51,7 @@ export default function Customers({ customers, search, basePath, clients, select
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Customers</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Customers</h2>}>
             <Head title="Customers" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -60,7 +60,7 @@ export default function Customers({ customers, search, basePath, clients, select
                             <select
                                 value={selectedClientId ?? ''}
                                 onChange={(event) => changeClient(event.target.value)}
-                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             >
                                 <option value="all">Todos</option>
                                 {clients.map((client) => (
@@ -78,9 +78,9 @@ export default function Customers({ customers, search, basePath, clients, select
                         </form>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead className="bg-gray-50 text-left text-gray-500">
+                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                            <thead className="bg-gray-50 text-left text-gray-500 dark:bg-gray-900/40 dark:text-gray-400">
                                 <tr>
                                     {showingAll && <th className="px-6 py-3">Cliente (interno del sistema)</th>}
                                     <th className="px-6 py-3">Customer</th>
@@ -90,21 +90,21 @@ export default function Customers({ customers, search, basePath, clients, select
                                     <th className="px-6 py-3 text-right">Accounts</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {customers.data.length === 0 ? (
-                                    <tr><td colSpan={showingAll ? 6 : 5} className="px-6 py-4 text-gray-500">Aún no hay customers sincronizados.</td></tr>
+                                    <tr><td colSpan={showingAll ? 6 : 5} className="px-6 py-4 text-gray-500 dark:text-gray-400">Aún no hay customers sincronizados.</td></tr>
                                 ) : customers.data.map((customer) => (
-                                    <tr key={customer.id}>
-                                        {showingAll && <td className="px-6 py-4">{customer.client_name ?? '—'}</td>}
+                                    <tr key={customer.id} className="dark:hover:bg-gray-700">
+                                        {showingAll && <td className="px-6 py-4 dark:text-gray-300">{customer.client_name ?? '—'}</td>}
                                         <td className="px-6 py-4">
-                                            <Link href={`${basePath}/${customer.id}`} className="font-medium text-indigo-600 hover:text-indigo-900">
+                                            <Link href={`${basePath}/${customer.id}`} className="font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                                 {customer.name ?? '—'}
                                             </Link>
                                         </td>
-                                        <td className="px-6 py-4">{customer.company_name ?? '—'}</td>
-                                        <td className="px-6 py-4">{customer.email ?? '—'}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{customer.company_name ?? '—'}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{customer.email ?? '—'}</td>
                                         <td className="px-6 py-4"><BillStatusBadge status={customer.bill_status} /></td>
-                                        <td className="px-6 py-4 text-right">{customer.accounts_count}</td>
+                                        <td className="px-6 py-4 text-right dark:text-gray-300">{customer.accounts_count}</td>
                                     </tr>
                                 ))}
                             </tbody>

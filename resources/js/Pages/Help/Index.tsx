@@ -13,25 +13,25 @@ interface HelpSectionData {
 function Field({ name, children }: { name: string; children: ReactNode }) {
     return (
         <li>
-            <span className="font-semibold text-gray-800">{name}:</span> {children}
+            <span className="font-semibold text-gray-800 dark:text-gray-200">{name}:</span> {children}
         </li>
     );
 }
 
 function Section({ section, open, onToggle }: { section: HelpSectionData; open: boolean; onToggle: () => void }) {
     return (
-        <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+        <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
             <button
                 type="button"
                 onClick={onToggle}
-                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-gray-50"
+                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700"
             >
                 <div>
-                    <h3 className="font-semibold text-gray-900">{section.title}</h3>
-                    <p className="mt-0.5 text-sm text-gray-500">{section.summary}</p>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{section.title}</h3>
+                    <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{section.summary}</p>
                 </div>
                 <svg
-                    className={`h-5 w-5 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`}
+                    className={`h-5 w-5 shrink-0 text-gray-400 transition-transform dark:text-gray-500 ${open ? 'rotate-90' : ''}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -41,7 +41,7 @@ function Section({ section, open, onToggle }: { section: HelpSectionData; open: 
                 </svg>
             </button>
             {open && (
-                <div className="space-y-3 border-t border-gray-100 px-5 py-4 text-sm leading-relaxed text-gray-600">
+                <div className="space-y-3 border-t border-gray-100 px-5 py-4 text-sm leading-relaxed text-gray-600 dark:border-gray-700 dark:text-gray-300">
                     {section.body}
                 </div>
             )}
@@ -437,10 +437,10 @@ export default function HelpIndex() {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Ayuda</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Ayuda</h2>}>
             <Head title="Ayuda" />
             <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-                <p className="mb-6 text-sm text-gray-500">
+                <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
                     Guía rápida de cada sección del sistema: para qué sirve y qué significa cada campo. Haz clic en
                     una sección para expandirla.
                 </p>

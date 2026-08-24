@@ -1,3 +1,4 @@
+import ThemeToggle from '@/Components/ThemeToggle';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState } from 'react';
 
@@ -72,10 +73,13 @@ export default function Authenticated({
                     <p className="text-lg font-bold text-white">SMAF 2</p>
                     {user.clientName && <p className="text-xs text-slate-400">{user.clientName}</p>}
                 </div>
-                <Link href={route('logout')} method="post" as="button" className="flex items-center gap-1 text-xs text-slate-300 hover:text-white">
-                    <Icon path={ICONS.logout} />
-                    Salir
-                </Link>
+                <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <Link href={route('logout')} method="post" as="button" className="flex items-center gap-1 text-xs text-slate-300 hover:text-white">
+                        <Icon path={ICONS.logout} />
+                        Salir
+                    </Link>
+                </div>
             </div>
             <nav className="flex-1 space-y-1 px-2 pb-4">
                 {navItems.map((item) => (
@@ -137,7 +141,7 @@ export default function Authenticated({
     );
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
             {/* Sidebar de escritorio */}
             <div className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
                 <div className="flex min-h-0 flex-1 flex-col bg-slate-800">{sidebarContent}</div>
@@ -146,27 +150,30 @@ export default function Authenticated({
             {/* Barra superior + menú deslizable en móvil */}
             <div className="sticky top-0 z-20 flex h-16 items-center justify-between bg-slate-800 px-4 md:hidden">
                 <p className="text-lg font-bold text-white">SMAF 2</p>
-                <button
-                    onClick={() => setMobileOpen((previous) => !previous)}
-                    className="rounded-md p-2 text-slate-300 hover:bg-slate-700 hover:text-white"
-                >
-                    <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path
-                            className={!mobileOpen ? 'inline-flex' : 'hidden'}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M4 6h16M4 12h16M4 18h16"
-                        />
-                        <path
-                            className={mobileOpen ? 'inline-flex' : 'hidden'}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                    </svg>
-                </button>
+                <div className="flex items-center gap-1">
+                    <ThemeToggle />
+                    <button
+                        onClick={() => setMobileOpen((previous) => !previous)}
+                        className="rounded-md p-2 text-slate-300 hover:bg-slate-700 hover:text-white"
+                    >
+                        <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path
+                                className={!mobileOpen ? 'inline-flex' : 'hidden'}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 6h16M4 12h16M4 18h16"
+                            />
+                            <path
+                                className={mobileOpen ? 'inline-flex' : 'hidden'}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
+                </div>
             </div>
             {mobileOpen && (
                 <div className="fixed inset-x-0 top-16 z-20 flex max-h-[calc(100vh-4rem)] flex-col overflow-y-auto bg-slate-800 md:hidden">
@@ -176,7 +183,7 @@ export default function Authenticated({
 
             <div className="flex flex-1 flex-col md:pl-64">
                 {header && (
-                    <header className="bg-white shadow">
+                    <header className="bg-white shadow dark:bg-gray-800 dark:shadow-none dark:ring-1 dark:ring-white/10">
                         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{header}</div>
                     </header>
                 )}

@@ -68,17 +68,17 @@ export default function PlatformUsers({ users }: { users: PlatformUser[] }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Administradores</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Administradores</h2>}>
             <Head title="Administradores" />
             {pageErrors?.user && (
                 <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-                    <p className="rounded bg-amber-50 p-4 text-amber-800">{pageErrors.user}</p>
+                    <p className="rounded bg-amber-50 p-4 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">{pageErrors.user}</p>
                 </div>
             )}
             <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-3 lg:px-8">
-                <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow lg:col-span-1">
-                    <h3 className="text-lg font-medium text-gray-900">{editingUser ? `Editar ${editingUser.name}` : 'Crear administrador'}</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow lg:col-span-1 dark:bg-gray-800">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{editingUser ? `Editar ${editingUser.name}` : 'Crear administrador'}</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         No pertenecen a ningún cliente. Úsalos para tener siempre acceso a la plataforma aunque se elimine un cliente.
                     </p>
 
@@ -109,32 +109,32 @@ export default function PlatformUsers({ users }: { users: PlatformUser[] }) {
 
                     <div className="mt-6 flex gap-3">
                         <PrimaryButton disabled={processing}>{editingUser ? 'Guardar cambios' : 'Crear administrador'}</PrimaryButton>
-                        {editingUser && <button type="button" onClick={cancelEditing} className="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900">Cancelar</button>}
+                        {editingUser && <button type="button" onClick={cancelEditing} className="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">Cancelar</button>}
                     </div>
                 </form>
 
-                <div className="overflow-hidden rounded-lg bg-white shadow lg:col-span-2">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                <div className="overflow-hidden rounded-lg bg-white shadow lg:col-span-2 dark:bg-gray-800">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Usuario</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Correo</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">Acciones</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Nombre</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Usuario</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Correo</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                             {users.length === 0 ? (
-                                <tr><td colSpan={4} className="px-6 py-4 text-sm text-gray-500">Aún no hay administradores sin cliente.</td></tr>
+                                <tr><td colSpan={4} className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Aún no hay administradores sin cliente.</td></tr>
                             ) : (
                                 users.map((user) => (
                                     <tr key={user.id}>
-                                        <td className="px-6 py-4 text-sm text-gray-900">{user.name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">{user.username}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">{user.email}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{user.name}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.username}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
                                         <td className="px-6 py-4 text-right">
-                                            <button type="button" onClick={() => startEditing(user)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">Editar</button>
-                                            <button type="button" onClick={() => deleteUser(user)} className="ms-4 text-sm font-medium text-red-600 hover:text-red-900">Eliminar</button>
+                                            <button type="button" onClick={() => startEditing(user)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
+                                            <button type="button" onClick={() => deleteUser(user)} className="ms-4 text-sm font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
                                         </td>
                                     </tr>
                                 ))

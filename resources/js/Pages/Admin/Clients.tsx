@@ -69,16 +69,16 @@ function StatTile({ label, value, href, progress }: { label: string; value: numb
     return (
         <Link
             href={href}
-            className="block rounded-md border border-gray-100 bg-gray-50 px-3 py-2 transition hover:border-indigo-200 hover:bg-indigo-50"
+            className="block rounded-md border border-gray-100 bg-gray-50 px-3 py-2 transition hover:border-indigo-200 hover:bg-indigo-50 dark:border-gray-700 dark:bg-gray-900/40 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10"
         >
-            <p className="text-xs text-gray-500">{label}</p>
-            <p className="text-lg font-semibold text-gray-900">{value.toLocaleString('es-CR')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{value.toLocaleString('es-CR')}</p>
             {pct !== null && (
                 <>
-                    <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                         <div className="h-1.5 rounded-full bg-indigo-600" style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="mt-0.5 text-xs text-gray-400">{progress!.synced} / {progress!.total}</p>
+                    <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{progress!.synced} / {progress!.total}</p>
                 </>
             )}
         </Link>
@@ -92,7 +92,7 @@ function SyncStatusBadge({ syncRun }: { syncRun: SyncRun | null }) {
 
     if (syncRun.status === 'started') {
         return (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
                 Sincronizando
             </span>
@@ -100,7 +100,7 @@ function SyncStatusBadge({ syncRun }: { syncRun: SyncRun | null }) {
     }
 
     return (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700" title={syncRun.message ?? undefined}>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-500/10 dark:text-red-400" title={syncRun.message ?? undefined}>
             Sync falló
         </span>
     );
@@ -298,11 +298,11 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Clientes</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Clientes</h2>}>
             <Head title="Clientes" />
             {pageErrors?.client && (
                 <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-                    <p className="rounded bg-amber-50 p-4 text-amber-800">{pageErrors.client}</p>
+                    <p className="rounded bg-amber-50 p-4 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">{pageErrors.client}</p>
                 </div>
             )}
             <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -311,26 +311,26 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                 </div>
 
                 {clients.length === 0 ? (
-                    <div className="rounded-lg bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+                    <div className="rounded-lg bg-white p-8 text-center text-sm text-gray-500 shadow-sm dark:bg-gray-800 dark:text-gray-400">
                         Aún no hay clientes.
                     </div>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {clients.map((client) => (
-                            <div key={client.id} className="flex flex-col overflow-hidden rounded-lg bg-white shadow-sm">
-                                <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                            <div key={client.id} className="flex flex-col overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                                <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700">
                                     <div className="min-w-0">
-                                        <h3 className="truncate font-semibold text-gray-900">{client.name}</h3>
-                                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                                        <h3 className="truncate font-semibold text-gray-900 dark:text-gray-100">{client.name}</h3>
+                                        <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
                                             {client.portaoneUsername} · entorno {client.portaoneEnvironment}
                                         </p>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-3">
                                         <SyncStatusBadge syncRun={client.syncRun} />
-                                        <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                                        <button type="button" onClick={() => startEditing(client)} className="text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                             Editar
                                         </button>
-                                        <button type="button" onClick={() => deleteClient(client)} className="text-sm font-medium text-red-600 hover:text-red-900">
+                                        <button type="button" onClick={() => deleteClient(client)} className="text-sm font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
                                             Eliminar
                                         </button>
                                     </div>
@@ -342,7 +342,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                             type="button"
                                             onClick={() => testConnection(client)}
                                             disabled={testResults[client.id]?.status === 'loading'}
-                                            className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                            className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50 dark:text-indigo-400 dark:hover:text-indigo-300"
                                         >
                                             {testResults[client.id]?.status === 'loading' ? 'Probando conexión...' : 'Probar conexión'}
                                         </button>
@@ -350,18 +350,18 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                             type="button"
                                             onClick={() => syncClient(client)}
                                             disabled={client.syncRun?.status === 'started'}
-                                            className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                            className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50 dark:text-indigo-400 dark:hover:text-indigo-300"
                                         >
                                             {client.syncRun?.status === 'started' ? 'Sincronizando...' : 'Sincronizar ahora'}
                                         </button>
                                     </div>
                                     {testResults[client.id] && testResults[client.id].status !== 'loading' && (
-                                        <p className={`text-xs ${testResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                        <p className={`text-xs ${testResults[client.id].status === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                             {testResults[client.id].message}
                                         </p>
                                     )}
                                     {client.syncRun?.status === 'failed' && (
-                                        <p className="text-xs text-red-600">Sync falló: {client.syncRun.message}</p>
+                                        <p className="text-xs text-red-600 dark:text-red-400">Sync falló: {client.syncRun.message}</p>
                                     )}
 
                                     <div className="grid grid-cols-2 gap-2.5">
@@ -388,7 +388,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
 
                                     <div className="space-y-1.5">
                                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                                            <span className={`rounded-full px-2 py-0.5 ${client.telegramChatId ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                                            <span className={`rounded-full px-2 py-0.5 ${client.telegramChatId ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'}`}>
                                                 Telegram {client.telegramChatId ? 'activo' : 'sin configurar'}
                                             </span>
                                             {client.telegramChatId && (
@@ -396,12 +396,12 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                                     type="button"
                                                     onClick={() => testTelegram(client)}
                                                     disabled={telegramTestResults[client.id]?.status === 'loading'}
-                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50 dark:text-indigo-400 dark:hover:text-indigo-300"
                                                 >
                                                     {telegramTestResults[client.id]?.status === 'loading' ? 'Enviando...' : 'Probar'}
                                                 </button>
                                             )}
-                                            <span className={`rounded-full px-2 py-0.5 ${client.notificationEmail ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                                            <span className={`rounded-full px-2 py-0.5 ${client.notificationEmail ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'}`}>
                                                 Correo {client.notificationEmail ? 'activo' : 'sin configurar'}
                                             </span>
                                             {client.notificationEmail && (
@@ -409,46 +409,46 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                                     type="button"
                                                     onClick={() => testEmail(client)}
                                                     disabled={emailTestResults[client.id]?.status === 'loading'}
-                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                                    className="font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50 dark:text-indigo-400 dark:hover:text-indigo-300"
                                                 >
                                                     {emailTestResults[client.id]?.status === 'loading' ? 'Enviando...' : 'Probar'}
                                                 </button>
                                             )}
                                         </div>
                                         {telegramTestResults[client.id] && telegramTestResults[client.id].status !== 'loading' && (
-                                            <p className={`text-xs ${telegramTestResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                            <p className={`text-xs ${telegramTestResults[client.id].status === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 Telegram: {telegramTestResults[client.id].message}
                                             </p>
                                         )}
                                         {emailTestResults[client.id] && emailTestResults[client.id].status !== 'loading' && (
-                                            <p className={`text-xs ${emailTestResults[client.id].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                            <p className={`text-xs ${emailTestResults[client.id].status === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 Correo: {emailTestResults[client.id].message}
                                             </p>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
+                                <div className="border-t border-gray-100 bg-gray-50 px-5 py-3 dark:border-gray-700 dark:bg-gray-900/40">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                             Usuarios ({client.usersCount})
                                         </span>
                                         <button
                                             type="button"
                                             onClick={() => openUserModal(client)}
-                                            className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
+                                            className="text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                                         >
                                             + Agregar usuario
                                         </button>
                                     </div>
                                     {client.users.length === 0 ? (
-                                        <p className="mt-1.5 text-xs text-gray-400">Sin usuarios todavía.</p>
+                                        <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">Sin usuarios todavía.</p>
                                     ) : (
                                         <ul className="mt-1.5 space-y-1">
                                             {client.users.map((user) => (
-                                                <li key={user.id} className="flex items-center justify-between text-xs text-gray-600">
-                                                    <span className="truncate">{user.name} <span className="text-gray-400">({user.username})</span></span>
-                                                    <span className="ml-2 shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-gray-600">
+                                                <li key={user.id} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+                                                    <span className="truncate">{user.name} <span className="text-gray-400 dark:text-gray-500">({user.username})</span></span>
+                                                    <span className="ml-2 shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                                                         {user.role === 'client_admin' ? 'Admin' : 'Usuario'}
                                                     </span>
                                                 </li>
@@ -465,10 +465,10 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
             <Modal show={modalOpen} onClose={closeModal} maxWidth="md">
                 <form onSubmit={submit} className="p-6">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium text-gray-900">
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                             {editingClient ? `Editar ${editingClient.name}` : `Crear cliente — ${STEP_TITLES[step - 1]}`}
                         </h3>
-                        {isWizard && <span className="text-sm text-gray-400">Paso {step} de 2</span>}
+                        {isWizard && <span className="text-sm text-gray-400 dark:text-gray-500">Paso {step} de 2</span>}
                     </div>
 
                     {(step === 1 || !isWizard) && (
@@ -493,8 +493,8 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                 <TextInput id="portaone_token" type="password" value={data.portaone_token} className="mt-1 block w-full" onChange={(event) => setData('portaone_token', event.target.value)} required={!editingClient} />
                                 <InputError message={errors.portaone_token} className="mt-2" />
                             </div>
-                            <div className="border-t border-gray-100 pt-4">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Notificaciones de alertas</p>
+                            <div className="border-t border-gray-100 pt-4 dark:border-gray-700">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Notificaciones de alertas</p>
                                 <div className="mt-2 space-y-4">
                                     <div>
                                         <InputLabel htmlFor="telegram_chat_id" value="Chat ID de Telegram" />
@@ -503,16 +503,16 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                     </div>
 
                                     <div>
-                                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                                        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                             <input
                                                 type="checkbox"
                                                 checked={data.use_custom_telegram_bot}
                                                 onChange={(event) => setData('use_custom_telegram_bot', event.target.checked)}
-                                                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
                                             />
                                             Usar un bot de Telegram propio para este cliente
                                         </label>
-                                        <p className="mt-1 text-xs text-gray-400">
+                                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                                             Si no se activa, se usa el bot configurado en Configuraciones/Telegram.
                                         </p>
                                         {data.use_custom_telegram_bot && (
@@ -591,7 +591,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
 
             <Modal show={userModalClient !== null} onClose={closeUserModal} maxWidth="md">
                 <form onSubmit={submitUser} className="p-6">
-                    <h3 className="text-lg font-medium text-gray-900">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                         Agregar usuario a {userModalClient?.name}
                     </h3>
                     <div className="mt-4 space-y-4">
@@ -616,7 +616,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                 id="user_role"
                                 value={userForm.data.role}
                                 onChange={(event) => userForm.setData('role', event.target.value as 'client_admin' | 'client_user')}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             >
                                 <option value="client_admin">Administrador del cliente</option>
                                 <option value="client_user">Usuario</option>

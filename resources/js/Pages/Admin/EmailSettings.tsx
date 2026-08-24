@@ -33,12 +33,12 @@ export default function EmailSettings({ smtpHost, smtpPort, smtpUsername, smtpEn
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Correo electrónico</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Correo electrónico</h2>}>
             <Head title="Correo electrónico" />
             <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-                <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow">
-                    <h3 className="text-lg font-medium text-gray-900">Servidor SMTP</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Servidor SMTP</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Configuración de envío usada para las alertas por correo. Cada cliente configura su propio
                         correo destino en la pantalla de Clientes.
                     </p>
@@ -60,7 +60,7 @@ export default function EmailSettings({ smtpHost, smtpPort, smtpUsername, smtpEn
                                 id="smtp_encryption"
                                 value={data.smtp_encryption}
                                 onChange={(event) => setData('smtp_encryption', event.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             >
                                 <option value="tls">TLS</option>
                                 <option value="ssl">SSL</option>

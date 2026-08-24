@@ -2,7 +2,7 @@ import { billStatusBadgeClass, billStatusLabel } from '@/utils/billStatus';
 
 export default function BillStatusBadge({ status }: { status: string | null }) {
     if (!status) {
-        return <span className="text-gray-400">—</span>;
+        return <span className="text-gray-400 dark:text-gray-500">—</span>;
     }
 
     return (

@@ -193,7 +193,7 @@ export default function DestinationsIndex({
     const groups = buildGroups(destinations);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Destinos</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Destinos</h2>}>
             <Head title="Destinos" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -202,7 +202,7 @@ export default function DestinationsIndex({
                             <select
                                 value={selectedClientId ?? ''}
                                 onChange={(event) => changeClient(event.target.value)}
-                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             >
                                 <option value="all">Todos</option>
                                 {clients.map((option) => (
@@ -228,16 +228,16 @@ export default function DestinationsIndex({
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
                                 placeholder="Buscar destino..."
-                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             />
-                            <button type="submit" className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-gray-50">
+                            <button type="submit" className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700">
                                 Buscar
                             </button>
                         </form>
                         <select
                             value={period}
                             onChange={(event) => changePeriod(event.target.value)}
-                            className="ml-auto rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="ml-auto rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         >
                             {Object.entries(PERIOD_LABELS).map(([value, label]) => (
                                 <option key={value} value={value}>{label}</option>
@@ -246,21 +246,21 @@ export default function DestinationsIndex({
                     </div>
 
                     {truncated && (
-                        <div className="mb-4 rounded-md bg-amber-50 px-4 py-2 text-sm text-amber-800">
+                        <div className="mb-4 rounded-md bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
                             Hay más destinos de los que se muestran (límite de 5000 filas). Usa los filtros o un periodo más corto para acotar el resultado.
                         </div>
                     )}
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <div className="divide-y divide-gray-200">
+                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
                             {groups.length === 0 ? (
-                                <p className="px-6 py-4 text-sm text-gray-500">Aún no hay llamadas registradas para este período.</p>
+                                <p className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Aún no hay llamadas registradas para este período.</p>
                             ) : groups.map((client, clientIndex) => (
                                 <div key={clientIndex}>
                                     {showingAll && (
-                                        <div className="bg-slate-100 px-6 py-2 text-xs font-semibold uppercase text-gray-600">
+                                        <div className="bg-slate-100 px-6 py-2 text-xs font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                                             {client.clientName ?? 'Sin cliente'}
-                                            <span className="ml-2 font-normal normal-case text-gray-400">({client.calls} llamadas)</span>
+                                            <span className="ml-2 font-normal normal-case text-gray-400 dark:text-gray-500">({client.calls} llamadas)</span>
                                         </div>
                                     )}
                                     {client.prefixes.map((prefix, prefixIndex) => {
@@ -271,12 +271,12 @@ export default function DestinationsIndex({
                                             <div key={prefixIndex}>
                                                 <button
                                                     onClick={() => togglePrefix(prefixKey)}
-                                                    className="flex w-full items-center gap-2 bg-slate-50 px-6 py-2.5 text-left text-sm font-semibold text-gray-800 hover:bg-slate-100"
+                                                    className="flex w-full items-center gap-2 bg-slate-50 px-6 py-2.5 text-left text-sm font-semibold text-gray-800 hover:bg-slate-100 dark:bg-gray-700/40 dark:text-gray-100 dark:hover:bg-gray-700"
                                                 >
                                                     <span className={`inline-block transition-transform ${isPrefixOpen ? '' : '-rotate-90'}`}>▼</span>
-                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 font-mono text-xs">+{prefix.prefix ?? '—'}</span>
-                                                    <span className="ml-2 font-normal text-gray-600">{prefix.calls} llamadas · {prefix.seconds}s</span>
-                                                    <span className="ml-auto font-normal text-gray-400">{prefix.destinations.length} destino(s)</span>
+                                                    <span className="rounded bg-gray-200 px-1.5 py-0.5 font-mono text-xs dark:bg-gray-600 dark:text-gray-100">+{prefix.prefix ?? '—'}</span>
+                                                    <span className="ml-2 font-normal text-gray-600 dark:text-gray-300">{prefix.calls} llamadas · {prefix.seconds}s</span>
+                                                    <span className="ml-auto font-normal text-gray-400 dark:text-gray-500">{prefix.destinations.length} destino(s)</span>
                                                 </button>
                                                 {isPrefixOpen && prefix.destinations.map((dest, destIndex) => {
                                                     const destKey = `${prefixKey}-${destIndex}`;
@@ -286,12 +286,12 @@ export default function DestinationsIndex({
                                                         <div key={destIndex}>
                                                             <button
                                                                 onClick={() => toggleDestination(destKey)}
-                                                                className="flex w-full items-center gap-2 bg-blue-50 px-10 py-2.5 text-left text-sm font-semibold text-gray-800 hover:bg-blue-100"
+                                                                className="flex w-full items-center gap-2 bg-blue-50 px-10 py-2.5 text-left text-sm font-semibold text-gray-800 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-gray-100 dark:hover:bg-blue-900/30"
                                                             >
                                                                 <span className={`inline-block transition-transform ${isDestOpen ? '' : '-rotate-90'}`}>▼</span>
                                                                 <span className="font-mono">{dest.destination ?? '—'}</span>
-                                                                <span className="ml-2 font-normal text-gray-600">{dest.calls} llamadas · {dest.seconds}s</span>
-                                                                <span className="ml-auto font-normal text-gray-400">{dest.customers.length} customer(s)</span>
+                                                                <span className="ml-2 font-normal text-gray-600 dark:text-gray-300">{dest.calls} llamadas · {dest.seconds}s</span>
+                                                                <span className="ml-auto font-normal text-gray-400 dark:text-gray-500">{dest.customers.length} customer(s)</span>
                                                             </button>
                                                             {isDestOpen && dest.customers.map((cust, custIndex) => {
                                                                 const custKey = `${destKey}-${custIndex}`;
@@ -301,22 +301,22 @@ export default function DestinationsIndex({
                                                                     <div key={custIndex}>
                                                                         <button
                                                                             onClick={() => toggleCustomer(custKey)}
-                                                                            className="flex w-full items-center gap-2 border-l-4 border-indigo-400 bg-indigo-50 px-14 py-2 text-left text-sm font-medium text-gray-700 hover:bg-indigo-100"
+                                                                            className="flex w-full items-center gap-2 border-l-4 border-indigo-400 bg-indigo-50 px-14 py-2 text-left text-sm font-medium text-gray-700 hover:bg-indigo-100 dark:border-indigo-500 dark:bg-indigo-900/20 dark:text-gray-300 dark:hover:bg-indigo-900/30"
                                                                         >
                                                                             <span className={`inline-block text-xs transition-transform ${isCustOpen ? '' : '-rotate-90'}`}>▼</span>
                                                                             {cust.customer ?? '—'}
-                                                                            <span className="ml-2 text-xs font-normal text-gray-500">{cust.calls} llamadas · {cust.seconds}s</span>
+                                                                            <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">{cust.calls} llamadas · {cust.seconds}s</span>
                                                                         </button>
                                                                         {isCustOpen && (
                                                                             <table className="min-w-full text-sm">
-                                                                                <thead className="bg-gray-50 text-left text-xs uppercase text-gray-400">
+                                                                                <thead className="bg-gray-50 text-left text-xs uppercase text-gray-400 dark:bg-gray-900/40 dark:text-gray-500">
                                                                                     <tr>
                                                                                         <th className="px-20 py-1.5">Account</th>
                                                                                         <th className="px-4 py-1.5 text-right">Llamadas</th>
                                                                                         <th className="px-4 py-1.5 text-right">Segundos</th>
                                                                                     </tr>
                                                                                 </thead>
-                                                                                <tbody className="divide-y divide-gray-100">
+                                                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
                                                                                     {cust.accounts.map((acc, accIndex) => (
                                                                                         <tr key={accIndex}>
                                                                                             <td className="px-20 py-1.5 font-mono">{acc.account ?? '—'}</td>

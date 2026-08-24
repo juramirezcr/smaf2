@@ -15,12 +15,12 @@ export default function Portaone({ baseUrl }: { baseUrl: string | null }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">PortaOne</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">PortaOne</h2>}>
             <Head title="PortaOne" />
             <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-                <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow">
-                    <h3 className="text-lg font-medium text-gray-900">Conexión SOAP</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                <form onSubmit={submit} className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Conexión SOAP</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Dirección raíz del servidor PortaOne (sin rutas adicionales), compartida por todos los
                         clientes. Los WSDL se leen de <code>/wsdl/</code> bajo esta URL. El usuario API, la clave
                         API y la partición (entorno) de cada cliente se configuran en la pantalla de Clientes.

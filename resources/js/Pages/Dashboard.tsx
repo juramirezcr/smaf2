@@ -89,7 +89,7 @@ function DonutChart({ items }: { items: { label: string; value: number }[] }) {
     return (
         <div className="flex items-center gap-6 p-4">
             <div className="relative h-32 w-32 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops})` }}>
-                <div className="absolute inset-3 flex items-center justify-center rounded-full bg-white text-xs font-semibold text-gray-500">
+                <div className="absolute inset-3 flex items-center justify-center rounded-full bg-white text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-300">
                     {total}
                 </div>
             </div>
@@ -97,9 +97,9 @@ function DonutChart({ items }: { items: { label: string; value: number }[] }) {
                 {items.map((item, index) => (
                     <li key={index} className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: DONUT_COLORS[index % DONUT_COLORS.length] }} />
-                        <span className="truncate text-gray-700">{item.label}</span>
-                        <span className="ml-auto shrink-0 font-medium text-gray-900">{item.value}</span>
-                        <span className="w-10 shrink-0 text-right text-gray-400">{Math.round((item.value / total) * 100)}%</span>
+                        <span className="truncate text-gray-700 dark:text-gray-300">{item.label}</span>
+                        <span className="ml-auto shrink-0 font-medium text-gray-900 dark:text-gray-100">{item.value}</span>
+                        <span className="w-10 shrink-0 text-right text-gray-400 dark:text-gray-500">{Math.round((item.value / total) * 100)}%</span>
                     </li>
                 ))}
             </ul>
@@ -109,7 +109,7 @@ function DonutChart({ items }: { items: { label: string; value: number }[] }) {
 
 function Card({ color, title, icon, href, children }: { color: string; title: string; icon: string; href: string; children: React.ReactNode }) {
     return (
-        <Link href={href} className="block overflow-hidden rounded-lg bg-white shadow-sm">
+        <Link href={href} className="block overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
             <div className={`flex items-center justify-center gap-2 px-4 py-3 text-white ${color}`}>
                 <span className="text-lg">{icon}</span>
                 <span className="font-semibold">{title}</span>
@@ -176,9 +176,9 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
         <div className="flex items-center justify-between gap-2">
             <Link
                 href={route('alerts.index')}
-                className="flex items-center gap-4 rounded-md px-3 py-1.5 text-sm hover:bg-gray-50"
+                className="flex items-center gap-4 rounded-md px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-                <span className="font-semibold text-gray-700">Alertas (24h):</span>
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Alertas (24h):</span>
                 <span title="Bloqueadas">🚫 {alertCounts.block ?? 0}</span>
                 <span title="Notificadas">🔔 {alertCounts.notify ?? 0}</span>
                 <span title="Ignoradas">➖ {alertCounts.ignore ?? 0}</span>
@@ -187,7 +187,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
             <select
                 value={autoRefreshInterval}
                 onChange={(event) => setAutoRefreshInterval(Number(event.target.value))}
-                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
                 {AUTO_REFRESH_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -196,7 +196,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
             <select
                 value={period}
                 onChange={(event) => handlePeriodChange(event.target.value)}
-                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
                 {Object.entries(periodLabels).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -216,7 +216,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
                             <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-100 text-xs uppercase text-gray-500">
+                                <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                     <tr>
                                         <th className="px-4 py-2 text-left">Prefijo</th>
                                         <th className="px-4 py-2 text-right">Llamadas</th>
@@ -224,14 +224,14 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                         <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
                                     {prefixStats.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
+                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
                                     ) : prefixStats.map((group, groupIndex) => (
                                         <Fragment key={groupIndex}>
                                             {group.clientName && (
-                                                <tr className="bg-gray-50">
-                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
+                                                <tr className="bg-gray-50 dark:bg-gray-900/40">
+                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
                                                 </tr>
                                             )}
                                             {group.items.map((item, itemIndex) => (
@@ -257,14 +257,14 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                         >
                             {isAdmin ? (
                                 clientPrefixDonuts.length === 0 ? (
-                                    <p className="p-6 text-sm text-gray-500">Sin llamadas en este período.</p>
+                                    <p className="p-6 text-sm text-gray-500 dark:text-gray-400">Sin llamadas en este período.</p>
                                 ) : (
-                                    <div className="divide-y">
+                                    <div className="divide-y dark:divide-gray-700">
                                         {clientPrefixDonuts.map((client, index) => (
                                             <div key={index} className="px-4 py-3">
-                                                <p className="mb-1 text-xs font-semibold uppercase text-gray-500">{client.clientName}</p>
+                                                <p className="mb-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{client.clientName}</p>
                                                 {client.data.length === 0 ? (
-                                                    <p className="text-sm text-gray-400">Sin llamadas en este período.</p>
+                                                    <p className="text-sm text-gray-400 dark:text-gray-500">Sin llamadas en este período.</p>
                                                 ) : (
                                                     <DonutChart items={client.data} />
                                                 )}
@@ -273,24 +273,24 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                     </div>
                                 )
                             ) : prefixDonutData.length === 0 ? (
-                                <p className="p-6 text-sm text-gray-500">Sin llamadas en este período.</p>
+                                <p className="p-6 text-sm text-gray-500 dark:text-gray-400">Sin llamadas en este período.</p>
                             ) : (
                                 <>
                                     <DonutChart items={prefixDonutData} />
-                                    <div className="space-y-3 border-t px-4 py-3">
-                                        <p className="text-xs font-semibold uppercase text-gray-500">Customers por prefijo</p>
+                                    <div className="space-y-3 border-t px-4 py-3 dark:border-gray-700">
+                                        <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Customers por prefijo</p>
                                         {topPrefixItems.map((item, index) => {
                                             const customers = item.label ? prefixCustomerStats[item.label] ?? [] : [];
 
                                             return (
                                                 <div key={index} className="text-xs">
-                                                    <p className="font-mono font-semibold text-gray-700">{item.label ?? '—'}</p>
+                                                    <p className="font-mono font-semibold text-gray-700 dark:text-gray-300">{item.label ?? '—'}</p>
                                                     {customers.length === 0 ? (
-                                                        <p className="text-gray-400">Sin datos de customer.</p>
+                                                        <p className="text-gray-400 dark:text-gray-500">Sin datos de customer.</p>
                                                     ) : (
                                                         <ul className="ml-2 space-y-0.5">
                                                             {customers.map((c, cIndex) => (
-                                                                <li key={cIndex} className="flex justify-between text-gray-600">
+                                                                <li key={cIndex} className="flex justify-between text-gray-600 dark:text-gray-300">
                                                                     <span className="truncate">{c.customer ?? '—'}</span>
                                                                     <span className="ml-2 shrink-0 font-medium">{c.calls}</span>
                                                                 </li>
@@ -309,7 +309,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                     <div className="grid gap-4 md:grid-cols-2">
                         <Card color="bg-pink-700" title="Destinos (Top 10)" icon="📞" href={route('destinations.index')}>
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-100 text-xs uppercase text-gray-500">
+                                <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                     <tr>
                                         <th className="px-4 py-2 text-left">Prefijo</th>
                                         <th className="px-4 py-2 text-left">Destino</th>
@@ -317,14 +317,14 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                         <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
                                     {destinationStats.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
+                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
                                     ) : destinationStats.map((group, groupIndex) => (
                                         <Fragment key={groupIndex}>
                                             {group.clientName && (
-                                                <tr className="bg-gray-50">
-                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
+                                                <tr className="bg-gray-50 dark:bg-gray-900/40">
+                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
                                                 </tr>
                                             )}
                                             {group.items.map((item, itemIndex) => (
@@ -343,7 +343,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
 
                         <Card color="bg-purple-700" title="Cuentas" icon="👥" href={route('accounts.index')}>
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-100 text-xs uppercase text-gray-500">
+                                <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                                     <tr>
                                         {isAdmin && <th className="px-4 py-2 text-left">Customer</th>}
                                         <th className="px-4 py-2 text-left">Cuenta</th>
@@ -352,14 +352,14 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                         <th className="px-4 py-2 text-right">Histórico</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
                                     {accountStats.length === 0 ? (
-                                        <tr><td colSpan={isAdmin ? 5 : 4} className="px-4 py-3 text-gray-500">Sin llamadas en este período.</td></tr>
+                                        <tr><td colSpan={isAdmin ? 5 : 4} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
                                     ) : accountStats.map((group, groupIndex) => (
                                         <Fragment key={groupIndex}>
                                             {group.clientName && (
-                                                <tr className="bg-gray-50">
-                                                    <td colSpan={isAdmin ? 5 : 4} className="px-4 py-1.5 text-xs font-semibold text-gray-600">{group.clientName}</td>
+                                                <tr className="bg-gray-50 dark:bg-gray-900/40">
+                                                    <td colSpan={isAdmin ? 5 : 4} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
                                                 </tr>
                                             )}
                                             {group.items.map((item, itemIndex) => (

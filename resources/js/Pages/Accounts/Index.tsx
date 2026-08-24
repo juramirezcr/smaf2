@@ -50,7 +50,7 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Cuentas</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Cuentas</h2>}>
             <Head title="Cuentas" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
@@ -59,7 +59,7 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
                             <select
                                 value={selectedClientId ?? ''}
                                 onChange={(event) => changeClient(event.target.value)}
-                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                             >
                                 <option value="all">Todos</option>
                                 {clients.map((option) => (
@@ -77,9 +77,9 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
                         </form>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead className="bg-gray-50 text-left text-gray-500">
+                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                            <thead className="bg-gray-50 text-left text-gray-500 dark:bg-gray-900/40 dark:text-gray-400">
                                 <tr>
                                     <th className="px-6 py-3">Cliente (interno del sistema)</th>
                                     <th className="px-6 py-3">Customer</th>
@@ -88,19 +88,19 @@ export default function AccountsIndex({ client, search, clients, selectedClientI
                                     <th className="px-6 py-3">Estado</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {accounts.data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-4 text-gray-500">
+                                        <td colSpan={5} className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                             Este cliente aún no tiene accounts de telefonía sincronizadas.
                                         </td>
                                     </tr>
                                 ) : accounts.data.map((row) => (
-                                    <tr key={row.id}>
-                                        <td className="px-6 py-4">{(showingAll ? row.client_name : client) ?? '—'}</td>
-                                        <td className="px-6 py-4">{row.customer_name ?? '—'}</td>
-                                        <td className="px-6 py-4">{row.account_id ?? '—'}</td>
-                                        <td className="px-6 py-4">{row.product_name ?? '—'}</td>
+                                    <tr key={row.id} className="dark:hover:bg-gray-700">
+                                        <td className="px-6 py-4 dark:text-gray-300">{(showingAll ? row.client_name : client) ?? '—'}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{row.customer_name ?? '—'}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{row.account_id ?? '—'}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{row.product_name ?? '—'}</td>
                                         <td className="px-6 py-4"><BillStatusBadge status={row.bill_status} /></td>
                                     </tr>
                                 ))}

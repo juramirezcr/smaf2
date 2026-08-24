@@ -32,8 +32,8 @@ export default function Register() {
             <Head title="Registrar cliente" />
 
             <form onSubmit={submit}>
-                <h2 className="text-xl font-semibold text-gray-900">Registrar cliente</h2>
-                <p className="mt-1 text-sm text-gray-600">Crea el cliente y su primer administrador.</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Registrar cliente</h2>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Crea el cliente y su primer administrador.</p>
                 <div className="mt-6">
                     <InputLabel htmlFor="client_name" value="Nombre del cliente" />
                     <TextInput id="client_name" value={data.client_name} className="mt-1 block w-full" onChange={(e) => setData('client_name', e.target.value)} required />
@@ -139,7 +139,7 @@ export default function Register() {
                 <div className="mt-4 flex items-center justify-end">
                     <Link
                         href={route('login')}
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-300 dark:hover:text-gray-100"
                     >
                         ¿Ya tienes una cuenta?
                     </Link>

@@ -38,18 +38,18 @@ export default function PortaoneProducts({ client, products }: { client: { id: n
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Productos PortaOne — {client.name}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Productos PortaOne — {client.name}</h2>}>
             <Head title={`Productos — ${client.name}`} />
             <div className="py-8">
                 <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
                     {pageErrors?.products && (
-                        <p className="mb-4 rounded bg-amber-50 p-4 text-amber-800">{pageErrors.products}</p>
+                        <p className="mb-4 rounded bg-amber-50 p-4 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">{pageErrors.products}</p>
                     )}
-                    <form onSubmit={save} className="rounded-lg bg-white p-6 shadow-sm">
+                    <form onSubmit={save} className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="font-semibold text-gray-900">Marca los productos de telefonía (voz/VoIP)</h3>
-                                <p className="mt-1 text-sm text-gray-500">
+                                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Marca los productos de telefonía (voz/VoIP)</h3>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                     Solo las accounts de los productos marcados se sincronizan como cuentas de servicio.
                                 </p>
                             </div>
@@ -57,18 +57,18 @@ export default function PortaoneProducts({ client, products }: { client: { id: n
                                 type="button"
                                 onClick={refresh}
                                 disabled={refreshing}
-                                className="shrink-0 rounded-md border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                className="shrink-0 rounded-md border px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                             >
                                 {refreshing ? 'Actualizando...' : 'Actualizar desde PortaOne'}
                             </button>
                         </div>
 
                         {products.length === 0 ? (
-                            <p className="mt-6 text-gray-600">
+                            <p className="mt-6 text-gray-600 dark:text-gray-300">
                                 Aún no hay productos. Haz clic en "Actualizar desde PortaOne" para traerlos.
                             </p>
                         ) : (
-                            <ul className="mt-6 divide-y divide-gray-200">
+                            <ul className="mt-6 divide-y divide-gray-200 dark:divide-gray-700">
                                 {products.map((product) => (
                                     <li key={product.id} className="flex items-center gap-3 py-3">
                                         <input
@@ -76,13 +76,13 @@ export default function PortaoneProducts({ client, products }: { client: { id: n
                                             id={`product-${product.id}`}
                                             checked={selected.has(product.id)}
                                             onChange={() => toggle(product.id)}
-                                            className="rounded border-gray-300"
+                                            className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                                         />
                                         <label htmlFor={`product-${product.id}`} className="flex-1">
-                                            <span className="font-medium text-gray-900">{product.name}</span>
-                                            {product.end_user_name && <span className="ms-2 text-sm text-gray-500">({product.end_user_name})</span>}
+                                            <span className="font-medium text-gray-900 dark:text-gray-100">{product.name}</span>
+                                            {product.end_user_name && <span className="ms-2 text-sm text-gray-500 dark:text-gray-400">({product.end_user_name})</span>}
                                         </label>
-                                        <span className="text-xs text-gray-400">#{product.i_product}</span>
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">#{product.i_product}</span>
                                     </li>
                                 ))}
                             </ul>
