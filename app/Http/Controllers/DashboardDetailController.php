@@ -136,8 +136,8 @@ class DashboardDetailController extends Controller
             ->where('scope', 'prefix')
             ->where('client_id', $clientId)
             ->where('match_value', $prefix)
-            ->whereNull('account')
-            ->whereNull('customer')
+            ->where(fn ($query) => $query->whereNull('account')->orWhere('account', ''))
+            ->where(fn ($query) => $query->whereNull('customer')->orWhere('customer', ''))
             ->first();
     }
 
@@ -147,8 +147,8 @@ class DashboardDetailController extends Controller
             ->where('scope', 'prefix')
             ->whereNull('client_id')
             ->where('match_value', $prefix)
-            ->whereNull('account')
-            ->whereNull('customer')
+            ->where(fn ($query) => $query->whereNull('account')->orWhere('account', ''))
+            ->where(fn ($query) => $query->whereNull('customer')->orWhere('customer', ''))
             ->first();
     }
 
