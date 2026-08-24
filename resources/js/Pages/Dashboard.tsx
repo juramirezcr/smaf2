@@ -177,7 +177,7 @@ interface PrefixRuleData {
 
 function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; prefix: string; onClose: () => void }) {
     const [tab, setTab] = useState<'history' | 'config'>('history');
-    const [period, setPeriod] = useState('7d');
+    const [period, setPeriod] = useState('1h');
     const [buckets, setBuckets] = useState<HistoryBucket[] | null>(null);
     const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -351,7 +351,7 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
 
 function AccountDetailModal({ clientId, customer, account, onClose }: { clientId: number; customer: string | null; account: string; onClose: () => void }) {
     const [tab, setTab] = useState<'info' | 'history'>('info');
-    const [period, setPeriod] = useState('7d');
+    const [period, setPeriod] = useState('1h');
     const [buckets, setBuckets] = useState<HistoryBucket[] | null>(null);
     const [loadingHistory, setLoadingHistory] = useState(false);
 
