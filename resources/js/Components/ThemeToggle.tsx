@@ -10,12 +10,12 @@ export default function ThemeToggle({ className = '' }: { className?: string }) 
             title={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
             aria-label={theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
             className={
-                'inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-700 hover:text-white dark:text-gray-300 dark:hover:bg-gray-700 ' +
+                'inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white ' +
                 className
             }
         >
             {theme === 'dark' ? (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                     <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -23,7 +23,7 @@ export default function ThemeToggle({ className = '' }: { className?: string }) 
                     />
                 </svg>
             ) : (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                     <path
                         strokeLinecap="round"
                         strokeLinejoin="round"

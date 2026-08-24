@@ -4,7 +4,7 @@ import { PropsWithChildren, ReactNode, useState } from 'react';
 
 function Icon({ path }: { path: string }) {
     return (
-        <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d={path} />
         </svg>
     );
@@ -70,12 +70,12 @@ export default function Authenticated({
         <>
             <div className="flex h-16 shrink-0 items-center justify-between px-4">
                 <div>
-                    <p className="text-lg font-bold text-white">SMAF 2</p>
-                    {user.clientName && <p className="text-xs text-slate-400">{user.clientName}</p>}
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">SMAF 2</p>
+                    {user.clientName && <p className="text-xs text-gray-500 dark:text-slate-400">{user.clientName}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                     <ThemeToggle />
-                    <Link href={route('logout')} method="post" as="button" className="flex items-center gap-1 text-xs text-slate-300 hover:text-white">
+                    <Link href={route('logout')} method="post" as="button" className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
                         <Icon path={ICONS.logout} />
                         Salir
                     </Link>
@@ -87,7 +87,9 @@ export default function Authenticated({
                         key={item.name}
                         href={item.href}
                         className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                            item.active ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                            item.active
+                                ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
+                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
                         }`}
                     >
                         <Icon path={ICONS[item.icon]} />
@@ -101,14 +103,16 @@ export default function Authenticated({
                             type="button"
                             onClick={() => setConfigOpen((previous) => !previous)}
                             className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                                configActive ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                                configActive
+                                    ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
+                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
                             }`}
                         >
                             <span className="flex items-center gap-3">
                                 <Icon path={ICONS.cog} />
                                 Configuraciones
                             </span>
-                            <svg className={`h-4 w-4 transition-transform ${configOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <svg className={`h-5 w-5 transition-transform ${configOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.chevron} />
                             </svg>
                         </button>
@@ -119,7 +123,9 @@ export default function Authenticated({
                                         key={item.name}
                                         href={item.href}
                                         className={`block rounded-md px-3 py-2 text-sm transition ${
-                                            item.active ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                                            item.active
+                                                ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
+                                                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white'
                                         }`}
                                     >
                                         {item.name}
@@ -130,10 +136,10 @@ export default function Authenticated({
                     </div>
                 )}
             </nav>
-            <div className="border-t border-slate-700 px-4 py-4">
-                <p className="truncate text-sm font-medium text-white">{user.name}</p>
-                <p className="truncate text-xs text-slate-400">{user.email}</p>
-                <Link href={route('profile.edit')} className="mt-2 inline-block text-xs text-slate-300 underline hover:text-white">
+            <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
+                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+                <p className="truncate text-xs text-gray-500 dark:text-slate-400">{user.email}</p>
+                <Link href={route('profile.edit')} className="mt-2 inline-block text-xs text-gray-500 underline hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
                     Perfil
                 </Link>
             </div>
@@ -144,19 +150,19 @@ export default function Authenticated({
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
             {/* Sidebar de escritorio */}
             <div className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
-                <div className="flex min-h-0 flex-1 flex-col bg-slate-800">{sidebarContent}</div>
+                <div className="flex min-h-0 flex-1 flex-col border-r border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800">{sidebarContent}</div>
             </div>
 
             {/* Barra superior + menú deslizable en móvil */}
-            <div className="sticky top-0 z-20 flex h-16 items-center justify-between bg-slate-800 px-4 md:hidden">
-                <p className="text-lg font-bold text-white">SMAF 2</p>
+            <div className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-slate-700 dark:bg-slate-800 md:hidden">
+                <p className="text-lg font-bold text-gray-900 dark:text-white">SMAF 2</p>
                 <div className="flex items-center gap-1">
                     <ThemeToggle />
                     <button
                         onClick={() => setMobileOpen((previous) => !previous)}
-                        className="rounded-md p-2 text-slate-300 hover:bg-slate-700 hover:text-white"
+                        className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                     >
-                        <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                        <svg className="h-7 w-7" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                             <path
                                 className={!mobileOpen ? 'inline-flex' : 'hidden'}
                                 strokeLinecap="round"
@@ -176,7 +182,7 @@ export default function Authenticated({
                 </div>
             </div>
             {mobileOpen && (
-                <div className="fixed inset-x-0 top-16 z-20 flex max-h-[calc(100vh-4rem)] flex-col overflow-y-auto bg-slate-800 md:hidden">
+                <div className="fixed inset-x-0 top-16 z-20 flex max-h-[calc(100vh-4rem)] flex-col overflow-y-auto border-b border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800 md:hidden">
                     {sidebarContent}
                 </div>
             )}
