@@ -39,7 +39,7 @@ export default function Authenticated({
 
     const canSeeConfig = user.isSystemAdmin || user.role === 'client_admin';
     const configActive = Boolean(
-        route().current('admin.releases') || route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.status.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
+        route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.status.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
     );
     const [configOpen, setConfigOpen] = useState<boolean>(configActive);
 
@@ -55,7 +55,6 @@ export default function Authenticated({
     ];
 
     const configItems = [
-        user.isSystemAdmin && { name: 'Actualizaciones', href: route('admin.releases'), active: route().current('admin.releases') },
         user.isSystemAdmin && { name: 'Clientes', href: route('admin.clients.index'), active: route().current('admin.clients.*') },
         user.isSystemAdmin && { name: 'PortaOne', href: route('admin.portaone.edit'), active: route().current('admin.portaone.*') },
         user.isSystemAdmin && { name: 'Telegram', href: route('admin.telegram.edit'), active: route().current('admin.telegram.*') },
