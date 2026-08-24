@@ -576,7 +576,11 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                             {group.items.map((item, itemIndex) => (
                                                 <tr
                                                     key={itemIndex}
-                                                    onClick={() => setPrefixModal({ clientId: item.clientId, prefix: item.label })}
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        setPrefixModal({ clientId: item.clientId, prefix: item.label });
+                                                    }}
                                                     className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                                                 >
                                                     <td className="px-4 py-2 font-mono">{item.label ?? '—'}</td>
@@ -708,7 +712,13 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                             {group.items.map((item, itemIndex) => (
                                                 <tr
                                                     key={itemIndex}
-                                                    onClick={() => item.account && setAccountModal({ clientId: item.clientId, customer: item.customer, account: item.account })}
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        if (item.account) {
+                                                            setAccountModal({ clientId: item.clientId, customer: item.customer, account: item.account });
+                                                        }
+                                                    }}
                                                     className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                                                 >
                                                     {isAdmin && <td className="px-4 py-2">{item.customer ?? '—'}</td>}
