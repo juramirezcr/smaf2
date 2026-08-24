@@ -39,6 +39,8 @@ interface ClientItem {
     name: string;
     portaoneEnvironment: string;
     portaoneUsername: string;
+    telegramChatId: string | null;
+    notificationEmail: string | null;
     usersCount: number;
     users: ClientUser[];
     productsCount: number;
@@ -110,6 +112,8 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
         portaone_environment: '',
         portaone_username: '',
         portaone_token: '',
+        telegram_chat_id: '',
+        notification_email: '',
         admin_name: '',
         admin_username: '',
         admin_email: '',
@@ -184,6 +188,8 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
             portaone_environment: client.portaoneEnvironment,
             portaone_username: client.portaoneUsername,
             portaone_token: '',
+            telegram_chat_id: client.telegramChatId ?? '',
+            notification_email: client.notificationEmail ?? '',
             admin_name: '',
             admin_username: '',
             admin_email: '',
@@ -332,6 +338,15 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                         />
                                         <StatTile label="Llamadas" value={client.callsCount} href={`/calls?client_id=${client.id}`} />
                                     </div>
+
+                                    <div className="flex flex-wrap gap-1.5 text-xs">
+                                        <span className={`rounded-full px-2 py-0.5 ${client.telegramChatId ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                                            Telegram {client.telegramChatId ? 'activo' : 'sin configurar'}
+                                        </span>
+                                        <span className={`rounded-full px-2 py-0.5 ${client.notificationEmail ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                                            Correo {client.notificationEmail ? 'activo' : 'sin configurar'}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
@@ -398,6 +413,21 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                 <InputLabel htmlFor="portaone_token" value={editingClient ? 'Nueva clave API (dejar en blanco para no cambiarla)' : 'Clave API'} />
                                 <TextInput id="portaone_token" type="password" value={data.portaone_token} className="mt-1 block w-full" onChange={(event) => setData('portaone_token', event.target.value)} required={!editingClient} />
                                 <InputError message={errors.portaone_token} className="mt-2" />
+                            </div>
+                            <div className="border-t border-gray-100 pt-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Notificaciones de alertas</p>
+                                <div className="mt-2 space-y-4">
+                                    <div>
+                                        <InputLabel htmlFor="telegram_chat_id" value="Chat ID de Telegram" />
+                                        <TextInput id="telegram_chat_id" value={data.telegram_chat_id} className="mt-1 block w-full" placeholder="Opcional" onChange={(event) => setData('telegram_chat_id', event.target.value)} />
+                                        <InputError message={errors.telegram_chat_id} className="mt-2" />
+                                    </div>
+                                    <div>
+                                        <InputLabel htmlFor="notification_email" value="Correo para notificaciones" />
+                                        <TextInput id="notification_email" type="email" value={data.notification_email} className="mt-1 block w-full" placeholder="Opcional" onChange={(event) => setData('notification_email', event.target.value)} />
+                                        <InputError message={errors.notification_email} className="mt-2" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

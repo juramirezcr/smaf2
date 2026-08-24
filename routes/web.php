@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\EmailSettingController;
 use App\Http\Controllers\Admin\PlatformUserController;
 use App\Http\Controllers\Admin\PortaoneProductController;
 use App\Http\Controllers\Admin\PortaoneSettingController;
 use App\Http\Controllers\Admin\QueueMonitorController;
 use App\Http\Controllers\Admin\ReleaseController;
+use App\Http\Controllers\Admin\TelegramSettingController;
 use App\Http\Controllers\AccountReportController;
 use App\Http\Controllers\CallRecordController;
 use App\Http\Controllers\ClientUserController;
@@ -41,6 +43,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/clients/{client}/products', [PortaoneProductController::class, 'update'])->name('clients.products.update');
         Route::get('/portaone', [PortaoneSettingController::class, 'edit'])->name('portaone.edit');
         Route::patch('/portaone', [PortaoneSettingController::class, 'update'])->name('portaone.update');
+        Route::get('/telegram', [TelegramSettingController::class, 'edit'])->name('telegram.edit');
+        Route::patch('/telegram', [TelegramSettingController::class, 'update'])->name('telegram.update');
+        Route::get('/email', [EmailSettingController::class, 'edit'])->name('email.edit');
+        Route::patch('/email', [EmailSettingController::class, 'update'])->name('email.update');
         Route::get('/platform-users', [PlatformUserController::class, 'index'])->name('platform-users.index');
         Route::post('/platform-users', [PlatformUserController::class, 'store'])->name('platform-users.store');
         Route::patch('/platform-users/{user}', [PlatformUserController::class, 'update'])->name('platform-users.update');

@@ -54,6 +54,8 @@ class ClientController extends Controller
                         'name' => $client->name,
                         'portaoneEnvironment' => $client->portaone_environment,
                         'portaoneUsername' => $client->portaone_username,
+                        'telegramChatId' => $client->telegram_chat_id,
+                        'notificationEmail' => $client->notification_email,
                         'usersCount' => $client->users_count,
                         'users' => $client->users->map(fn (User $user) => [
                             'id' => $user->id,
@@ -86,6 +88,8 @@ class ClientController extends Controller
             'portaone_environment' => ['required', 'string', 'max:255'],
             'portaone_username' => ['required', 'string', 'max:255'],
             'portaone_token' => ['required', 'string'],
+            'telegram_chat_id' => ['nullable', 'string', 'max:255'],
+            'notification_email' => ['nullable', 'string', 'email', 'max:255'],
             'admin_name' => ['required', 'string', 'max:255'],
             'admin_username' => ['required', 'string', 'max:255', 'unique:'.User::class.',username'],
             'admin_email' => ['required', 'string', 'lowercase', 'email', 'max:255'],
@@ -98,6 +102,8 @@ class ClientController extends Controller
                 'portaone_environment' => $validated['portaone_environment'],
                 'portaone_username' => $validated['portaone_username'],
                 'portaone_token' => $validated['portaone_token'],
+                'telegram_chat_id' => $validated['telegram_chat_id'] ?: null,
+                'notification_email' => $validated['notification_email'] ?: null,
             ]);
 
             $client->users()->create([
@@ -119,12 +125,16 @@ class ClientController extends Controller
             'portaone_environment' => ['required', 'string', 'max:255'],
             'portaone_username' => ['required', 'string', 'max:255'],
             'portaone_token' => ['nullable', 'string'],
+            'telegram_chat_id' => ['nullable', 'string', 'max:255'],
+            'notification_email' => ['nullable', 'string', 'email', 'max:255'],
         ]);
 
         $client->update([
             'name' => $validated['name'],
             'portaone_environment' => $validated['portaone_environment'],
             'portaone_username' => $validated['portaone_username'],
+            'telegram_chat_id' => $validated['telegram_chat_id'] ?: null,
+            'notification_email' => $validated['notification_email'] ?: null,
             ...($validated['portaone_token'] ? ['portaone_token' => $validated['portaone_token']] : []),
         ]);
 

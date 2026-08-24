@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SendAlertNotification;
 use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRule;
@@ -150,7 +151,7 @@ class EvaluateMonitoringRules extends Command
                 continue;
             }
 
-            $rule->recordAction('triggered', [
+            $event = $rule->recordAction('triggered', [
                 'account' => $first->account,
                 'customer' => $first->customer,
                 'calls' => $calls,
@@ -159,6 +160,8 @@ class EvaluateMonitoringRules extends Command
                 'duration_limit_seconds' => $rule->duration_limit_seconds,
                 'reason' => $callBreach && $durationBreach ? 'calls_and_duration' : ($callBreach ? 'calls' : 'duration'),
             ], clientId: $effectiveClientId);
+
+            SendAlertNotification::dispatch($event->id);
 
             $created++;
         }

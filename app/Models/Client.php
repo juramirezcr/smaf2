@@ -16,6 +16,8 @@ class Client extends Model
         'portaone_environment',
         'portaone_username',
         'portaone_token',
+        'telegram_chat_id',
+        'notification_email',
         'xdr_synced_until',
     ];
 
