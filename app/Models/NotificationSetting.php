@@ -8,6 +8,7 @@ class NotificationSetting extends Model
 {
     protected $fillable = [
         'telegram_bot_token',
+        'admin_telegram_chat_id',
         'smtp_host',
         'smtp_port',
         'smtp_username',
@@ -56,5 +57,10 @@ class NotificationSetting extends Model
     public function isTelegramConfigured(): bool
     {
         return filled($this->telegram_bot_token);
+    }
+
+    public function isAdminTelegramConfigured(): bool
+    {
+        return filled($this->admin_telegram_chat_id);
     }
 }

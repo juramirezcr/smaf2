@@ -7,8 +7,10 @@ use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
+use App\Services\AdminAlertNotifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Throwable;
 
 class EvaluateMonitoringRules extends Command
 {
@@ -16,7 +18,26 @@ class EvaluateMonitoringRules extends Command
 
     protected $description = 'Evalúa las reglas de prefijo (globales y por cliente) contra las llamadas de la última hora y genera alertas cuando una cuenta supera los límites configurados.';
 
-    public function handle(): int
+    public function handle(AdminAlertNotifier $adminAlerts): int
+    {
+        try {
+            return $this->evaluateRules();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $adminAlerts->notify(
+                sprintf(
+                    "El comando <b>smaf:evaluate-monitoring-rules</b> falló.\n\n%s",
+                    $exception->getMessage(),
+                ),
+                throttleKey: 'evaluate-monitoring-rules',
+            );
+
+            throw $exception;
+        }
+    }
+
+    private function evaluateRules(): int
     {
         $rules = MonitoringRule::query()
             ->where('scope', 'prefix')

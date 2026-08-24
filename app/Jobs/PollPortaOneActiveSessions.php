@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Client;
 use App\Models\PortaoneActiveSession;
+use App\Services\AdminAlertNotifier;
 use App\Services\PortaOneClient;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,7 +30,7 @@ class PollPortaOneActiveSessions implements ShouldQueue, ShouldBeUnique
         return (string) $this->clientId;
     }
 
-    public function handle(): void
+    public function handle(AdminAlertNotifier $adminAlerts): void
     {
         $client = Client::findOrFail($this->clientId);
 
@@ -37,6 +38,15 @@ class PollPortaOneActiveSessions implements ShouldQueue, ShouldBeUnique
             $sessions = (new PortaOneClient($client))->fetchActiveSessions();
         } catch (Throwable $exception) {
             report($exception);
+
+            $adminAlerts->notify(
+                sprintf(
+                    "No fue posible consultar las sesiones activas de PortaOne para el cliente <b>%s</b>.\n\n%s",
+                    $client->name,
+                    $exception->getMessage(),
+                ),
+                throttleKey: "portaone-poll:{$client->id}",
+            );
 
             return;
         }

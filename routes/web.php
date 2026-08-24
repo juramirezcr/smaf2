@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/portaone', [PortaoneSettingController::class, 'update'])->name('portaone.update');
         Route::get('/telegram', [TelegramSettingController::class, 'edit'])->name('telegram.edit');
         Route::patch('/telegram', [TelegramSettingController::class, 'update'])->name('telegram.update');
+        Route::post('/telegram/test', [NotificationTestController::class, 'adminTelegram'])->name('telegram.test');
         Route::get('/email', [EmailSettingController::class, 'edit'])->name('email.edit');
         Route::patch('/email', [EmailSettingController::class, 'update'])->name('email.update');
         Route::get('/platform-users', [PlatformUserController::class, 'index'])->name('platform-users.index');

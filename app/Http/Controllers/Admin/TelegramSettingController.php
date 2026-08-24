@@ -17,6 +17,7 @@ class TelegramSettingController extends Controller
 
         return Inertia::render('Admin/TelegramSettings', [
             'hasToken' => filled($settings->telegram_bot_token),
+            'adminTelegramChatId' => $settings->admin_telegram_chat_id,
         ]);
     }
 
@@ -24,9 +25,12 @@ class TelegramSettingController extends Controller
     {
         $validated = $request->validate([
             'telegram_bot_token' => ['nullable', 'string', 'max:255'],
+            'admin_telegram_chat_id' => ['nullable', 'string', 'max:255'],
         ]);
 
         $settings = NotificationSetting::current();
+
+        $settings->update(['admin_telegram_chat_id' => $validated['admin_telegram_chat_id'] ?: null]);
 
         if ($validated['telegram_bot_token']) {
             $settings->update(['telegram_bot_token' => $validated['telegram_bot_token']]);

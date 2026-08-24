@@ -4,14 +4,43 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import axios from 'axios';
+import { FormEventHandler, useState } from 'react';
 
-export default function TelegramSettings({ hasToken }: { hasToken: boolean }) {
-    const { data, setData, patch, processing, errors, reset } = useForm({ telegram_bot_token: '' });
+interface TelegramSettingsProps {
+    hasToken: boolean;
+    adminTelegramChatId: string | null;
+}
+
+interface TestResult {
+    status: 'loading' | 'success' | 'error';
+    message: string;
+}
+
+export default function TelegramSettings({ hasToken, adminTelegramChatId }: TelegramSettingsProps) {
+    const { data, setData, patch, processing, errors, reset } = useForm({
+        telegram_bot_token: '',
+        admin_telegram_chat_id: adminTelegramChatId ?? '',
+    });
+    const [adminTestResult, setAdminTestResult] = useState<TestResult | null>(null);
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
-        patch(route('admin.telegram.update'), { onSuccess: () => reset() });
+        patch(route('admin.telegram.update'), { onSuccess: () => setData('telegram_bot_token', '') });
+    };
+
+    const testAdminChannel = async () => {
+        setAdminTestResult({ status: 'loading', message: '' });
+
+        try {
+            const response = await axios.post(route('admin.telegram.test'));
+            setAdminTestResult({ status: 'success', message: response.data.message });
+        } catch (error) {
+            const message = axios.isAxiosError(error) && error.response?.data?.error
+                ? error.response.data.error
+                : 'No fue posible enviar el mensaje de prueba.';
+            setAdminTestResult({ status: 'error', message });
+        }
     };
 
     return (
@@ -47,6 +76,44 @@ export default function TelegramSettings({ hasToken }: { hasToken: boolean }) {
                         />
                         <InputError message={errors.telegram_bot_token} className="mt-2" />
                     </div>
+                    <div className="mt-8 border-t border-gray-100 pt-6">
+                        <h3 className="text-lg font-medium text-gray-900">Notificaciones de administración</h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Chat ID que recibirá avisos operativos: pérdida de conexión con PortaOne, jobs que
+                            fallaron, etc. Puede ser el mismo bot, en un chat separado del de los clientes.
+                        </p>
+
+                        <div className="mt-4">
+                            <InputLabel htmlFor="admin_telegram_chat_id" value="Chat ID de administración" />
+                            <TextInput
+                                id="admin_telegram_chat_id"
+                                value={data.admin_telegram_chat_id}
+                                className="mt-1 block w-full"
+                                placeholder="Opcional"
+                                onChange={(event) => setData('admin_telegram_chat_id', event.target.value)}
+                            />
+                            <InputError message={errors.admin_telegram_chat_id} className="mt-2" />
+                        </div>
+
+                        {adminTelegramChatId && (
+                            <div className="mt-3">
+                                <button
+                                    type="button"
+                                    onClick={testAdminChannel}
+                                    disabled={adminTestResult?.status === 'loading'}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                                >
+                                    {adminTestResult?.status === 'loading' ? 'Enviando...' : 'Probar canal de administración'}
+                                </button>
+                                {adminTestResult && adminTestResult.status !== 'loading' && (
+                                    <p className={`mt-1 text-xs ${adminTestResult.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                        {adminTestResult.message}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="mt-6">
                         <PrimaryButton disabled={processing}>Guardar</PrimaryButton>
                     </div>
