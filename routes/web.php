@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PortaoneProductController;
 use App\Http\Controllers\Admin\PortaoneSettingController;
 use App\Http\Controllers\Admin\QueueMonitorController;
 use App\Http\Controllers\Admin\ReleaseController;
+use App\Http\Controllers\Admin\SystemStatusController;
 use App\Http\Controllers\Admin\TelegramSettingController;
 use App\Http\Controllers\AccountReportController;
 use App\Http\Controllers\CallRecordController;
@@ -56,6 +57,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/platform-users', [PlatformUserController::class, 'store'])->name('platform-users.store');
         Route::patch('/platform-users/{user}', [PlatformUserController::class, 'update'])->name('platform-users.update');
         Route::delete('/platform-users/{user}', [PlatformUserController::class, 'destroy'])->name('platform-users.destroy');
+        Route::get('/status', [SystemStatusController::class, 'index'])->name('status.index');
         Route::get('/queue', [QueueMonitorController::class, 'index'])->name('queue.index');
         Route::post('/queue/failed/{uuid}/retry', [QueueMonitorController::class, 'retryFailed'])->name('queue.failed.retry');
         Route::delete('/queue/failed/{uuid}', [QueueMonitorController::class, 'forgetFailed'])->name('queue.failed.forget');

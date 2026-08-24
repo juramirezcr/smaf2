@@ -39,7 +39,7 @@ export default function Authenticated({
 
     const canSeeConfig = user.isSystemAdmin || user.role === 'client_admin';
     const configActive = Boolean(
-        route().current('admin.releases') || route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
+        route().current('admin.releases') || route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.status.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
     );
     const [configOpen, setConfigOpen] = useState<boolean>(configActive);
 
@@ -62,6 +62,7 @@ export default function Authenticated({
         user.isSystemAdmin && { name: 'Email', href: route('admin.email.edit'), active: route().current('admin.email.*') },
         user.isSystemAdmin && { name: 'Administradores', href: route('admin.platform-users.index'), active: route().current('admin.platform-users.*') },
         user.isSystemAdmin && { name: 'Cola de jobs', href: route('admin.queue.index'), active: route().current('admin.queue.*') },
+        user.isSystemAdmin && { name: 'Estado', href: route('admin.status.index'), active: route().current('admin.status.*') },
         ! user.isSystemAdmin && user.role === 'client_admin' && { name: 'Usuarios', href: route('users.index'), active: route().current('users.*') },
         { name: 'Ejecuciones', href: route('process-runs.index'), active: route().current('process-runs.*') },
     ].filter((item): item is Exclude<typeof item, false> => item !== false);

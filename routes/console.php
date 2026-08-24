@@ -37,3 +37,8 @@ Schedule::command('smaf:evaluate-monitoring-rules')
     ->everyFiveMinutes()
     ->name('evaluate-monitoring-rules')
     ->withoutOverlapping();
+
+Schedule::command('smaf:record-system-metrics')
+    ->everyFiveMinutes()
+    ->name('record-system-metrics')
+    ->withoutOverlapping();
