@@ -154,7 +154,7 @@ class DashboardController extends Controller
             $key = $row->client_id.'|'.$row->$labelField;
 
             $aggregated[$key] ??= [
-                'client_id' => $row->client_id,
+                'clientId' => $row->client_id,
                 'label' => $row->$labelField,
                 'calls' => 0,
                 'seconds' => 0,
@@ -173,7 +173,7 @@ class DashboardController extends Controller
 
         $byClient = [];
         foreach ($aggregated as $item) {
-            $byClient[$item['client_id']][] = $item;
+            $byClient[$item['clientId']][] = $item;
         }
 
         $groups = [];
@@ -299,7 +299,7 @@ class DashboardController extends Controller
             $accountKey = $row->client_id.'|'.$row->customer.'|'.$row->account;
 
             $accounts[$accountKey] ??= [
-                'client_id' => $row->client_id,
+                'clientId' => $row->client_id,
                 'customer' => $row->customer,
                 'account' => $row->account,
                 'calls' => 0,
@@ -320,14 +320,14 @@ class DashboardController extends Controller
         $groupsByKey = [];
 
         foreach ($accounts as $item) {
-            $key = $isAdmin ? $item['client_id'] : ($item['customer'] ?? '');
+            $key = $isAdmin ? $item['clientId'] : ($item['customer'] ?? '');
 
             $groupsByKey[$key]['label'] ??= $isAdmin
-                ? $clientNames?->get($item['client_id'])
+                ? $clientNames?->get($item['clientId'])
                 : ($item['customer'] ?: 'Sin customer');
 
             $groupsByKey[$key]['items'][] = [
-                'client_id' => $item['client_id'],
+                'clientId' => $item['clientId'],
                 'customer' => $item['customer'],
                 'account' => $item['account'],
                 'calls' => $item['calls'],

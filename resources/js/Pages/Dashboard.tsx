@@ -581,7 +581,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 2xl:max-w-none 2xl:px-10">
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-2 min-[1800px]:grid-cols-4">
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
                             <div className="overflow-x-auto">
                             <table className="w-full text-[11px]">
