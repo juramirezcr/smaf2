@@ -550,8 +550,8 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
             <Head title="Dashboard" />
 
             <div className="py-8">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="mb-4 grid gap-4 md:grid-cols-2">
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 2xl:max-w-none 2xl:px-10">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
                             <div className="overflow-x-auto">
                             <table className="w-full text-sm">
@@ -651,9 +651,7 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
                                 </>
                             )}
                         </Card>
-                    </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
                         <Card color="bg-pink-700" title="Destinos (Top 10)" icon="📞" href={route('destinations.index')}>
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
