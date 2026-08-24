@@ -29,7 +29,28 @@ services:
     build:
       context: .
       target: application
-    command: php artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=300 --max-time=3600
+    # Timeout de 900s: clientes con muchas cuentas hacen una llamada SOAP
+    # secuencial por cuenta a PortaOne (get_xdr_list), y con 300s varios
+    # terminaban en TimeoutExceededException tras agotar los 3 intentos.
+    command: php artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=900 --max-time=3600
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - app-storage:/var/www/html/storage
+
+  # Segundo worker para la cola "default": con uno solo, los jobs de
+  # SyncPortaOneData/SyncPortaOneCalls de varios clientes se acumulaban más
+  # rápido de lo que un único worker podía procesarlos.
+  queue-2:
+    build:
+      context: .
+      target: application
+    command: php artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=900 --max-time=3600
     env_file: .env
     depends_on:
       db:
