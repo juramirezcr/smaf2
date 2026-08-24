@@ -234,7 +234,7 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
             })
             .catch((error) => {
                 const message = axios.isAxiosError(error) && error.response
-                    ? `Error ${error.response.status} al cargar la configuración.`
+                    ? `Error ${error.response.status}: ${error.response.data?.message ?? 'sin detalle.'}`
                     : 'No fue posible conectar con el servidor.';
                 setRuleLoadError(message);
             })
