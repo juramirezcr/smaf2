@@ -1058,7 +1058,7 @@ export default function Dashboard({
                         )}
 
                         {isOn('accounts') && (
-                            <WidgetCard icon="👥" title="Cuentas" href={route('accounts.index')}>
+                            <WidgetCard icon="👥" title="Cuentas (Top 10)" href={route('accounts.index')}>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">

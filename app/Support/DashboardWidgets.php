@@ -18,7 +18,7 @@ class DashboardWidgets
             ['key' => 'traffic', 'label' => 'Tráfico de llamadas', 'description' => 'Serie de tiempo de todo el tráfico monitoreado.', 'icon' => '📈', 'adminOnly' => false],
             ['key' => 'prefixes', 'label' => 'Prefijos', 'description' => 'Llamadas y minutos por prefijo, agrupado por cliente.', 'icon' => '🌐', 'adminOnly' => false],
             ['key' => 'destinations', 'label' => 'Destinos (Top 10)', 'description' => 'Destinos con más llamadas del período.', 'icon' => '📞', 'adminOnly' => false],
-            ['key' => 'accounts', 'label' => 'Cuentas', 'description' => 'Llamadas y minutos por cuenta, agrupado por cliente.', 'icon' => '👥', 'adminOnly' => false],
+            ['key' => 'accounts', 'label' => 'Cuentas (Top 10)', 'description' => 'Cuentas con más llamadas del período, agrupadas por cliente.', 'icon' => '👥', 'adminOnly' => false],
             ['key' => 'heatmap', 'label' => 'Intensidad por hora', 'description' => 'Mapa de calor de llamadas por día y hora.', 'icon' => '🕘', 'adminOnly' => false],
             ['key' => 'alerts', 'label' => 'Alertas recientes', 'description' => 'Tabla detallada con estado de revisión.', 'icon' => '🔔', 'adminOnly' => false],
         ];

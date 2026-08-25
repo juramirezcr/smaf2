@@ -79,7 +79,7 @@ class DashboardController extends Controller
                 bucketCount: $bucketCount,
                 clientNames: $clientNames,
                 isAdmin: $isAdmin,
-                perGroupLimit: 5,
+                limit: 10,
                 alertedKeys: $alertedAccountKeys,
             ),
             'alertCounts' => $alertCounts,
@@ -470,12 +470,16 @@ class DashboardController extends Controller
     }
 
     /**
-     * Admin: agrupa cuentas por Cliente interno (cada item conserva el
-     * customer al que pertenece, ya que un cliente tiene varios).
+     * Rango top N por cuenta (como topDestinations): se limita el total
+     * antes de agrupar, no por grupo, para que el widget no crezca sin
+     * control cuando hay muchos customers/clientes con tráfico.
+     *
+     * Admin: agrupa por Cliente interno (cada item conserva el customer al
+     * que pertenece, ya que un cliente tiene varios).
      * Cliente (no admin): agrupa por Customer (el item solo necesita la
      * cuenta, el customer ya es el encabezado del grupo).
      */
-    private function groupedAccounts($rows, int $bucketCount, $clientNames, bool $isAdmin, int $perGroupLimit, array $alertedKeys = []): array
+    private function groupedAccounts($rows, int $bucketCount, $clientNames, bool $isAdmin, int $limit, array $alertedKeys = []): array
     {
         $accounts = [];
 
@@ -501,9 +505,13 @@ class DashboardController extends Controller
             }
         }
 
+        $top = array_values($accounts);
+        usort($top, fn ($a, $b) => $b['calls'] <=> $a['calls']);
+        $top = array_slice($top, 0, $limit);
+
         $groupsByKey = [];
 
-        foreach ($accounts as $item) {
+        foreach ($top as $item) {
             $key = $isAdmin ? $item['clientId'] : ($item['customer'] ?? '');
 
             $groupsByKey[$key]['label'] ??= $isAdmin
@@ -523,11 +531,9 @@ class DashboardController extends Controller
 
         $groups = [];
         foreach ($groupsByKey as $group) {
-            usort($group['items'], fn ($a, $b) => $b['calls'] <=> $a['calls']);
-
             $groups[] = [
                 'clientName' => $group['label'],
-                'items' => array_slice($group['items'], 0, $perGroupLimit),
+                'items' => $group['items'],
             ];
         }
 
