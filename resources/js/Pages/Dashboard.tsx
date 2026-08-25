@@ -517,7 +517,13 @@ function WidgetCard({ icon, title, tag, href, children }: { icon: string; title:
     return href ? <Link href={href} className={className}>{inner}</Link> : <div className={className}>{inner}</div>;
 }
 
-function TrafficChart({ points }: { points: TrafficPoint[] }) {
+function formatAxisLabel(iso: string, timeZone: string, period: string): string {
+    return period === '7d' || period === '30d'
+        ? formatDateTime(iso, timeZone, { day: 'numeric' })
+        : formatDateTime(iso, timeZone, { hour: '2-digit', minute: '2-digit' });
+}
+
+function TrafficChart({ points, period }: { points: TrafficPoint[]; period: string }) {
     const timeZone = useTimezone();
 
     if (points.every((p) => p.calls === 0)) {
@@ -562,7 +568,7 @@ function TrafficChart({ points }: { points: TrafficPoint[] }) {
             ))}
             {coords.map((c, i) => (i % timeLabelEvery === 0 || i === coords.length - 1) && (
                 <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[10px] dark:fill-gray-500">
-                    {formatBucketLabel(c.at, timeZone)}
+                    {formatAxisLabel(c.at, timeZone, period)}
                 </text>
             ))}
         </svg>
@@ -570,30 +576,6 @@ function TrafficChart({ points }: { points: TrafficPoint[] }) {
 }
 
 const ACTION_LABEL: Record<string, string> = { notify: 'Notificadas', block: 'Bloqueadas', ignore: 'Ignoradas' };
-
-function RankedList({ items, colorClass }: { items: { key: string; label: string; sub?: string; value: number; display: string }[]; colorClass: string }) {
-    const max = Math.max(...items.map((i) => i.value), 1);
-
-    if (items.length === 0) {
-        return <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Sin datos en este período.</p>;
-    }
-
-    return (
-        <div className="space-y-2.5">
-            {items.map((item) => (
-                <div key={item.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs">
-                    <div>
-                        <p className="truncate font-medium text-gray-800 dark:text-gray-100">{item.label}{item.sub && <span className="ml-1.5 font-normal text-gray-400 dark:text-gray-500">{item.sub}</span>}</p>
-                        <div className="mt-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700">
-                            <div className={`h-1.5 rounded-full ${colorClass}`} style={{ width: `${Math.max(4, Math.round((item.value / max) * 100))}%` }} />
-                        </div>
-                    </div>
-                    <span className="shrink-0 font-mono text-gray-500 dark:text-gray-400">{item.display}</span>
-                </div>
-            ))}
-        </div>
-    );
-}
 
 function HeatmapGrid({ matrix }: { matrix: number[][] }) {
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -811,7 +793,7 @@ export default function Dashboard({
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 2xl:max-w-none 2xl:px-10">
-                    <div className={`mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4 ${isAdmin ? 'xl:grid-cols-5' : ''}`}>
+                    <div className={`mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4 ${isAdmin ? 'xl:grid-cols-6' : ''}`}>
                         <KpiTile label="Llamadas activas" value={kpis.activeCalls.toLocaleString('es-CR')} sub={periodLabels[period]} />
                         <KpiTile
                             label="Alertas (24h)"
@@ -838,6 +820,14 @@ export default function Dashboard({
                                 )}
                             />
                         )}
+                        {isAdmin && (
+                            <KpiTile
+                                label="Clientes activos"
+                                value={clientsActive.length.toLocaleString('es-CR')}
+                                href={route('admin.clients.index')}
+                                sub={clientsActive[0] ? `${clientsActive[0].clientName ?? `Cliente #${clientsActive[0].clientId}`} · ${clientsActive[0].calls.toLocaleString('es-CR')}` : 'Sin tráfico'}
+                            />
+                        )}
                         <KpiTile
                             label="Cuentas en revisión"
                             value={kpis.accountsInReview.toLocaleString('es-CR')}
@@ -856,7 +846,7 @@ export default function Dashboard({
                         {isOn('traffic') && (
                             <div className="md:col-span-2">
                                 <WidgetCard icon="📈" title="Tráfico de llamadas" tag={periodLabels[period]}>
-                                    <TrafficChart points={trafficSeries} />
+                                    <TrafficChart points={trafficSeries} period={period} />
                                 </WidgetCard>
                             </div>
                         )}
@@ -1000,20 +990,6 @@ export default function Dashboard({
                                         </tbody>
                                     </table>
                                 </div>
-                            </WidgetCard>
-                        )}
-
-                        {isAdmin && isOn('clients') && (
-                            <WidgetCard icon="🏢" title="Clientes activos" href={route('admin.clients.index')}>
-                                <RankedList
-                                    colorClass="bg-indigo-500"
-                                    items={clientsActive.slice(0, 8).map((c) => ({
-                                        key: String(c.clientId),
-                                        label: c.clientName ?? `Cliente #${c.clientId}`,
-                                        value: c.calls,
-                                        display: c.calls.toLocaleString('es-CR'),
-                                    }))}
-                                />
                             </WidgetCard>
                         )}
 

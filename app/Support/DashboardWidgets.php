@@ -20,7 +20,6 @@ class DashboardWidgets
             ['key' => 'destinations', 'label' => 'Destinos (Top 10)', 'description' => 'Destinos con más llamadas del período.', 'icon' => '📞', 'adminOnly' => false],
             ['key' => 'accounts', 'label' => 'Cuentas', 'description' => 'Llamadas y minutos por cuenta, agrupado por cliente.', 'icon' => '👥', 'adminOnly' => false],
             ['key' => 'heatmap', 'label' => 'Intensidad por hora', 'description' => 'Mapa de calor de llamadas por día y hora.', 'icon' => '🕘', 'adminOnly' => false],
-            ['key' => 'clients', 'label' => 'Clientes activos', 'description' => 'Volumen total por cliente interno.', 'icon' => '🏢', 'adminOnly' => true],
             ['key' => 'alerts', 'label' => 'Alertas recientes', 'description' => 'Tabla detallada con estado de revisión.', 'icon' => '🔔', 'adminOnly' => false],
         ];
     }
