@@ -5,7 +5,7 @@ import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, ReactNode, useEffect, useState } from 'react';
 
 interface StatItem {
     clientId: number;
@@ -49,24 +49,74 @@ interface AccountGroup {
     items: AccountItem[];
 }
 
-interface DonutItem {
-    label: string;
-    value: number;
+interface ClientActiveItem {
+    clientId: number;
+    clientName: string | null;
+    calls: number;
 }
 
-interface CustomerBreakdownItem {
-    customer: string | null;
+interface TrafficPoint {
+    at: string;
     calls: number;
+    seconds: number;
+}
+
+interface SystemHealth {
+    cpuPct: number | null;
+    memPct: number | null;
+    diskPct: number | null;
+    recordedAt: string;
+}
+
+interface QueueSummary {
+    pending: number;
+    running: number;
+    failedRecent: number;
+    oldestPendingSeconds: number | null;
+}
+
+interface AlertRecentItem {
+    id: number;
+    occurredAt: string;
+    clientName: string | null;
+    account: string | null;
+    calls: number | null;
+    seconds: number | null;
+    action: 'ignore' | 'notify' | 'block';
+    ruleLabel: string | null;
+    reviewStatus: 'pending' | 'cleared' | 'maintained';
+}
+
+interface WidgetDef {
+    key: string;
+    label: string;
+    description: string;
+    icon: string;
+    adminOnly: boolean;
+}
+
+interface DashboardKpis {
+    activeCalls: number;
+    accountsInReview: number;
+    prefixesMonitored: number;
 }
 
 interface DashboardProps {
     period: string;
     isAdmin: boolean;
-    prefixCustomerStats: Record<string, CustomerBreakdownItem[]>;
     prefixStats: StatGroup[];
     destinationStats: DestinationGroup[];
     accountStats: AccountGroup[];
     alertCounts: Record<string, number>;
+    kpis: DashboardKpis;
+    availableWidgets: WidgetDef[];
+    activeWidgets: string[];
+    clientsActive: ClientActiveItem[];
+    trafficSeries: TrafficPoint[];
+    heatmap: number[][];
+    systemHealth: SystemHealth | null;
+    queueSummary: QueueSummary | null;
+    alertsRecent: AlertRecentItem[];
 }
 
 function Sparkline({ data }: { data: number[] }) {
@@ -451,18 +501,19 @@ function AccountDetailModal({ clientId, customer, account, onClose }: { clientId
 
 const DONUT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#94a3b8'];
 
-function DonutChart({ items }: { items: { label: string; value: number }[] }) {
+function DonutChart({ items, colors }: { items: { label: string; value: number }[]; colors?: string[] }) {
+    const palette = colors ?? DONUT_COLORS;
     const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
     let cumulative = 0;
     const stops = items.map((item, index) => {
         const start = (cumulative / total) * 360;
         cumulative += item.value;
         const end = (cumulative / total) * 360;
-        return `${DONUT_COLORS[index % DONUT_COLORS.length]} ${start}deg ${end}deg`;
+        return `${palette[index % palette.length]} ${start}deg ${end}deg`;
     }).join(', ');
 
     return (
-        <div className="flex items-center gap-6 p-4">
+        <div className="flex items-center gap-6 p-1">
             <div className="relative h-32 w-32 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops})` }}>
                 <div className="absolute inset-3 flex items-center justify-center rounded-full bg-white text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-300">
                     {total}
@@ -471,7 +522,7 @@ function DonutChart({ items }: { items: { label: string; value: number }[] }) {
             <ul className="min-w-0 flex-1 space-y-1.5 text-xs">
                 {items.map((item, index) => (
                     <li key={index} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: DONUT_COLORS[index % DONUT_COLORS.length] }} />
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: palette[index % palette.length] }} />
                         <span className="truncate text-gray-700 dark:text-gray-300">{item.label}</span>
                         <span className="ml-auto shrink-0 font-medium text-gray-900 dark:text-gray-100">{item.value}</span>
                         <span className="w-10 shrink-0 text-right text-gray-400 dark:text-gray-500">{Math.round((item.value / total) * 100)}%</span>
@@ -482,16 +533,225 @@ function DonutChart({ items }: { items: { label: string; value: number }[] }) {
     );
 }
 
-function Card({ color, title, icon, href, children }: { color: string; title: string; icon: string; href: string; children: React.ReactNode }) {
-    return (
-        <Link href={href} className="block overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
-            <div className={`flex items-center justify-center gap-2 px-4 py-3 text-white ${color}`}>
-                <span className="text-lg">{icon}</span>
-                <span className="font-semibold">{title}</span>
+/* ================================================================
+   Panel de Control — chrome & new widgets
+   ================================================================ */
+
+function WidgetCard({ icon, title, tag, href, children }: { icon: string; title: string; tag?: string; href?: string; children: ReactNode }) {
+    const inner = (
+        <>
+            <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                    <span>{icon}</span>
+                    {title}
+                </h2>
+                {tag && <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">{tag}</span>}
             </div>
-            {children}
-        </Link>
+            <div className="min-w-0 flex-1 p-4">{children}</div>
+        </>
     );
+
+    const className = 'flex flex-1 flex-col overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800';
+
+    return href ? <Link href={href} className={className}>{inner}</Link> : <div className={className}>{inner}</div>;
+}
+
+function TrafficChart({ points }: { points: TrafficPoint[] }) {
+    if (points.every((p) => p.calls === 0)) {
+        return <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Sin llamadas en este período.</p>;
+    }
+
+    const width = 720;
+    const height = 200;
+    const padX = 12;
+    const padTop = 24;
+    const padBottom = 20;
+    const plotH = height - padTop - padBottom;
+    const max = Math.max(...points.map((p) => p.calls), 1);
+    const stepX = (width - padX * 2) / Math.max(points.length - 1, 1);
+    const coords = points.map((p, i) => ({ x: padX + i * stepX, y: height - padBottom - (p.calls / max) * plotH, ...p }));
+    const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+    const areaPath = `${linePath} L${coords[coords.length - 1].x.toFixed(1)},${height - padBottom} L${coords[0].x.toFixed(1)},${height - padBottom} Z`;
+    const peakIndex = points.findIndex((p) => p.calls === max);
+
+    return (
+        <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+            {[0, 0.5, 1].map((f) => {
+                const y = height - padBottom - f * plotH;
+                return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
+            })}
+            <path d={areaPath} className="fill-indigo-500/10" />
+            <path d={linePath} fill="none" className="stroke-indigo-500" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+            {coords.map((c, i) => (
+                <circle key={i} cx={c.x} cy={c.y} r={i === peakIndex ? 4 : 2.5} className={i === peakIndex ? 'fill-red-500' : 'fill-indigo-500'} />
+            ))}
+            {peakIndex >= 0 && (
+                <text x={coords[peakIndex].x} y={Math.max(12, coords[peakIndex].y - 10)} textAnchor="middle" className="fill-gray-700 text-[11px] font-semibold dark:fill-gray-200">
+                    {points[peakIndex].calls}
+                </text>
+            )}
+        </svg>
+    );
+}
+
+const ACTION_LABEL: Record<string, string> = { notify: 'Notificadas', block: 'Bloqueadas', ignore: 'Ignoradas' };
+
+function RankedList({ items, colorClass }: { items: { key: string; label: string; sub?: string; value: number; display: string }[]; colorClass: string }) {
+    const max = Math.max(...items.map((i) => i.value), 1);
+
+    if (items.length === 0) {
+        return <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Sin datos en este período.</p>;
+    }
+
+    return (
+        <div className="space-y-2.5">
+            {items.map((item) => (
+                <div key={item.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs">
+                    <div>
+                        <p className="truncate font-medium text-gray-800 dark:text-gray-100">{item.label}{item.sub && <span className="ml-1.5 font-normal text-gray-400 dark:text-gray-500">{item.sub}</span>}</p>
+                        <div className="mt-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700">
+                            <div className={`h-1.5 rounded-full ${colorClass}`} style={{ width: `${Math.max(4, Math.round((item.value / max) * 100))}%` }} />
+                        </div>
+                    </div>
+                    <span className="shrink-0 font-mono text-gray-500 dark:text-gray-400">{item.display}</span>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function HeatmapGrid({ matrix }: { matrix: number[][] }) {
+    const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const max = Math.max(...matrix.flat(), 1);
+
+    return (
+        <div className="overflow-x-auto">
+            <div className="inline-grid min-w-[560px] grid-cols-[28px_1fr] gap-1.5">
+                <div className="flex flex-col justify-between text-[10px] text-gray-400 dark:text-gray-500">
+                    {days.map((d) => <span key={d}>{d}</span>)}
+                </div>
+                <div className="grid grid-rows-7 gap-1">
+                    {matrix.map((row, dayIndex) => (
+                        <div key={dayIndex} className="grid grid-cols-24 gap-[3px]">
+                            {row.map((value, hour) => {
+                                const intensity = value / max;
+                                return (
+                                    <div
+                                        key={hour}
+                                        title={`${days[dayIndex]} ${hour}:00 — ${value} llamadas`}
+                                        className="aspect-square rounded-[2px] bg-indigo-500"
+                                        style={{ opacity: value === 0 ? 0.06 : Math.max(0.15, intensity) }}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SystemGauge({ label, pct }: { label: string; pct: number | null }) {
+    const value = pct ?? 0;
+    const r = 30;
+    const circumference = 2 * Math.PI * r;
+    const offset = circumference * (1 - Math.min(100, value) / 100);
+    const color = value >= 85 ? 'stroke-red-500' : value >= 65 ? 'stroke-amber-500' : 'stroke-emerald-500';
+
+    return (
+        <div className="flex flex-col items-center">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+                <circle cx="36" cy="36" r={r} fill="none" strokeWidth="7" className="stroke-gray-100 dark:stroke-gray-700" />
+                <circle
+                    cx="36" cy="36" r={r} fill="none" strokeWidth="7" strokeLinecap="round"
+                    className={color}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    transform="rotate(-90 36 36)"
+                />
+                <text x="36" y="40" textAnchor="middle" className="fill-gray-800 text-[13px] font-semibold dark:fill-gray-100">{pct === null ? '—' : `${pct}%`}</text>
+            </svg>
+            <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">{label}</span>
+        </div>
+    );
+}
+
+function ReviewChip({ status }: { status: AlertRecentItem['reviewStatus'] }) {
+    const map: Record<AlertRecentItem['reviewStatus'], { label: string; className: string }> = {
+        pending: { label: 'Pendiente', className: 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' },
+        cleared: { label: 'Levantado', className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' },
+        maintained: { label: 'Mantenido', className: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400' },
+    };
+    const { label, className } = map[status];
+
+    return <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${className}`}>{label}</span>;
+}
+
+const ACTION_CHIP: Record<AlertRecentItem['action'], string> = {
+    block: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400',
+    notify: 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400',
+    ignore: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+};
+
+interface WidgetPickerProps {
+    open: boolean;
+    onClose: () => void;
+    available: WidgetDef[];
+    active: Set<string>;
+    onToggle: (key: string) => void;
+}
+
+function WidgetPicker({ open, onClose, available, active, onToggle }: WidgetPickerProps) {
+    return (
+        <>
+            <div
+                onClick={onClose}
+                className={`fixed inset-0 z-40 bg-black/40 transition-opacity ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            />
+            <div
+                className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-2xl transition-transform dark:bg-gray-800 ${open ? 'translate-x-0' : 'translate-x-full'}`}
+            >
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Personalizar panel</h3>
+                    <button type="button" onClick={onClose} className="text-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">✕</button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-3 py-2">
+                    {available.map((widget) => (
+                        <label key={widget.key} className="flex items-center gap-3 rounded-lg p-2.5 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <input
+                                type="checkbox"
+                                checked={active.has(widget.key)}
+                                onChange={() => onToggle(widget.key)}
+                                className="h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                            />
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-base dark:bg-gray-700">{widget.icon}</span>
+                            <span className="min-w-0">
+                                <span className="block text-sm font-medium text-gray-800 dark:text-gray-100">{widget.label}</span>
+                                <span className="block text-xs text-gray-400 dark:text-gray-500">{widget.description}</span>
+                            </span>
+                        </label>
+                    ))}
+                </div>
+                <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                    Los cambios se guardan automáticamente en tu cuenta.
+                </div>
+            </div>
+        </>
+    );
+}
+
+function KpiTile({ label, value, sub, href }: { label: string; value: string; sub?: ReactNode; href?: string }) {
+    const inner = (
+        <>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{label}</p>
+            <p className="mt-1 text-3xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{value}</p>
+            {sub && <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{sub}</div>}
+        </>
+    );
+    const className = 'rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800';
+
+    return href ? <Link href={href} className={className}>{inner}</Link> : <div className={className}>{inner}</div>;
 }
 
 const AUTO_REFRESH_OPTIONS = [
@@ -501,10 +761,30 @@ const AUTO_REFRESH_OPTIONS = [
     { value: 900_000, label: 'Cada 15 min' },
 ];
 
-export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefixStats, destinationStats, accountStats, alertCounts }: DashboardProps) {
+export default function Dashboard({
+    period,
+    isAdmin,
+    prefixStats,
+    destinationStats,
+    accountStats,
+    alertCounts,
+    kpis,
+    availableWidgets,
+    activeWidgets,
+    clientsActive,
+    trafficSeries,
+    heatmap,
+    systemHealth,
+    queueSummary,
+    alertsRecent,
+}: DashboardProps) {
     const [autoRefreshInterval, setAutoRefreshInterval] = useState(60_000);
     const [prefixModal, setPrefixModal] = useState<{ clientId: number; prefix: string } | null>(null);
     const [accountModal, setAccountModal] = useState<{ clientId: number; customer: string | null; account: string } | null>(null);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [active, setActive] = useState<Set<string>>(new Set(activeWidgets));
+
+    useEffect(() => setActive(new Set(activeWidgets)), [activeWidgets]);
 
     const handlePeriodChange = (newPeriod: string) => {
         router.get(route('dashboard'), { period: newPeriod }, { preserveState: true });
@@ -516,262 +796,369 @@ export default function Dashboard({ period, isAdmin, prefixCustomerStats, prefix
         }
 
         const interval = setInterval(() => {
-            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'prefixCustomerStats'] });
+            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'kpis', 'clientsActive', 'trafficSeries', 'heatmap', 'systemHealth', 'queueSummary', 'alertsRecent'] });
         }, autoRefreshInterval);
 
         return () => clearInterval(interval);
     }, [autoRefreshInterval, period]);
 
-    const capWithOthers = (items: DonutItem[], max: number): DonutItem[] => {
-        const sorted = [...items].sort((a, b) => b.value - a.value);
-        const top = sorted.slice(0, max);
-        const restTotal = sorted.slice(max).reduce((sum, item) => sum + item.value, 0);
-
-        return restTotal > 0 ? [...top, { label: 'Otros', value: restTotal }] : top;
+    const toggleWidget = (key: string) => {
+        const next = new Set(active);
+        next.has(key) ? next.delete(key) : next.add(key);
+        setActive(next);
+        router.patch(route('dashboard.widgets.update'), { widgets: Array.from(next) }, { preserveState: true, preserveScroll: true, only: [] });
     };
 
-    const clientPrefixDonuts = prefixStats.map((group) => ({
-        clientName: group.clientName,
-        data: capWithOthers(group.items.map((item) => ({ label: item.label ?? '—', value: item.calls })), 5),
-    }));
-
-    const topPrefixItems = prefixStats[0]?.items ?? [];
-    const prefixDonutData = capWithOthers(
-        topPrefixItems.map((item) => ({ label: item.label ?? '—', value: item.calls })),
-        6,
-    );
-
-    const periodLabels: Record<string, string> = {
-        '1h': 'Última hora',
-        '6h': 'Últimas 6 horas',
-        '24h': 'Últimas 24 horas',
-        '7d': 'Últimos 7 días',
-        '30d': 'Último mes',
-    };
+    const periodLabels: Record<string, string> = HISTORY_PERIOD_LABELS;
 
     const header = (
         <div className="flex items-center justify-between gap-2">
-            <Link
-                href={route('alerts.index')}
-                className="flex items-center gap-4 rounded-md px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-                <span className="text-sm font-semibold text-gray-700 dark:text-white">Alertas (24h):</span>
-                <span title="Bloqueadas" className="text-2xl font-semibold text-gray-900 dark:text-white">🚫 {alertCounts.block ?? 0}</span>
-                <span title="Notificadas" className="text-2xl font-semibold text-gray-900 dark:text-white">🔔 {alertCounts.notify ?? 0}</span>
-                <span title="Ignoradas" className="text-2xl font-semibold text-gray-900 dark:text-white">➖ {alertCounts.ignore ?? 0}</span>
-            </Link>
+            <h1 className="flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-100">
+                📡 Panel de Control
+            </h1>
             <div className="flex items-center gap-2">
-            <select
-                value={autoRefreshInterval}
-                onChange={(event) => setAutoRefreshInterval(Number(event.target.value))}
-                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-            >
-                {AUTO_REFRESH_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-            </select>
-            <select
-                value={period}
-                onChange={(event) => handlePeriodChange(event.target.value)}
-                className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-            >
-                {Object.entries(periodLabels).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                ))}
-            </select>
+                <select
+                    value={autoRefreshInterval}
+                    onChange={(event) => setAutoRefreshInterval(Number(event.target.value))}
+                    className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                >
+                    {AUTO_REFRESH_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                </select>
+                <select
+                    value={period}
+                    onChange={(event) => handlePeriodChange(event.target.value)}
+                    className="rounded-md border-gray-300 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                >
+                    {Object.entries(periodLabels).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                    ))}
+                </select>
+                <button
+                    type="button"
+                    onClick={() => setPickerOpen(true)}
+                    className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                >
+                    ⚙ Personalizar panel
+                    <span className="rounded-full bg-white/20 px-1.5 py-0.5 font-mono text-[11px]">{active.size}</span>
+                </button>
             </div>
         </div>
     );
 
+    const isOn = (key: string) => active.has(key);
+
     return (
         <AuthenticatedLayout header={header}>
-            <Head title="Dashboard" />
+            <Head title="Panel de Control" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 2xl:max-w-none 2xl:px-10">
-                    <div className="grid gap-4 sm:grid-cols-2 min-[1800px]:grid-cols-4">
-                        <Card color="bg-slate-700" title="Prefijos" icon="🌐" href={route('prefixes.index')}>
-                            <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                                    <tr>
-                                        <th className="px-4 py-2 text-left">Prefijo</th>
-                                        <th className="px-4 py-2 text-right">Llamadas/Minutos</th>
-                                        <th className="px-4 py-2 text-right">Histórico</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
-                                    {prefixStats.length === 0 ? (
-                                        <tr><td colSpan={3} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
-                                    ) : prefixStats.map((group, groupIndex) => (
-                                        <Fragment key={groupIndex}>
-                                            {group.clientName && (
-                                                <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                    <td colSpan={3} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
-                                                </tr>
-                                            )}
-                                            {group.items.map((item, itemIndex) => (
-                                                <tr
-                                                    key={itemIndex}
-                                                    onClick={(event) => {
-                                                        event.preventDefault();
-                                                        event.stopPropagation();
-                                                        setPrefixModal({ clientId: item.clientId, prefix: item.label });
-                                                    }}
-                                                    className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                                                >
-                                                    <td className="px-4 py-2 font-mono">{item.label ?? '—'}</td>
-                                                    <td className="px-4 py-2 text-right">
-                                                        <CallsMinutesBadge calls={item.calls} seconds={item.seconds} alerted={item.alerted} />
-                                                    </td>
-                                                    <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
-                                                </tr>
-                                            ))}
-                                        </Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
-                            </div>
-                        </Card>
-
-                        <Card
-                            color="bg-slate-500"
-                            title={isAdmin ? 'Distribución de Prefijos por Cliente' : 'Distribución por Prefijo'}
-                            icon="📊"
-                            href={route(isAdmin ? 'admin.clients.index' : 'prefixes.index')}
-                        >
-                            {isAdmin ? (
-                                clientPrefixDonuts.length === 0 ? (
-                                    <p className="p-6 text-sm text-gray-500 dark:text-gray-400">Sin llamadas en este período.</p>
-                                ) : (
-                                    <div className="divide-y dark:divide-gray-700">
-                                        {clientPrefixDonuts.map((client, index) => (
-                                            <div key={index} className="px-4 py-3">
-                                                <p className="mb-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{client.clientName}</p>
-                                                {client.data.length === 0 ? (
-                                                    <p className="text-sm text-gray-400 dark:text-gray-500">Sin llamadas en este período.</p>
-                                                ) : (
-                                                    <DonutChart items={client.data} />
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )
-                            ) : prefixDonutData.length === 0 ? (
-                                <p className="p-6 text-sm text-gray-500 dark:text-gray-400">Sin llamadas en este período.</p>
-                            ) : (
-                                <>
-                                    <DonutChart items={prefixDonutData} />
-                                    <div className="space-y-3 border-t px-4 py-3 dark:border-gray-700">
-                                        <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Customers por prefijo</p>
-                                        {topPrefixItems.map((item, index) => {
-                                            const customers = item.label ? prefixCustomerStats[item.label] ?? [] : [];
-
-                                            return (
-                                                <div key={index} className="text-xs">
-                                                    <p className="font-mono font-semibold text-gray-700 dark:text-gray-300">{item.label ?? '—'}</p>
-                                                    {customers.length === 0 ? (
-                                                        <p className="text-gray-400 dark:text-gray-500">Sin datos de customer.</p>
-                                                    ) : (
-                                                        <ul className="ml-2 space-y-0.5">
-                                                            {customers.map((c, cIndex) => (
-                                                                <li key={cIndex} className="flex justify-between text-gray-600 dark:text-gray-300">
-                                                                    <span className="truncate">{c.customer ?? '—'}</span>
-                                                                    <span className="ml-2 shrink-0 font-medium">{c.calls}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </>
+                    <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                        <KpiTile label="Llamadas activas" value={kpis.activeCalls.toLocaleString('es-CR')} sub={periodLabels[period]} />
+                        <KpiTile
+                            label="Alertas (24h)"
+                            value={((alertCounts.block ?? 0) + (alertCounts.notify ?? 0) + (alertCounts.ignore ?? 0)).toLocaleString('es-CR')}
+                            href={route('alerts.index')}
+                            sub={(
+                                <div className="flex gap-3">
+                                    <span>🚫 {alertCounts.block ?? 0}</span>
+                                    <span>🔔 {alertCounts.notify ?? 0}</span>
+                                    <span>➖ {alertCounts.ignore ?? 0}</span>
+                                </div>
                             )}
-                        </Card>
+                        />
+                        <KpiTile
+                            label="Cuentas en revisión"
+                            value={kpis.accountsInReview.toLocaleString('es-CR')}
+                            href={route('alerts.index')}
+                            sub="Bloqueos pendientes"
+                        />
+                        <KpiTile
+                            label="Prefijos monitoreados"
+                            value={kpis.prefixesMonitored.toLocaleString('es-CR')}
+                            href={route('prefixes.index')}
+                            sub="Con tráfico en este período"
+                        />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 min-[1800px]:grid-cols-4">
 
-                        <Card color="bg-pink-700" title="Destinos (Top 10)" icon="📞" href={route('destinations.index')}>
-                            <table className="w-full text-sm">
-                                <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                                    <tr>
-                                        <th className="px-4 py-2 text-left">Prefijo</th>
-                                        <th className="px-4 py-2 text-left">Destino</th>
-                                        <th className="px-4 py-2 text-right">Llamadas</th>
-                                        <th className="px-4 py-2 text-right">Histórico</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
-                                    {destinationStats.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
-                                    ) : destinationStats.map((group, groupIndex) => (
-                                        <Fragment key={groupIndex}>
-                                            {group.clientName && (
-                                                <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                    <td colSpan={4} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
-                                                </tr>
-                                            )}
-                                            {group.items.map((item, itemIndex) => (
-                                                <tr key={itemIndex}>
-                                                    <td className="px-4 py-2">{item.prefix ?? '—'}</td>
-                                                    <td className="px-4 py-2">{item.destination ?? '—'}</td>
-                                                    <td className="px-4 py-2 text-right">{item.calls}</td>
-                                                    <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
-                                                </tr>
-                                            ))}
-                                        </Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </Card>
+                        {isOn('traffic') && (
+                            <div className="md:col-span-2">
+                                <WidgetCard icon="📈" title="Tráfico de llamadas" tag={periodLabels[period]}>
+                                    <TrafficChart points={trafficSeries} />
+                                </WidgetCard>
+                            </div>
+                        )}
 
-                        <Card color="bg-purple-700" title="Cuentas" icon="👥" href={route('accounts.index')}>
-                            <table className="w-full text-sm">
-                                <thead className="bg-gray-100 text-xs uppercase text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                                    <tr>
-                                        {isAdmin && <th className="px-4 py-2 text-left">Customer</th>}
-                                        <th className="px-4 py-2 text-left">Cuenta</th>
-                                        <th className="px-4 py-2 text-right">Llamadas/Minutos</th>
-                                        <th className="px-4 py-2 text-right">Histórico</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
-                                    {accountStats.length === 0 ? (
-                                        <tr><td colSpan={isAdmin ? 4 : 3} className="px-4 py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
-                                    ) : accountStats.map((group, groupIndex) => (
-                                        <Fragment key={groupIndex}>
-                                            {group.clientName && (
-                                                <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                    <td colSpan={isAdmin ? 4 : 3} className="px-4 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
-                                                </tr>
-                                            )}
-                                            {group.items.map((item, itemIndex) => (
-                                                <tr
-                                                    key={itemIndex}
-                                                    onClick={(event) => {
-                                                        event.preventDefault();
-                                                        event.stopPropagation();
-                                                        if (item.account) {
-                                                            setAccountModal({ clientId: item.clientId, customer: item.customer, account: item.account });
-                                                        }
-                                                    }}
-                                                    className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                                                >
-                                                    {isAdmin && <td className="px-4 py-2">{item.customer ?? '—'}</td>}
-                                                    <td className="px-4 py-2">{item.account ?? '—'}</td>
-                                                    <td className="px-4 py-2 text-right">
-                                                        <CallsMinutesBadge calls={item.calls} seconds={item.seconds} alerted={item.alerted} />
-                                                    </td>
-                                                    <td className="px-4 py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
-                                                </tr>
+                        {isOn('actions') && (
+                            <WidgetCard icon="🎯" title="Distribución de acciones" href={route('alerts.index')}>
+                                {(alertCounts.block ?? 0) + (alertCounts.notify ?? 0) + (alertCounts.ignore ?? 0) === 0 ? (
+                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Sin alertas en las últimas 24h.</p>
+                                ) : (
+                                    <DonutChart
+                                        colors={['#f59e0b', '#ef4444', '#94a3b8']}
+                                        items={[
+                                            { label: ACTION_LABEL.notify, value: alertCounts.notify ?? 0 },
+                                            { label: ACTION_LABEL.block, value: alertCounts.block ?? 0 },
+                                            { label: ACTION_LABEL.ignore, value: alertCounts.ignore ?? 0 },
+                                        ]}
+                                    />
+                                )}
+                            </WidgetCard>
+                        )}
+
+                        {isOn('prefixes') && (
+                            <WidgetCard icon="🌐" title="Prefijos" href={route('prefixes.index')}>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
+                                            <tr>
+                                                <th className="py-1.5 text-left">Prefijo</th>
+                                                <th className="py-1.5 text-right">Llamadas/Min.</th>
+                                                <th className="py-1.5 text-right">Histórico</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
+                                            {prefixStats.length === 0 ? (
+                                                <tr><td colSpan={3} className="py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
+                                            ) : prefixStats.map((group, groupIndex) => (
+                                                <Fragment key={groupIndex}>
+                                                    {group.clientName && (
+                                                        <tr className="bg-gray-50 dark:bg-gray-900/40">
+                                                            <td colSpan={3} className="py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                        </tr>
+                                                    )}
+                                                    {group.items.map((item, itemIndex) => (
+                                                        <tr
+                                                            key={itemIndex}
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                setPrefixModal({ clientId: item.clientId, prefix: item.label });
+                                                            }}
+                                                            className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                                                        >
+                                                            <td className="py-2 font-mono">{item.label ?? '—'}</td>
+                                                            <td className="py-2 text-right">
+                                                                <CallsMinutesBadge calls={item.calls} seconds={item.seconds} alerted={item.alerted} />
+                                                            </td>
+                                                            <td className="py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
+                                                        </tr>
+                                                    ))}
+                                                </Fragment>
                                             ))}
-                                        </Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </Card>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </WidgetCard>
+                        )}
+
+                        {isOn('destinations') && (
+                            <WidgetCard icon="📞" title="Destinos (Top 10)" href={route('destinations.index')}>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
+                                            <tr>
+                                                <th className="py-1.5 text-left">Prefijo</th>
+                                                <th className="py-1.5 text-left">Destino</th>
+                                                <th className="py-1.5 text-right">Llamadas</th>
+                                                <th className="py-1.5 text-right">Histórico</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
+                                            {destinationStats.length === 0 ? (
+                                                <tr><td colSpan={4} className="py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
+                                            ) : destinationStats.map((group, groupIndex) => (
+                                                <Fragment key={groupIndex}>
+                                                    {group.clientName && (
+                                                        <tr className="bg-gray-50 dark:bg-gray-900/40">
+                                                            <td colSpan={4} className="py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                        </tr>
+                                                    )}
+                                                    {group.items.map((item, itemIndex) => (
+                                                        <tr key={itemIndex}>
+                                                            <td className="py-2">{item.prefix ?? '—'}</td>
+                                                            <td className="py-2">{item.destination ?? '—'}</td>
+                                                            <td className="py-2 text-right">{item.calls}</td>
+                                                            <td className="py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
+                                                        </tr>
+                                                    ))}
+                                                </Fragment>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </WidgetCard>
+                        )}
+
+                        {isOn('accounts') && (
+                            <WidgetCard icon="👥" title="Cuentas" href={route('accounts.index')}>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
+                                            <tr>
+                                                {isAdmin && <th className="py-1.5 text-left">Customer</th>}
+                                                <th className="py-1.5 text-left">Cuenta</th>
+                                                <th className="py-1.5 text-right">Llamadas/Min.</th>
+                                                <th className="py-1.5 text-right">Histórico</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
+                                            {accountStats.length === 0 ? (
+                                                <tr><td colSpan={isAdmin ? 4 : 3} className="py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
+                                            ) : accountStats.map((group, groupIndex) => (
+                                                <Fragment key={groupIndex}>
+                                                    {group.clientName && (
+                                                        <tr className="bg-gray-50 dark:bg-gray-900/40">
+                                                            <td colSpan={isAdmin ? 4 : 3} className="py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                        </tr>
+                                                    )}
+                                                    {group.items.map((item, itemIndex) => (
+                                                        <tr
+                                                            key={itemIndex}
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                if (item.account) {
+                                                                    setAccountModal({ clientId: item.clientId, customer: item.customer, account: item.account });
+                                                                }
+                                                            }}
+                                                            className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                                                        >
+                                                            {isAdmin && <td className="py-2">{item.customer ?? '—'}</td>}
+                                                            <td className="py-2">{item.account ?? '—'}</td>
+                                                            <td className="py-2 text-right">
+                                                                <CallsMinutesBadge calls={item.calls} seconds={item.seconds} alerted={item.alerted} />
+                                                            </td>
+                                                            <td className="py-2 text-right text-indigo-400"><Sparkline data={item.history} /></td>
+                                                        </tr>
+                                                    ))}
+                                                </Fragment>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </WidgetCard>
+                        )}
+
+                        {isOn('heatmap') && (
+                            <div className="md:col-span-2">
+                                <WidgetCard icon="🕘" title="Intensidad de tráfico por hora" tag="7 DÍAS">
+                                    <HeatmapGrid matrix={heatmap} />
+                                </WidgetCard>
+                            </div>
+                        )}
+
+                        {isAdmin && isOn('clients') && (
+                            <WidgetCard icon="🏢" title="Clientes activos" href={route('admin.clients.index')}>
+                                <RankedList
+                                    colorClass="bg-indigo-500"
+                                    items={clientsActive.slice(0, 8).map((c) => ({
+                                        key: String(c.clientId),
+                                        label: c.clientName ?? `Cliente #${c.clientId}`,
+                                        value: c.calls,
+                                        display: c.calls.toLocaleString('es-CR'),
+                                    }))}
+                                />
+                            </WidgetCard>
+                        )}
+
+                        {isAdmin && isOn('system') && (
+                            <WidgetCard icon="🖥" title="Salud del servidor" href={route('admin.status.index')}>
+                                {systemHealth === null ? (
+                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Aún no hay muestras registradas.</p>
+                                ) : (
+                                    <div className="flex justify-around">
+                                        <SystemGauge label="CPU" pct={systemHealth.cpuPct} />
+                                        <SystemGauge label="RAM" pct={systemHealth.memPct} />
+                                        <SystemGauge label="Disco" pct={systemHealth.diskPct} />
+                                    </div>
+                                )}
+                            </WidgetCard>
+                        )}
+
+                        {isAdmin && isOn('queue') && (
+                            <WidgetCard icon="⚙" title="Cola de jobs" href={route('admin.queue.index')}>
+                                {queueSummary === null ? (
+                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Sin datos.</p>
+                                ) : (
+                                    <div className="space-y-2.5 text-sm">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-600 dark:text-gray-300">Pendientes</span>
+                                            <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">{queueSummary.pending}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-600 dark:text-gray-300">En ejecución</span>
+                                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-xs text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">{queueSummary.running}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-600 dark:text-gray-300">Fallidos (24h)</span>
+                                            <span className="rounded-full bg-red-100 px-2 py-0.5 font-mono text-xs text-red-800 dark:bg-red-500/10 dark:text-red-400">{queueSummary.failedRecent}</span>
+                                        </div>
+                                        {queueSummary.oldestPendingSeconds !== null && (
+                                            <p className="border-t border-gray-100 pt-2 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                                                Pendiente más antiguo: hace {Math.round(queueSummary.oldestPendingSeconds / 60)} min
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </WidgetCard>
+                        )}
+
+                        {isOn('alerts') && (
+                            <div className="md:col-span-2 min-[1800px]:col-span-4">
+                                <WidgetCard icon="🔔" title="Alertas recientes" href={route('alerts.index')}>
+                                    {alertsRecent.length === 0 ? (
+                                        <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Aún no hay alertas registradas.</p>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
+                                                    <tr>
+                                                        <th className="py-1.5 text-left">Hora</th>
+                                                        {isAdmin && <th className="py-1.5 text-left">Cliente</th>}
+                                                        <th className="py-1.5 text-left">Cuenta</th>
+                                                        <th className="py-1.5 text-left">Regla</th>
+                                                        <th className="py-1.5 text-right">Llamadas</th>
+                                                        <th className="py-1.5 text-right">Segundos</th>
+                                                        <th className="py-1.5 text-left">Acción</th>
+                                                        <th className="py-1.5 text-left">Revisión</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-200">
+                                                    {alertsRecent.map((alert) => (
+                                                        <tr key={alert.id}>
+                                                            <td className="py-2 font-mono text-xs">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(alert.occurredAt))}</td>
+                                                            {isAdmin && <td className="py-2">{alert.clientName ?? '—'}</td>}
+                                                            <td className="py-2 font-mono">{alert.account ?? '—'}</td>
+                                                            <td className="py-2">{alert.ruleLabel ?? '—'}</td>
+                                                            <td className="py-2 text-right">{alert.calls ?? '—'}</td>
+                                                            <td className="py-2 text-right">{alert.seconds ?? '—'}</td>
+                                                            <td className="py-2"><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ACTION_CHIP[alert.action]}`}>{ACTION_LABEL[alert.action]}</span></td>
+                                                            <td className="py-2">{alert.action === 'block' ? <ReviewChip status={alert.reviewStatus} /> : <span className="text-gray-400 dark:text-gray-500">—</span>}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </WidgetCard>
+                            </div>
+                        )}
+
                     </div>
                 </div>
             </div>
+
+            <WidgetPicker
+                open={pickerOpen}
+                onClose={() => setPickerOpen(false)}
+                available={availableWidgets}
+                active={active}
+                onToggle={toggleWidget}
+            />
 
             {prefixModal && (
                 <PrefixDetailModal

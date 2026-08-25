@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['client_id', 'legacy_sub_user_id', 'name', 'username', 'email', 'password', 'role', 'read_only'])]
+#[Fillable(['client_id', 'legacy_sub_user_id', 'name', 'username', 'email', 'password', 'role', 'read_only', 'dashboard_widgets'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -30,6 +30,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'read_only' => 'boolean',
+            'dashboard_widgets' => 'array',
         ];
     }
 

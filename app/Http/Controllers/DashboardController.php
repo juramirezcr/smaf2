@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRuleEvent;
+use App\Models\SystemMetric;
+use App\Support\DashboardWidgets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,22 +37,17 @@ class DashboardController extends Controller
 
         [$alertedPrefixKeys, $alertedAccountKeys] = $this->alertedKeys($isAdmin, $clientId);
 
+        $alertCounts = MonitoringRuleEvent::query()
+            ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
+            ->where('occurred_at', '>=', now()->subDay())
+            ->select('action')
+            ->selectRaw('count(*) as total')
+            ->groupBy('action')
+            ->pluck('total', 'action');
+
         return Inertia::render('Dashboard', [
             'period' => $period,
             'isAdmin' => $isAdmin,
-            'prefixCustomerStats' => $isAdmin
-                ? []
-                : (clone $baseQuery)
-                    ->select('prefix', 'customer')
-                    ->selectRaw('count(*) as calls')
-                    ->groupBy('prefix', 'customer')
-                    ->orderByDesc('calls')
-                    ->get()
-                    ->groupBy('prefix')
-                    ->map(fn ($rows) => $rows->take(5)->map(fn ($row) => [
-                        'customer' => $row->customer,
-                        'calls' => (int) $row->calls,
-                    ])->values()),
             'prefixStats' => $this->groupedByClient(
                 (clone $baseQuery)
                     ->selectRaw("client_id, prefix, {$bucketExpression} as bucket")
@@ -85,14 +83,175 @@ class DashboardController extends Controller
                 perGroupLimit: 5,
                 alertedKeys: $alertedAccountKeys,
             ),
-            'alertCounts' => MonitoringRuleEvent::query()
+            'alertCounts' => $alertCounts,
+            'kpis' => [
+                'activeCalls' => (clone $baseQuery)->count(),
+                'accountsInReview' => $this->accountsInReviewCount($isAdmin, $clientId),
+                'prefixesMonitored' => (clone $baseQuery)->whereNotNull('prefix')->distinct('prefix')->count('prefix'),
+            ],
+            'availableWidgets' => array_values(array_filter(
+                DashboardWidgets::catalog(),
+                fn (array $widget) => $isAdmin || ! $widget['adminOnly'],
+            )),
+            'activeWidgets' => DashboardWidgets::resolveActive($user->dashboard_widgets, $isAdmin),
+            'clientsActive' => $isAdmin
+                ? (clone $baseQuery)
+                    ->selectRaw('client_id')
+                    ->selectRaw('count(*) as calls')
+                    ->groupBy('client_id')
+                    ->orderByDesc('calls')
+                    ->get()
+                    ->map(fn ($row) => [
+                        'clientId' => $row->client_id,
+                        'clientName' => $clientNames?->get($row->client_id),
+                        'calls' => (int) $row->calls,
+                    ])
+                : [],
+            'trafficSeries' => $this->trafficSeries(
+                (clone $baseQuery)
+                    ->selectRaw("{$bucketExpression} as bucket")
+                    ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
+                    ->groupBy('bucket')
+                    ->get(),
+                since: $since,
+                bucketUnitSeconds: $bucketUnitSeconds,
+                bucketCount: $bucketCount,
+            ),
+            'heatmap' => $this->weeklyHeatmap($isAdmin, $clientId),
+            'systemHealth' => $isAdmin ? $this->systemHealthSnapshot() : null,
+            'queueSummary' => $isAdmin ? $this->queueSummary() : null,
+            'alertsRecent' => MonitoringRuleEvent::query()
                 ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
-                ->where('occurred_at', '>=', now()->subDay())
-                ->select('action')
-                ->selectRaw('count(*) as total')
-                ->groupBy('action')
-                ->pluck('total', 'action'),
+                ->with(['rule:id,match_value,description', 'reviewer:id,name'])
+                ->latest('occurred_at')
+                ->limit(8)
+                ->get()
+                ->map(fn (MonitoringRuleEvent $event) => [
+                    'id' => $event->id,
+                    'occurredAt' => $event->occurred_at->toIso8601String(),
+                    'clientName' => $isAdmin ? $clientNames?->get($event->client_id) : null,
+                    'account' => $event->context['account'] ?? null,
+                    'calls' => $event->context['calls'] ?? null,
+                    'seconds' => $event->context['seconds'] ?? null,
+                    'action' => $event->action,
+                    'ruleLabel' => $event->rule?->description ?: $event->rule?->match_value,
+                    'reviewStatus' => $event->review_status,
+                ]),
         ]);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function trafficSeries($rows, \Illuminate\Support\Carbon $since, int $bucketUnitSeconds, int $bucketCount): array
+    {
+        $byBucket = $rows->keyBy(fn ($row) => (int) $row->bucket);
+        $series = [];
+
+        for ($i = 0; $i < $bucketCount; $i++) {
+            $row = $byBucket->get($i);
+
+            $series[] = [
+                'at' => $since->copy()->addSeconds($i * $bucketUnitSeconds)->toIso8601String(),
+                'calls' => $row ? (int) $row->calls : 0,
+                'seconds' => $row ? (int) $row->seconds : 0,
+            ];
+        }
+
+        return $series;
+    }
+
+    /**
+     * Matriz día(0=lun..6=dom) x hora(0-23) de llamadas en los últimos 7
+     * días, para el mapa de calor de intensidad de tráfico.
+     *
+     * @return array<int, array<int, int>>
+     */
+    private function weeklyHeatmap(bool $isAdmin, ?int $clientId): array
+    {
+        $rows = CallRecord::query()
+            ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
+            ->where('connected_at', '>=', now()->subDays(7))
+            ->selectRaw('DAYOFWEEK(connected_at) as dow, HOUR(connected_at) as hr')
+            ->selectRaw('count(*) as calls')
+            ->groupBy('dow', 'hr')
+            ->get();
+
+        $matrix = array_fill(0, 7, array_fill(0, 24, 0));
+
+        foreach ($rows as $row) {
+            $dayIndex = ((int) $row->dow + 5) % 7; // DAYOFWEEK: 1=dom..7=sáb -> 0=lun..6=dom
+            $matrix[$dayIndex][(int) $row->hr] = (int) $row->calls;
+        }
+
+        return $matrix;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function systemHealthSnapshot(): ?array
+    {
+        $metric = SystemMetric::query()->latest('recorded_at')->first();
+
+        if ($metric === null) {
+            return null;
+        }
+
+        return [
+            'cpuPct' => ($metric->cpu_load_1m !== null && $metric->cpu_cores)
+                ? round(min(100, $metric->cpu_load_1m / $metric->cpu_cores * 100), 1)
+                : null,
+            'memPct' => ($metric->mem_used_mb !== null && $metric->mem_total_mb)
+                ? round($metric->mem_used_mb / $metric->mem_total_mb * 100, 1)
+                : null,
+            'diskPct' => ($metric->disk_used_gb !== null && $metric->disk_total_gb)
+                ? round($metric->disk_used_gb / $metric->disk_total_gb * 100, 1)
+                : null,
+            'recordedAt' => $metric->recorded_at->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function queueSummary(): array
+    {
+        $jobs = DB::table('jobs')->get(['reserved_at', 'created_at']);
+        $pending = $jobs->whereNull('reserved_at');
+
+        return [
+            'pending' => $pending->count(),
+            'running' => $jobs->count() - $pending->count(),
+            'failedRecent' => DB::table('failed_jobs')->where('failed_at', '>=', now()->subDay())->count(),
+            'oldestPendingSeconds' => $pending->isEmpty() ? null : now()->timestamp - $pending->min('created_at'),
+        ];
+    }
+
+    /**
+     * Cuenta cuentas distintas con al menos un bloqueo pendiente de revisión
+     * (no acotado al período seleccionado: es una cola de trabajo, no una
+     * métrica de tráfico).
+     */
+    private function accountsInReviewCount(bool $isAdmin, ?int $clientId): int
+    {
+        $events = MonitoringRuleEvent::query()
+            ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
+            ->where('action', 'block')
+            ->where('review_status', 'pending')
+            ->get(['client_id', 'context']);
+
+        $accountKeys = [];
+
+        foreach ($events as $event) {
+            $account = $event->context['account'] ?? null;
+
+            if ($account !== null) {
+                $accountKeys[$event->client_id.'|'.$account] = true;
+            }
+        }
+
+        return count($accountKeys);
     }
 
     /**

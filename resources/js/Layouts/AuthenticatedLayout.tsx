@@ -44,7 +44,7 @@ export default function Authenticated({
     const [configOpen, setConfigOpen] = useState<boolean>(configActive);
 
     const navItems: NavItem[] = [
-        { name: 'Actual', href: route('dashboard'), active: route().current('dashboard'), icon: 'dashboard' },
+        { name: 'Panel de Control', href: route('dashboard'), active: route().current('dashboard'), icon: 'dashboard' },
         { name: 'Llamadas', href: route('calls.index'), active: route().current('calls.*'), icon: 'phone' },
         { name: 'Prefijos', href: route('prefixes.index'), active: route().current('prefixes.*'), icon: 'globe' },
         { name: 'Destinos', href: route('destinations.index'), active: route().current('destinations.*'), icon: 'outbound' },

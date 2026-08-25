@@ -5,12 +5,30 @@ namespace App\Http\Controllers;
 use App\Models\CallRecord;
 use App\Models\MonitoringRule;
 use App\Models\User;
+use App\Support\DashboardWidgets;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class DashboardDetailController extends Controller
 {
+    public function updateWidgets(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'widgets' => ['required', 'array'],
+            'widgets.*' => ['string'],
+        ]);
+
+        $allowed = DashboardWidgets::allowedKeys($user->isSystemAdmin());
+        $selected = array_values(array_intersect($validated['widgets'], $allowed));
+
+        $user->update(['dashboard_widgets' => $selected]);
+
+        return response()->json(['activeWidgets' => DashboardWidgets::resolveActive($selected, $user->isSystemAdmin())]);
+    }
+
     public function prefixHistory(Request $request): JsonResponse
     {
         $clientId = $this->resolveClientId($request);

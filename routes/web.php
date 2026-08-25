@@ -31,6 +31,12 @@ Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+// Preferencia personal de widgets: se permite incluso a administradores de
+// solo lectura, ya que solo cambia lo que ESE usuario ve, no datos del sistema.
+Route::patch('/dashboard/widgets', [DashboardDetailController::class, 'updateWidgets'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.widgets.update');
+
 Route::middleware(['auth', 'verified', 'not-read-only'])->prefix('dashboard')->name('dashboard.')->group(function () {
     Route::get('/prefix-history', [DashboardDetailController::class, 'prefixHistory'])->name('prefix-history');
     Route::get('/account-history', [DashboardDetailController::class, 'accountHistory'])->name('account-history');
