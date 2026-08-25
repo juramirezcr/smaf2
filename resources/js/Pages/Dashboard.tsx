@@ -211,7 +211,7 @@ function HistoryChart({ buckets, loading }: { buckets: HistoryBucket[] | null; l
                 <polyline points={points.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" className="stroke-indigo-500" strokeWidth={2.5} />
                 {points.map((p, index) => <circle key={index} cx={p.x} cy={p.y} r={3.5} className="fill-indigo-500" />)}
                 {points.map((p, index) => p.calls > 0 && (
-                    <text key={index} x={p.x} y={Math.max(14, p.y - 10)} textAnchor="middle" className="fill-indigo-700 text-[13px] font-semibold dark:fill-indigo-300">
+                    <text key={index} x={p.x} y={Math.max(14, p.y - 10)} textAnchor="middle" className="fill-indigo-700 text-[12px] font-semibold dark:fill-indigo-300">
                         {p.calls}
                     </text>
                 ))}
@@ -513,7 +513,7 @@ function WidgetCard({ icon, title, tag, href, children }: { icon: string; title:
                     <span>{icon}</span>
                     {title}
                 </h2>
-                {tag && <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">{tag}</span>}
+                {tag && <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">{tag}</span>}
             </div>
             <div className="min-w-0 flex-1 p-4">{children}</div>
         </>
@@ -574,7 +574,7 @@ function TrafficChart({ points, period }: { points: TrafficPoint[]; period: stri
                 </text>
             ))}
             {coords.map((c, i) => (i % timeLabelEvery === 0 || i === coords.length - 1) && (
-                <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[10px] dark:fill-gray-500">
+                <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[11px] dark:fill-gray-500">
                     {formatAxisLabel(c.at, timeZone, period)}
                 </text>
             ))}
@@ -591,12 +591,12 @@ function HeatmapGrid({ matrix }: { matrix: number[][] }) {
     return (
         <div className="overflow-x-auto">
             <div
-                className="grid min-w-[860px] gap-1"
-                style={{ gridTemplateColumns: `40px repeat(24, minmax(0, 1fr))` }}
+                className="grid min-w-[700px] gap-1"
+                style={{ gridTemplateColumns: `32px repeat(24, minmax(0, 1fr))` }}
             >
                 {matrix.map((row, dayIndex) => (
                     <Fragment key={dayIndex}>
-                        <span className="flex items-center text-[20px] text-gray-400 dark:text-gray-500">{days[dayIndex]}</span>
+                        <span className="flex items-center text-xs text-gray-400 dark:text-gray-500">{days[dayIndex]}</span>
                         {row.map((value, hour) => {
                             const intensity = value / max;
                             return (
@@ -612,7 +612,7 @@ function HeatmapGrid({ matrix }: { matrix: number[][] }) {
                 ))}
                 <span />
                 {Array.from({ length: 24 }, (_, hour) => (
-                    <span key={hour} className="text-center text-[18px] text-gray-400 dark:text-gray-500">
+                    <span key={hour} className="text-center text-xs text-gray-400 dark:text-gray-500">
                         {hour}
                     </span>
                 ))}
