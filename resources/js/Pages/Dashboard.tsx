@@ -626,27 +626,26 @@ function HeatmapGrid({ matrix }: { matrix: number[][] }) {
 
     return (
         <div className="overflow-x-auto">
-            <div className="inline-grid min-w-[560px] grid-cols-[28px_1fr] gap-1.5">
-                <div className="flex flex-col justify-between text-[10px] text-gray-400 dark:text-gray-500">
-                    {days.map((d) => <span key={d}>{d}</span>)}
-                </div>
-                <div className="grid grid-rows-7 gap-1">
-                    {matrix.map((row, dayIndex) => (
-                        <div key={dayIndex} className="grid grid-cols-24 gap-[3px]">
-                            {row.map((value, hour) => {
-                                const intensity = value / max;
-                                return (
-                                    <div
-                                        key={hour}
-                                        title={`${days[dayIndex]} ${hour}:00 — ${value} llamadas`}
-                                        className="aspect-square rounded-[2px] bg-indigo-500"
-                                        style={{ opacity: value === 0 ? 0.06 : Math.max(0.15, intensity) }}
-                                    />
-                                );
-                            })}
-                        </div>
-                    ))}
-                </div>
+            <div
+                className="inline-grid min-w-[560px] gap-1"
+                style={{ gridTemplateColumns: `28px repeat(24, minmax(0, 1fr))` }}
+            >
+                {matrix.map((row, dayIndex) => (
+                    <Fragment key={dayIndex}>
+                        <span className="flex items-center text-[10px] text-gray-400 dark:text-gray-500">{days[dayIndex]}</span>
+                        {row.map((value, hour) => {
+                            const intensity = value / max;
+                            return (
+                                <div
+                                    key={hour}
+                                    title={`${days[dayIndex]} ${hour}:00 — ${value} llamadas`}
+                                    className="aspect-square rounded-[2px] bg-indigo-500"
+                                    style={{ opacity: value === 0 ? 0.06 : Math.max(0.15, intensity) }}
+                                />
+                            );
+                        })}
+                    </Fragment>
+                ))}
             </div>
         </div>
     );
