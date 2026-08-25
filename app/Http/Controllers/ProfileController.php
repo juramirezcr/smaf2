@@ -45,6 +45,8 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->isSystemAdmin(), 403);
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
