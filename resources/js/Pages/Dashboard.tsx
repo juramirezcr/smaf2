@@ -15,6 +15,8 @@ interface StatItem {
     seconds: number;
     history: number[];
     alerted: boolean;
+    ruleLimit: number | null;
+    ruleAction: 'notify' | 'block' | 'ignore' | null;
 }
 
 interface StatGroup {
@@ -145,6 +147,35 @@ function CallsMinutesBadge({ calls, seconds, alerted }: { calls: number; seconds
             }`}
         >
             {calls} / {minutes} min
+        </span>
+    );
+}
+
+const PREFIX_RULE_ACTION_CODE: Record<'notify' | 'block' | 'ignore', string> = { notify: 'N', block: 'B', ignore: 'I' };
+
+const PREFIX_RULE_ACTION_COLOR: Record<'notify' | 'block' | 'ignore', string> = {
+    notify: 'text-amber-500 dark:text-amber-400',
+    block: 'text-red-500 dark:text-red-400',
+    ignore: 'text-gray-400/40 dark:text-gray-500/40',
+};
+
+const PREFIX_RULE_ACTION_TITLE: Record<'notify' | 'block' | 'ignore', string> = {
+    notify: 'Notificar',
+    block: 'Bloquear',
+    ignore: 'Ignorar',
+};
+
+function PrefixRuleBadge({ limit, action }: { limit: number | null; action: 'notify' | 'block' | 'ignore' | null }) {
+    if (limit === null || action === null) {
+        return null;
+    }
+
+    return (
+        <span
+            title={`Límite ${limit} llamadas/hora · ${PREFIX_RULE_ACTION_TITLE[action]}`}
+            className={`ml-1.5 font-mono text-xs font-normal ${PREFIX_RULE_ACTION_COLOR[action]}`}
+        >
+            ({limit}/{PREFIX_RULE_ACTION_CODE[action]})
         </span>
     );
 }
@@ -1005,7 +1036,10 @@ export default function Dashboard({
                                                             }}
                                                             className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                                                         >
-                                                            <td className="py-2 font-mono">{item.label ?? '—'}</td>
+                                                            <td className="py-2 font-mono">
+                                                                {item.label ?? '—'}
+                                                                <PrefixRuleBadge limit={item.ruleLimit} action={item.ruleAction} />
+                                                            </td>
                                                             <td className="py-2 text-right">
                                                                 <CallsMinutesBadge calls={item.calls} seconds={item.seconds} alerted={item.alerted} />
                                                             </td>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CallRecord;
 use App\Models\Client;
+use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
 use App\Support\DashboardWidgets;
 use Illuminate\Http\Request;
@@ -35,6 +36,7 @@ class DashboardController extends Controller
         $bucketExpression = "FLOOR((UNIX_TIMESTAMP(connected_at) - {$sinceTimestamp}) / {$bucketUnitSeconds})";
 
         [$alertedPrefixKeys, $alertedAccountKeys] = $this->alertedKeys($isAdmin, $clientId);
+        $prefixRuleLookup = $this->prefixRuleLookup($isAdmin, $clientId);
 
         $alertCounts = MonitoringRuleEvent::query()
             ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
@@ -58,6 +60,7 @@ class DashboardController extends Controller
                 clientNames: $clientNames,
                 perClientLimit: 5,
                 alertedKeys: $alertedPrefixKeys,
+                ruleLookup: $prefixRuleLookup,
             ),
             'destinationStats' => $this->topDestinations(
                 (clone $baseQuery)
@@ -316,6 +319,38 @@ class DashboardController extends Controller
     }
 
     /**
+     * Reglas de prefijo "en bruto" (sin account/customer) aplicables, para
+     * mostrar el límite/acción configurados junto al prefijo en el widget.
+     * Se ignoran las reglas atadas a una cuenta/customer específico porque
+     * ese contexto no existe en esta vista agregada por prefijo.
+     *
+     * Clave 'clientId|prefix' para reglas de cliente, 'GLOBAL|prefix' para
+     * globales (solo existen cuando isAdmin, ya que a un cliente ya se le
+     * resuelve su propio scoping en la query).
+     *
+     * @return array<string, array{limit: int|null, action: string}>
+     */
+    private function prefixRuleLookup(bool $isAdmin, ?int $clientId): array
+    {
+        $rules = MonitoringRule::query()
+            ->where('scope', 'prefix')
+            ->where('enabled', true)
+            ->where(fn ($query) => $query->whereNull('account')->orWhere('account', ''))
+            ->where(fn ($query) => $query->whereNull('customer')->orWhere('customer', ''))
+            ->when(!$isAdmin, fn ($query) => $query->where(fn ($q) => $q->whereNull('client_id')->orWhere('client_id', $clientId)))
+            ->get(['client_id', 'match_value', 'call_limit', 'action']);
+
+        $lookup = [];
+
+        foreach ($rules as $rule) {
+            $key = ($rule->client_id ?? 'GLOBAL').'|'.$rule->match_value;
+            $lookup[$key] = ['limit' => $rule->call_limit, 'action' => $rule->action];
+        }
+
+        return $lookup;
+    }
+
+    /**
      * @return array{0: \Illuminate\Support\Carbon, 1: int, 2: int}
      */
     private function periodBuckets(string $period): array
@@ -330,21 +365,27 @@ class DashboardController extends Controller
         };
     }
 
-    private function groupedByClient($rows, string $labelField, int $bucketCount, $clientNames, int $perClientLimit, array $alertedKeys = []): array
+    private function groupedByClient($rows, string $labelField, int $bucketCount, $clientNames, int $perClientLimit, array $alertedKeys = [], array $ruleLookup = []): array
     {
         $aggregated = [];
 
         foreach ($rows as $row) {
             $key = $row->client_id.'|'.$row->$labelField;
 
-            $aggregated[$key] ??= [
-                'clientId' => $row->client_id,
-                'label' => $row->$labelField,
-                'calls' => 0,
-                'seconds' => 0,
-                'history' => array_fill(0, $bucketCount, 0),
-                'alerted' => isset($alertedKeys[$key]),
-            ];
+            if (! isset($aggregated[$key])) {
+                $rule = $ruleLookup[$key] ?? $ruleLookup['GLOBAL|'.$row->$labelField] ?? null;
+
+                $aggregated[$key] = [
+                    'clientId' => $row->client_id,
+                    'label' => $row->$labelField,
+                    'calls' => 0,
+                    'seconds' => 0,
+                    'history' => array_fill(0, $bucketCount, 0),
+                    'alerted' => isset($alertedKeys[$key]),
+                    'ruleLimit' => $rule['limit'] ?? null,
+                    'ruleAction' => $rule['action'] ?? null,
+                ];
+            }
 
             $aggregated[$key]['calls'] += (int) $row->calls;
             $aggregated[$key]['seconds'] += (int) $row->seconds;
