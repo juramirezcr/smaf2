@@ -415,7 +415,14 @@ class DashboardController extends Controller
             $byCustomer = [];
             foreach ($top as $item) {
                 $byCustomer[$item['customer'] ?? '']['label'] = $item['customer'] ?: 'Sin customer';
-                $byCustomer[$item['customer'] ?? '']['items'][] = $item;
+                $byCustomer[$item['customer'] ?? '']['items'][] = [
+                    'clientId' => $item['client_id'],
+                    'prefix' => $item['prefix'],
+                    'destination' => $item['destination'],
+                    'calls' => $item['calls'],
+                    'seconds' => $item['seconds'],
+                    'history' => $item['history'],
+                ];
             }
 
             $groups = array_values($byCustomer);
@@ -453,7 +460,14 @@ class DashboardController extends Controller
 
         $byClient = [];
         foreach ($top as $item) {
-            $byClient[$item['client_id']][] = $item;
+            $byClient[$item['client_id']][] = [
+                'clientId' => $item['client_id'],
+                'prefix' => $item['prefix'],
+                'destination' => $item['destination'],
+                'calls' => $item['calls'],
+                'seconds' => $item['seconds'],
+                'history' => $item['history'],
+            ];
         }
 
         $groups = [];

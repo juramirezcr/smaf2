@@ -16,7 +16,7 @@ class EvaluateMonitoringRules extends Command
 {
     protected $signature = 'smaf:evaluate-monitoring-rules';
 
-    protected $description = 'Evalúa las reglas de prefijo (globales y por cliente) contra las llamadas de la última hora y genera alertas cuando una cuenta supera los límites configurados.';
+    protected $description = 'Evalúa las reglas de prefijo y destino (globales y por cliente) contra las llamadas de la última hora y genera alertas cuando una cuenta supera los límites configurados.';
 
     public function handle(AdminAlertNotifier $adminAlerts): int
     {
@@ -40,7 +40,7 @@ class EvaluateMonitoringRules extends Command
     private function evaluateRules(): int
     {
         $rules = MonitoringRule::query()
-            ->where('scope', 'prefix')
+            ->whereIn('scope', ['prefix', 'destination'])
             ->where('enabled', true)
             ->where(function ($query) {
                 $query->whereNotNull('call_limit')->orWhereNotNull('duration_limit_seconds');
@@ -48,7 +48,7 @@ class EvaluateMonitoringRules extends Command
             ->get();
 
         if ($rules->isEmpty()) {
-            $this->info('No hay reglas de prefijo activas con límites configurados.');
+            $this->info('No hay reglas de prefijo ni destino activas con límites configurados.');
 
             return self::SUCCESS;
         }
@@ -56,11 +56,13 @@ class EvaluateMonitoringRules extends Command
         $clientRules = $rules->whereNotNull('client_id');
         $globalRules = $rules->whereNull('client_id');
 
-        // Un cliente con su propia regla para un match_value anula la regla
-        // global equivalente; la global solo aplica a clientes sin override.
+        // Un cliente con su propia regla para un scope+match_value anula la
+        // regla global equivalente; la global solo aplica a clientes sin
+        // override (el scope entra en la clave para no confundir un prefijo
+        // y un destino que compartan el mismo valor).
         $overriddenMatchValuesByClient = $clientRules
             ->groupBy('client_id')
-            ->map(fn (Collection $group) => $group->pluck('match_value')->all());
+            ->map(fn (Collection $group) => $group->map(fn (MonitoringRule $rule) => $rule->scope.'|'.$rule->match_value)->all());
 
         $allClientIds = Client::query()->pluck('id');
 
@@ -75,7 +77,7 @@ class EvaluateMonitoringRules extends Command
             foreach ($allClientIds as $clientId) {
                 $overrides = $overriddenMatchValuesByClient->get($clientId, []);
 
-                if (in_array($rule->match_value, $overrides, true)) {
+                if (in_array($rule->scope.'|'.$rule->match_value, $overrides, true)) {
                     continue;
                 }
 
