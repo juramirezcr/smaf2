@@ -89,7 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/alerts', [MonitoringRuleEventController::class, 'index'])->name('alerts.index');
     Route::patch('/alerts/{alert}/review', [MonitoringRuleEventController::class, 'review'])->name('alerts.review');
     Route::get('/ayuda', [HelpController::class, 'index'])->name('help.index');
-    Route::get('/process-runs', [ProcessRunController::class, 'index'])->name('process-runs.index');
+    Route::get('/process-runs', [ProcessRunController::class, 'index'])->name('process-runs.index')->middleware('system-admin');
     Route::get('/users', [ClientUserController::class, 'index'])->name('users.index');
     Route::post('/users', [ClientUserController::class, 'store'])->name('users.store');
     Route::patch('/users/{user}', [ClientUserController::class, 'update'])->name('users.update');
