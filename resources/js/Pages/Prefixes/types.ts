@@ -7,7 +7,7 @@ export interface PrefixRule {
     customer: string | null;
     hourlyCallLimit: number;
     hourlyMinutesLimit: number;
-    action: 'notify' | 'block';
+    action: 'notify' | 'block' | 'ignore';
     enabled: boolean;
     lastEvaluatedAt: string | null;
     createdAt: string;
@@ -15,6 +15,12 @@ export interface PrefixRule {
     clientName?: string | null;
     isGlobal?: boolean;
 }
+
+export const PREFIX_RULE_ACTION_LABEL: Record<PrefixRule['action'], string> = {
+    notify: 'Notificar',
+    block: 'Bloquear',
+    ignore: 'Ignorar',
+};
 
 export interface Paginated<T> {
     data: T[];

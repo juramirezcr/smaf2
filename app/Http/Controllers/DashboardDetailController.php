@@ -109,7 +109,7 @@ class DashboardDetailController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'hourly_call_limit' => ['required', 'integer', 'min:1', 'max:1000000'],
             'hourly_minutes_limit' => ['required', 'integer', 'min:1', 'max:1000000'],
-            'action' => ['required', 'in:notify,block'],
+            'action' => ['required', 'in:notify,block,ignore'],
             'enabled' => ['required', 'boolean'],
         ]);
 

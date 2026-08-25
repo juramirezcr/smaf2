@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import type { PrefixRule } from './types';
+import { PREFIX_RULE_ACTION_LABEL, type PrefixRule } from './types';
 
 interface ClientOption {
     id: number;
@@ -194,7 +194,7 @@ function RuleRow({ rule }: { rule: PrefixRule }) {
                 <div>
                     <p className="text-gray-500 dark:text-gray-400">Acción</p>
                     <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        {rule.action === 'notify' ? 'Notificar' : 'Bloquear'}
+                        {PREFIX_RULE_ACTION_LABEL[rule.action]}
                     </p>
                 </div>
                 <Link

@@ -25,7 +25,7 @@ interface RuleFormData {
     customer: string;
     hourly_call_limit: number;
     hourly_minutes_limit: number;
-    action: 'notify' | 'block';
+    action: 'notify' | 'block' | 'ignore';
     enabled: boolean;
 }
 
@@ -240,7 +240,7 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                     Solo se guarda la intención. Esta versión no envía
                     notificaciones ni bloquea en PortaOne.
                 </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     {[
                         {
                             value: 'notify' as const,
@@ -251,6 +251,11 @@ export default function RuleForm({ rule, clients, initialClientId }: RuleFormPro
                             value: 'block' as const,
                             label: 'Bloquear',
                             description: 'Registrar una solicitud de bloqueo para una futura integración.',
+                        },
+                        {
+                            value: 'ignore' as const,
+                            label: 'Ignorar',
+                            description: 'Registrar el evento sin notificar ni bloquear.',
                         },
                     ].map((option) => (
                         <label

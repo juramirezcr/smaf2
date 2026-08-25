@@ -246,7 +246,7 @@ interface PrefixRuleData {
     description: string | null;
     hourlyCallLimit: number;
     hourlyMinutesLimit: number;
-    action: 'notify' | 'block';
+    action: 'notify' | 'block' | 'ignore';
     enabled: boolean;
     lastEvaluatedAt: string | null;
 }
@@ -262,7 +262,7 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
     const [matchedScope, setMatchedScope] = useState<'client' | 'global' | 'none'>('none');
     const [canEdit, setCanEdit] = useState(false);
     const [ruleLoadError, setRuleLoadError] = useState<string | null>(null);
-    const [form, setForm] = useState({ country: '', description: '', hourly_call_limit: 100, hourly_minutes_limit: 60, action: 'notify' as 'notify' | 'block', enabled: true });
+    const [form, setForm] = useState({ country: '', description: '', hourly_call_limit: 100, hourly_minutes_limit: 60, action: 'notify' as 'notify' | 'block' | 'ignore', enabled: true });
     const [saving, setSaving] = useState(false);
     const [saveResult, setSaveResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
 
@@ -385,11 +385,12 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
                                         id="rule_action"
                                         value={form.action}
                                         disabled={!canEdit}
-                                        onChange={(event) => setForm((previous) => ({ ...previous, action: event.target.value as 'notify' | 'block' }))}
+                                        onChange={(event) => setForm((previous) => ({ ...previous, action: event.target.value as 'notify' | 'block' | 'ignore' }))}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                                     >
                                         <option value="notify">Notificar</option>
                                         <option value="block">Bloquear</option>
+                                        <option value="ignore">Ignorar</option>
                                     </select>
                                 </div>
                                 <div>

@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatDateTime, useTimezone } from '@/lib/datetime';
 import { Head, Link } from '@inertiajs/react';
-import type { Paginated, PrefixRule } from './types';
+import { PREFIX_RULE_ACTION_LABEL, type Paginated, type PrefixRule } from './types';
 
 interface CallRecord {
     id: number;
@@ -131,7 +131,7 @@ export default function PrefixRuleShow({
                                 <div>
                                     <p className="text-gray-500 dark:text-gray-400">Acción configurada</p>
                                     <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">
-                                        {rule.action === 'notify' ? 'Notificar' : 'Bloquear'}
+                                        {PREFIX_RULE_ACTION_LABEL[rule.action]}
                                     </p>
                                 </div>
                                 <div>
