@@ -140,7 +140,7 @@ export default function SystemStatus({ period, latest, history }: SystemStatusPr
 
     const header = (
         <div className="flex items-center justify-between gap-2">
-            <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Estado del servidor</h2>
+            <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">🖥 Salud del servidor</h2>
             <select
                 value={period}
                 onChange={(event) => handlePeriodChange(event.target.value)}
@@ -155,7 +155,7 @@ export default function SystemStatus({ period, latest, history }: SystemStatusPr
 
     return (
         <AuthenticatedLayout header={header}>
-            <Head title="Estado del servidor" />
+            <Head title="Salud del servidor" />
             <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
                 <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
                     Histórico de uso de CPU, RAM y disco del servidor (una muestra cada 5 minutos), para decidir si

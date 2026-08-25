@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRuleEvent;
-use App\Models\SystemMetric;
 use App\Support\DashboardWidgets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -118,7 +117,6 @@ class DashboardController extends Controller
                 bucketCount: $bucketCount,
             ),
             'heatmap' => $this->weeklyHeatmap($isAdmin, $clientId),
-            'systemHealth' => $isAdmin ? $this->systemHealthSnapshot() : null,
             'queueSummary' => $isAdmin ? $this->queueSummary() : null,
             'alertsRecent' => MonitoringRuleEvent::query()
                 ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
@@ -185,31 +183,6 @@ class DashboardController extends Controller
         }
 
         return $matrix;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function systemHealthSnapshot(): ?array
-    {
-        $metric = SystemMetric::query()->latest('recorded_at')->first();
-
-        if ($metric === null) {
-            return null;
-        }
-
-        return [
-            'cpuPct' => ($metric->cpu_load_1m !== null && $metric->cpu_cores)
-                ? round(min(100, $metric->cpu_load_1m / $metric->cpu_cores * 100), 1)
-                : null,
-            'memPct' => ($metric->mem_used_mb !== null && $metric->mem_total_mb)
-                ? round($metric->mem_used_mb / $metric->mem_total_mb * 100, 1)
-                : null,
-            'diskPct' => ($metric->disk_used_gb !== null && $metric->disk_total_gb)
-                ? round($metric->disk_used_gb / $metric->disk_total_gb * 100, 1)
-                : null,
-            'recordedAt' => $metric->recorded_at->toIso8601String(),
-        ];
     }
 
     /**

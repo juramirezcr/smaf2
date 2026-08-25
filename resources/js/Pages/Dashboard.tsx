@@ -61,13 +61,6 @@ interface TrafficPoint {
     seconds: number;
 }
 
-interface SystemHealth {
-    cpuPct: number | null;
-    memPct: number | null;
-    diskPct: number | null;
-    recordedAt: string;
-}
-
 interface QueueSummary {
     pending: number;
     running: number;
@@ -114,7 +107,6 @@ interface DashboardProps {
     clientsActive: ClientActiveItem[];
     trafficSeries: TrafficPoint[];
     heatmap: number[][];
-    systemHealth: SystemHealth | null;
     queueSummary: QueueSummary | null;
     alertsRecent: AlertRecentItem[];
 }
@@ -635,31 +627,6 @@ function HeatmapGrid({ matrix }: { matrix: number[][] }) {
     );
 }
 
-function SystemGauge({ label, pct }: { label: string; pct: number | null }) {
-    const value = pct ?? 0;
-    const r = 30;
-    const circumference = 2 * Math.PI * r;
-    const offset = circumference * (1 - Math.min(100, value) / 100);
-    const color = value >= 85 ? 'stroke-red-500' : value >= 65 ? 'stroke-amber-500' : 'stroke-emerald-500';
-
-    return (
-        <div className="flex flex-col items-center">
-            <svg width="72" height="72" viewBox="0 0 72 72">
-                <circle cx="36" cy="36" r={r} fill="none" strokeWidth="7" className="stroke-gray-100 dark:stroke-gray-700" />
-                <circle
-                    cx="36" cy="36" r={r} fill="none" strokeWidth="7" strokeLinecap="round"
-                    className={color}
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                    transform="rotate(-90 36 36)"
-                />
-                <text x="36" y="40" textAnchor="middle" className="fill-gray-800 text-[13px] font-semibold dark:fill-gray-100">{pct === null ? '—' : `${pct}%`}</text>
-            </svg>
-            <span className="mt-1 text-xs text-gray-500 dark:text-gray-400">{label}</span>
-        </div>
-    );
-}
-
 function ReviewChip({ status }: { status: AlertRecentItem['reviewStatus'] }) {
     const map: Record<AlertRecentItem['reviewStatus'], { label: string; className: string }> = {
         pending: { label: 'Pendiente', className: 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' },
@@ -757,7 +724,6 @@ export default function Dashboard({
     clientsActive,
     trafficSeries,
     heatmap,
-    systemHealth,
     queueSummary,
     alertsRecent,
 }: DashboardProps) {
@@ -779,7 +745,7 @@ export default function Dashboard({
         }
 
         const interval = setInterval(() => {
-            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'kpis', 'clientsActive', 'trafficSeries', 'heatmap', 'systemHealth', 'queueSummary', 'alertsRecent'] });
+            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'kpis', 'clientsActive', 'trafficSeries', 'heatmap', 'queueSummary', 'alertsRecent'] });
         }, autoRefreshInterval);
 
         return () => clearInterval(interval);
@@ -1041,20 +1007,6 @@ export default function Dashboard({
                                         display: c.calls.toLocaleString('es-CR'),
                                     }))}
                                 />
-                            </WidgetCard>
-                        )}
-
-                        {isAdmin && isOn('system') && (
-                            <WidgetCard icon="🖥" title="Salud del servidor" href={route('admin.status.index')}>
-                                {systemHealth === null ? (
-                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Aún no hay muestras registradas.</p>
-                                ) : (
-                                    <div className="flex justify-around">
-                                        <SystemGauge label="CPU" pct={systemHealth.cpuPct} />
-                                        <SystemGauge label="RAM" pct={systemHealth.memPct} />
-                                        <SystemGauge label="Disco" pct={systemHealth.diskPct} />
-                                    </div>
-                                )}
                             </WidgetCard>
                         )}
 

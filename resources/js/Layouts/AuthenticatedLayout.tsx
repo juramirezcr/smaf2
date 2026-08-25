@@ -12,6 +12,7 @@ function Icon({ path }: { path: string }) {
 
 const ICONS = {
     dashboard: 'M3.75 13.5l10.5-11.25L14.25 10.5H20.25L9.75 21.75L11.25 13.5H3.75Z',
+    server: 'M5.25 5.25h13.5a1.5 1.5 0 011.5 1.5v3a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-3a1.5 1.5 0 011.5-1.5zM5.25 12.75h13.5a1.5 1.5 0 011.5 1.5v3a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-3a1.5 1.5 0 011.5-1.5zM7.5 8.25h.008v.008H7.5V8.25zM7.5 15.75h.008v.008H7.5v-.008z',
     phone: 'M2.25 6.75c0 8.284 6.716 15 15 15h1.5a2.25 2.25 0 002.25-2.25v-1.372a1.5 1.5 0 00-1.077-1.44l-3.796-1.13a1.5 1.5 0 00-1.567.408l-.674.674a13.5 13.5 0 01-6.516-6.516l.674-.674a1.5 1.5 0 00.408-1.567l-1.13-3.796A1.5 1.5 0 006.622 2.25H5.25A2.25 2.25 0 003 4.5v2.25z',
     globe: 'M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a13.5 13.5 0 010 18M12 3a13.5 13.5 0 000 18',
     outbound: 'M4.5 4.5h6M4.5 4.5v6M4.5 4.5L15 15m4.5 4.5h-6m6 0v-6m0 6L9 9',
@@ -39,7 +40,7 @@ export default function Authenticated({
 
     const canSeeConfig = (user.isSystemAdmin || user.role === 'client_admin') && !user.readOnly;
     const configActive = Boolean(
-        route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.status.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
+        route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
     );
     const [configOpen, setConfigOpen] = useState<boolean>(configActive);
 
@@ -51,6 +52,9 @@ export default function Authenticated({
         { name: 'Cuentas', href: route('accounts.index'), active: route().current('accounts.*'), icon: 'users' },
         { name: 'Customers', href: route('portaone-customers.index'), active: route().current('portaone-customers.*'), icon: 'users' },
         { name: 'Alertas', href: route('alerts.index'), active: route().current('alerts.*'), icon: 'bell' },
+        ...(user.isSystemAdmin
+            ? [{ name: 'Salud del servidor', href: route('admin.status.index'), active: route().current('admin.status.*'), icon: 'server' as const }]
+            : []),
         { name: 'Ayuda', href: route('help.index'), active: route().current('help.*'), icon: 'help' },
     ];
 
@@ -61,7 +65,6 @@ export default function Authenticated({
         user.isSystemAdmin && { name: 'Email', href: route('admin.email.edit'), active: route().current('admin.email.*') },
         user.isSystemAdmin && { name: 'Administradores', href: route('admin.platform-users.index'), active: route().current('admin.platform-users.*') },
         user.isSystemAdmin && { name: 'Cola de jobs', href: route('admin.queue.index'), active: route().current('admin.queue.*') },
-        user.isSystemAdmin && { name: 'Estado', href: route('admin.status.index'), active: route().current('admin.status.*') },
         ! user.isSystemAdmin && user.role === 'client_admin' && { name: 'Usuarios', href: route('users.index'), active: route().current('users.*') },
         { name: 'Ejecuciones', href: route('process-runs.index'), active: route().current('process-runs.*') },
     ].filter((item): item is Exclude<typeof item, false> => item !== false);
