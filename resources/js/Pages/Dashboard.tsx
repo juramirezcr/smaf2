@@ -627,7 +627,7 @@ function HeatmapGrid({ matrix }: { matrix: number[][] }) {
     return (
         <div className="overflow-x-auto">
             <div
-                className="inline-grid min-w-[560px] gap-1"
+                className="grid min-w-[560px] gap-1"
                 style={{ gridTemplateColumns: `28px repeat(24, minmax(0, 1fr))` }}
             >
                 {matrix.map((row, dayIndex) => (
@@ -645,6 +645,12 @@ function HeatmapGrid({ matrix }: { matrix: number[][] }) {
                             );
                         })}
                     </Fragment>
+                ))}
+                <span />
+                {Array.from({ length: 24 }, (_, hour) => (
+                    <span key={hour} className="text-center text-[9px] text-gray-400 dark:text-gray-500">
+                        {hour % 3 === 0 ? hour : ''}
+                    </span>
                 ))}
             </div>
         </div>
