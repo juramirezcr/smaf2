@@ -37,6 +37,7 @@ interface ClientUser {
 interface ClientItem {
     id: number;
     name: string;
+    timezone: string | null;
     portaoneEnvironment: string;
     portaoneUsername: string;
     telegramChatId: string | null;
@@ -110,6 +111,7 @@ const STEP_TITLES = ['Datos del cliente', 'Administrador inicial'];
 
 export default function Clients({ clients }: { clients: ClientItem[] }) {
     const pageErrors = usePage().props.errors as Record<string, string>;
+    const timezoneOptions = usePage().props.timezoneOptions;
     const [editingClient, setEditingClient] = useState<ClientItem | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [step, setStep] = useState<1 | 2>(1);
@@ -118,6 +120,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
     const [emailTestResults, setEmailTestResults] = useState<Record<number, NotificationTestResult>>({});
     const { data, setData, post, patch, processing, errors, reset } = useForm({
         name: '',
+        timezone: '',
         portaone_environment: '',
         portaone_username: '',
         portaone_token: '',
@@ -221,6 +224,7 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
         setEditingClient(client);
         setData({
             name: client.name,
+            timezone: client.timezone ?? '',
             portaone_environment: client.portaoneEnvironment,
             portaone_username: client.portaoneUsername,
             portaone_token: '',
@@ -511,6 +515,24 @@ export default function Clients({ clients }: { clients: ClientItem[] }) {
                                 <InputLabel htmlFor="name" value="Nombre del cliente" />
                                 <TextInput id="name" value={data.name} className="mt-1 block w-full" onChange={(event) => setData('name', event.target.value)} required />
                                 <InputError message={errors.name} className="mt-2" />
+                            </div>
+                            <div>
+                                <InputLabel htmlFor="timezone" value="Zona horaria" />
+                                <select
+                                    id="timezone"
+                                    value={data.timezone}
+                                    onChange={(event) => setData('timezone', event.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                >
+                                    <option value="">Predeterminada (Costa Rica)</option>
+                                    {timezoneOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                                    Las llamadas de este cliente se muestran con esta hora a todos sus usuarios.
+                                </p>
+                                <InputError message={errors.timezone} className="mt-2" />
                             </div>
                             <div>
                                 <InputLabel htmlFor="portaone_environment" value="Partición / entorno PortaOne" />

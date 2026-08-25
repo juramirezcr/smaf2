@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Timezones;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -45,8 +46,11 @@ class HandleInertiaRequests extends Middleware
                     'clientName' => $user->client?->name,
                     'isSystemAdmin' => $user->isSystemAdmin(),
                     'readOnly' => $user->read_only,
+                    'timezone' => $user->timezone,
+                    'effectiveTimezone' => $user->effectiveTimezone(),
                 ] : null,
             ],
+            'timezoneOptions' => $user ? Timezones::options() : [],
         ];
     }
 }

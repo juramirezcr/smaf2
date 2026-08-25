@@ -1,6 +1,7 @@
 import BillStatusBadge from '@/Components/BillStatusBadge';
 import Pagination from '@/Components/Pagination';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatDateTime, useTimezone } from '@/lib/datetime';
 import { Head, Link } from '@inertiajs/react';
 
 interface ActiveCall {
@@ -47,6 +48,8 @@ interface AccountCallsProps {
 }
 
 export default function AccountCalls({ account, activeCalls, calls, indexPath }: AccountCallsProps) {
+    const timeZone = useTimezone();
+
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Account {account.account_id ?? account.id}</h2>}>
             <Head title={`Account ${account.account_id ?? account.id}`} />
@@ -82,7 +85,7 @@ export default function AccountCalls({ account, activeCalls, calls, indexPath }:
                                             <td className="px-6 py-4 dark:text-gray-300">{call.cli ?? '—'}</td>
                                             <td className="px-6 py-4 dark:text-gray-300">{call.cld ?? '—'}</td>
                                             <td className="px-6 py-4 dark:text-gray-300">{call.country ?? '—'}</td>
-                                            <td className="px-6 py-4 dark:text-gray-300">{call.connect_time ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connect_time)) : '—'}</td>
+                                            <td className="px-6 py-4 dark:text-gray-300">{call.connect_time ? formatDateTime(call.connect_time, timeZone, { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
                                             <td className="px-6 py-4 text-right dark:text-gray-300">{call.duration_seconds}</td>
                                         </tr>
                                     ))}
@@ -112,7 +115,7 @@ export default function AccountCalls({ account, activeCalls, calls, indexPath }:
                                     <tr><td colSpan={7} className="px-6 py-4 text-gray-500 dark:text-gray-400">Aún no hay llamadas sincronizadas para esta account.</td></tr>
                                 ) : calls.data.map((call) => (
                                     <tr key={call.id} className="dark:hover:bg-gray-700">
-                                        <td className="px-6 py-4 dark:text-gray-300">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectedAt))}</td>
+                                        <td className="px-6 py-4 dark:text-gray-300">{formatDateTime(call.connectedAt, timeZone, { dateStyle: 'short', timeStyle: 'short' })}</td>
                                         <td className="px-6 py-4 dark:text-gray-300">{call.origin ?? '—'}</td>
                                         <td className="px-6 py-4 dark:text-gray-300">{call.destination ?? '—'}</td>
                                         <td className="px-6 py-4 dark:text-gray-300">{call.countryCode ?? '—'}</td>

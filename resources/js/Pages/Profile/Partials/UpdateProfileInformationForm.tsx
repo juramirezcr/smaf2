@@ -16,11 +16,13 @@ export default function UpdateProfileInformation({
     className?: string;
 }) {
     const user = usePage().props.auth.user;
+    const timezoneOptions = usePage().props.timezoneOptions;
 
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
             email: user.email,
+            timezone: user.timezone ?? '',
         });
 
     const submit: FormEventHandler = (e) => {
@@ -73,6 +75,27 @@ export default function UpdateProfileInformation({
 
                     <InputError className="mt-2" message={errors.email} />
                 </div>
+
+                {user.isSystemAdmin && (
+                    <div>
+                        <InputLabel htmlFor="timezone" value="Zona horaria" />
+                        <select
+                            id="timezone"
+                            value={data.timezone}
+                            onChange={(e) => setData('timezone', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        >
+                            <option value="">Predeterminada (Costa Rica)</option>
+                            {timezoneOptions.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Con esta zona horaria verás las fechas y horas de las llamadas en todos los clientes.
+                        </p>
+                        <InputError className="mt-2" message={errors.timezone} />
+                    </div>
+                )}
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>

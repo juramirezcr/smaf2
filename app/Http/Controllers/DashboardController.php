@@ -116,7 +116,7 @@ class DashboardController extends Controller
                 bucketUnitSeconds: $bucketUnitSeconds,
                 bucketCount: $bucketCount,
             ),
-            'heatmap' => $this->weeklyHeatmap($isAdmin, $clientId),
+            'heatmap' => $this->weeklyHeatmap($isAdmin, $clientId, $user->effectiveTimezone()),
             'queueSummary' => $isAdmin ? $this->queueSummary() : null,
             'alertsRecent' => MonitoringRuleEvent::query()
                 ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
@@ -161,11 +161,15 @@ class DashboardController extends Controller
 
     /**
      * Matriz día(0=lun..6=dom) x hora(0-23) de llamadas en los últimos 7
-     * días, para el mapa de calor de intensidad de tráfico.
+     * días, para el mapa de calor de intensidad de tráfico. connected_at
+     * se guarda en UTC (así lo entrega PortaOne); DAYOFWEEK/HOUR de MySQL
+     * calculan sobre esa hora UTC, así que la matriz se rota después según
+     * la zona horaria del usuario para que el día/hora coincida con lo que
+     * ve en pantalla.
      *
      * @return array<int, array<int, int>>
      */
-    private function weeklyHeatmap(bool $isAdmin, ?int $clientId): array
+    private function weeklyHeatmap(bool $isAdmin, ?int $clientId, string $timezone): array
     {
         $rows = CallRecord::query()
             ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
@@ -182,7 +186,47 @@ class DashboardController extends Controller
             $matrix[$dayIndex][(int) $row->hr] = (int) $row->calls;
         }
 
-        return $matrix;
+        return $this->rotateHeatmapToTimezone($matrix, $timezone);
+    }
+
+    /**
+     * Todas las zonas horarias que ofrecemos en App\Support\Timezones
+     * tienen desfase de horas completas respecto a UTC (incluso con
+     * horario de verano), así que rotar la semana aplanada (168 horas) es
+     * exacto y evita tener que traer cada llamada individual a PHP solo
+     * para reclasificarla.
+     *
+     * @param  array<int, array<int, int>>  $matrix
+     * @return array<int, array<int, int>>
+     */
+    private function rotateHeatmapToTimezone(array $matrix, string $timezone): array
+    {
+        $offsetHours = (int) round(
+            (new \DateTimeZone($timezone))->getOffset(new \DateTimeImmutable('now', new \DateTimeZone('UTC'))) / 3600
+        );
+
+        if ($offsetHours === 0) {
+            return $matrix;
+        }
+
+        $flat = [];
+        foreach ($matrix as $day => $hours) {
+            foreach ($hours as $hour => $calls) {
+                $flat[$day * 24 + $hour] = $calls;
+            }
+        }
+
+        $rotated = array_fill(0, 168, 0);
+        foreach ($flat as $utcIndex => $calls) {
+            $rotated[($utcIndex + $offsetHours + 168) % 168] = $calls;
+        }
+
+        $result = array_fill(0, 7, array_fill(0, 24, 0));
+        foreach ($rotated as $index => $calls) {
+            $result[intdiv($index, 24)][$index % 24] = $calls;
+        }
+
+        return $result;
     }
 
     /**

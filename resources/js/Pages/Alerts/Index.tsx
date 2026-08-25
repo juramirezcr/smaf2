@@ -3,6 +3,7 @@ import Modal from '@/Components/Modal';
 import Pagination from '@/Components/Pagination';
 import PrimaryButton from '@/Components/PrimaryButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatDateTime, useTimezone } from '@/lib/datetime';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -147,6 +148,7 @@ function ReviewModal({ alert, onClose }: { alert: AlertItem; onClose: () => void
 export default function AlertsIndex({ clients, selectedClientId, alerts }: AlertsProps) {
     const showingAll = selectedClientId === 'all';
     const [reviewingAlert, setReviewingAlert] = useState<AlertItem | null>(null);
+    const timeZone = useTimezone();
 
     const changeClient = (clientId: string) => {
         router.get('/alerts', { client_id: clientId }, { preserveState: true });
@@ -204,7 +206,7 @@ export default function AlertsIndex({ clients, selectedClientId, alerts }: Alert
                                                     : 'dark:hover:bg-gray-700'
                                             }
                                         >
-                                            <td className="px-6 py-4 dark:text-gray-300">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(alert.occurredAt))}</td>
+                                            <td className="px-6 py-4 dark:text-gray-300">{formatDateTime(alert.occurredAt, timeZone, { dateStyle: 'short', timeStyle: 'short' })}</td>
                                             {showingAll && <td className="px-6 py-4 dark:text-gray-300">{alert.clientName ?? '—'}</td>}
                                             <td className="px-6 py-4 font-mono dark:text-gray-300">{alert.account ?? '—'}</td>
                                             <td className="px-6 py-4 dark:text-gray-300">{alert.customer ?? '—'}</td>

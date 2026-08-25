@@ -1,5 +1,6 @@
 import CheckboxMultiSelect from '@/Components/CheckboxMultiSelect';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatDateTime, useTimezone } from '@/lib/datetime';
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
@@ -74,6 +75,7 @@ export default function CallsIndex({
     customerCallHistory = {},
 }: CallsProps) {
     const showingAll = selectedClientId === 'all';
+    const timeZone = useTimezone();
     const [groupBy, setGroupBy] = useState<GroupBy>('customer');
     const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(5000); // 5 segundos
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -311,7 +313,7 @@ export default function CallsIndex({
                                                     <td className="px-6 py-4">{call.cld ?? '—'}</td>
                                                     <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
                                                     <td className="px-6 py-4">{call.prefixCountry ?? call.country ?? '—'}</td>
-                                                    <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
+                                                    <td className="px-6 py-4">{call.connectTime ? formatDateTime(call.connectTime, timeZone, { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
                                                     <td className="px-6 py-4 text-right">{call.durationSeconds}</td>
                                                 </tr>
                                             ))}
@@ -357,7 +359,7 @@ export default function CallsIndex({
                                                                                     <td className="px-6 py-4">{call.cld ?? '—'}</td>
                                                                                     <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
                                                                                     <td className="px-6 py-4 text-sm">{call.prefixCountry ?? call.country ?? '—'}</td>
-                                                                                    <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
+                                                                                    <td className="px-6 py-4">{call.connectTime ? formatDateTime(call.connectTime, timeZone, { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
                                                                                     <td className="px-6 py-4 text-right font-semibold text-emerald-600">{call.durationSeconds}</td>
                                                                                 </tr>
                                                                             ))}
@@ -397,7 +399,7 @@ export default function CallsIndex({
                                                                         <td className="px-6 py-4">{call.cld ?? '—'}</td>
                                                                         <td className="px-6 py-4"><span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-100">{call.prefix ? `+${call.prefix}` : '—'}</span></td>
                                                                         <td className="px-6 py-4 text-sm">{call.prefixCountry ?? call.country ?? '—'}</td>
-                                                                        <td className="px-6 py-4">{call.connectTime ? new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(call.connectTime)) : '—'}</td>
+                                                                        <td className="px-6 py-4">{call.connectTime ? formatDateTime(call.connectTime, timeZone, { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
                                                                         <td className="px-6 py-4 text-right font-semibold text-emerald-600">{call.durationSeconds}</td>
                                                                     </tr>
                                                                 ))}

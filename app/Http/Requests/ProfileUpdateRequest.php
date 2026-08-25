@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
+use App\Support\Timezones;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,7 @@ class ProfileUpdateRequest extends FormRequest
                     ->where('client_id', $this->user()->client_id)
                     ->ignore($this->user()->id),
             ],
+            'timezone' => ['nullable', 'string', Rule::in(Timezones::values())],
         ];
     }
 }

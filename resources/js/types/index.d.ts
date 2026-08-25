@@ -9,6 +9,13 @@ export interface User {
     isSystemAdmin: boolean;
     readOnly: boolean;
     email_verified_at?: string;
+    timezone: string | null;
+    effectiveTimezone: string;
+}
+
+export interface TimezoneOption {
+    value: string;
+    label: string;
 }
 
 export type PageProps<
@@ -17,4 +24,5 @@ export type PageProps<
     auth: {
         user: User;
     };
+    timezoneOptions: TimezoneOption[];
 };

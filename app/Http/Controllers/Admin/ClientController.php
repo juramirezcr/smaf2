@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\ProcessRun;
 use App\Models\User;
 use App\Services\PortaOneClient;
+use App\Support\Timezones;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,6 +54,7 @@ class ClientController extends Controller
                     return [
                         'id' => $client->id,
                         'name' => $client->name,
+                        'timezone' => $client->timezone,
                         'portaoneEnvironment' => $client->portaone_environment,
                         'portaoneUsername' => $client->portaone_username,
                         'telegramChatId' => $client->telegram_chat_id,
@@ -88,6 +90,7 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'timezone' => ['nullable', 'string', Rule::in(Timezones::values())],
             'portaone_environment' => ['required', 'string', 'max:255'],
             'portaone_username' => ['required', 'string', 'max:255'],
             'portaone_token' => ['required', 'string'],
@@ -104,6 +107,7 @@ class ClientController extends Controller
         DB::transaction(function () use ($validated) {
             $client = Client::create([
                 'name' => $validated['name'],
+                'timezone' => $validated['timezone'] ?: null,
                 'portaone_environment' => $validated['portaone_environment'],
                 'portaone_username' => $validated['portaone_username'],
                 'portaone_token' => $validated['portaone_token'],
@@ -129,6 +133,7 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'timezone' => ['nullable', 'string', Rule::in(Timezones::values())],
             'portaone_environment' => ['required', 'string', 'max:255'],
             'portaone_username' => ['required', 'string', 'max:255'],
             'portaone_token' => ['nullable', 'string'],
@@ -140,6 +145,7 @@ class ClientController extends Controller
 
         $client->update([
             'name' => $validated['name'],
+            'timezone' => $validated['timezone'] ?: null,
             'portaone_environment' => $validated['portaone_environment'],
             'portaone_username' => $validated['portaone_username'],
             'telegram_chat_id' => $validated['telegram_chat_id'] ?: null,

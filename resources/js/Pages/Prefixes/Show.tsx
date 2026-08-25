@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatDateTime, useTimezone } from '@/lib/datetime';
 import { Head, Link } from '@inertiajs/react';
 import type { Paginated, PrefixRule } from './types';
 
@@ -37,19 +38,15 @@ function formatDuration(seconds: number) {
     return hours > 0 ? `${hours} h ${minutes} min` : `${minutes} min`;
 }
 
-function formatDate(value: string) {
-    return new Intl.DateTimeFormat('es-MX', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value));
-}
-
 export default function PrefixRuleShow({
     rule,
     period,
     summary,
     calls,
 }: PrefixRuleShowProps) {
+    const timeZone = useTimezone();
+    const formatDate = (value: string) => formatDateTime(value, timeZone, { dateStyle: 'medium', timeStyle: 'short' });
+
     const scope = [
         rule.customer && `Customer: ${rule.customer}`,
         rule.account && `Cuenta: ${rule.account}`,

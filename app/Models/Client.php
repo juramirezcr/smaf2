@@ -12,6 +12,7 @@ class Client extends Model
 
     protected $fillable = [
         'name',
+        'timezone',
         'legacy_user_id',
         'portaone_environment',
         'portaone_username',
