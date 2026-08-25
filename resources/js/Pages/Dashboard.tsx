@@ -126,37 +126,45 @@ function HistoryChart({ buckets, loading }: { buckets: HistoryBucket[] | null; l
         return <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Sin llamadas en este período.</p>;
     }
 
-    const width = 640;
-    const height = 200;
-    const padding = 32;
+    const width = 960;
+    const height = 380;
+    const paddingX = 24;
+    const paddingTop = 32;
+    const paddingBottom = 40;
+    const plotHeight = height - paddingTop - paddingBottom;
     const maxCalls = Math.max(...buckets.map((bucket) => bucket.calls), 1);
-    const stepX = (width - padding * 2) / Math.max(buckets.length - 1, 1);
+    const stepX = (width - paddingX * 2) / Math.max(buckets.length - 1, 1);
     const points = buckets.map((bucket, index) => ({
-        x: padding + index * stepX,
-        y: height - padding - (bucket.calls / maxCalls) * (height - padding * 2),
+        x: paddingX + index * stepX,
+        y: height - paddingBottom - (bucket.calls / maxCalls) * plotHeight,
         ...bucket,
     }));
 
     const totalCalls = buckets.reduce((sum, bucket) => sum + bucket.calls, 0);
     const totalSeconds = buckets.reduce((sum, bucket) => sum + bucket.seconds, 0);
-    const labelEvery = Math.max(1, Math.ceil(points.length / 6));
+    const dateLabelEvery = Math.max(1, Math.ceil(points.length / 8));
 
     return (
         <div>
-            <div className="mb-3 flex gap-6 text-sm text-gray-600 dark:text-gray-300">
+            <div className="mb-3 flex gap-6 text-base text-gray-600 dark:text-gray-300">
                 <span>Llamadas: <strong className="text-gray-900 dark:text-gray-100">{totalCalls}</strong></span>
                 <span>Segundos: <strong className="text-gray-900 dark:text-gray-100">{totalSeconds}</strong></span>
             </div>
             <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
                 {[0, 0.25, 0.5, 0.75, 1].map((fraction) => {
-                    const y = height - padding - fraction * (height - padding * 2);
+                    const y = height - paddingBottom - fraction * plotHeight;
 
-                    return <line key={fraction} x1={padding} x2={width - padding} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
+                    return <line key={fraction} x1={paddingX} x2={width - paddingX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
                 })}
-                <polyline points={points.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" className="stroke-indigo-500" strokeWidth={2} />
-                {points.map((p, index) => <circle key={index} cx={p.x} cy={p.y} r={2.5} className="fill-indigo-500" />)}
-                {points.map((p, index) => (index % labelEvery === 0 || index === points.length - 1) && (
-                    <text key={index} x={p.x} y={height - 6} textAnchor="middle" className="fill-gray-400 text-[9px] dark:fill-gray-500">
+                <polyline points={points.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" className="stroke-indigo-500" strokeWidth={2.5} />
+                {points.map((p, index) => <circle key={index} cx={p.x} cy={p.y} r={3.5} className="fill-indigo-500" />)}
+                {points.map((p, index) => p.calls > 0 && (
+                    <text key={index} x={p.x} y={Math.max(14, p.y - 10)} textAnchor="middle" className="fill-indigo-700 text-[13px] font-semibold dark:fill-indigo-300">
+                        {p.calls}
+                    </text>
+                ))}
+                {points.map((p, index) => (index % dateLabelEvery === 0 || index === points.length - 1) && (
+                    <text key={index} x={p.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[11px] dark:fill-gray-500">
                         {formatBucketLabel(p.at)}
                     </text>
                 ))}
@@ -265,7 +273,7 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
     };
 
     return (
-        <Modal show onClose={onClose} maxWidth="lg">
+        <Modal show onClose={onClose} maxWidth="2xl">
             <div className="p-6">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Prefijo +{prefix}</h3>
 
@@ -393,7 +401,7 @@ function AccountDetailModal({ clientId, customer, account, onClose }: { clientId
     }, [clientId, customer, account, period]);
 
     return (
-        <Modal show onClose={onClose} maxWidth="lg">
+        <Modal show onClose={onClose} maxWidth="2xl">
             <div className="p-6">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Cuenta {account}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{customer ?? 'Sin customer'}</p>
