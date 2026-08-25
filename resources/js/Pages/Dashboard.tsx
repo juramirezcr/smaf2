@@ -499,40 +499,6 @@ function AccountDetailModal({ clientId, customer, account, onClose }: { clientId
     );
 }
 
-const DONUT_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#94a3b8'];
-
-function DonutChart({ items, colors }: { items: { label: string; value: number }[]; colors?: string[] }) {
-    const palette = colors ?? DONUT_COLORS;
-    const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
-    let cumulative = 0;
-    const stops = items.map((item, index) => {
-        const start = (cumulative / total) * 360;
-        cumulative += item.value;
-        const end = (cumulative / total) * 360;
-        return `${palette[index % palette.length]} ${start}deg ${end}deg`;
-    }).join(', ');
-
-    return (
-        <div className="flex items-center gap-6 p-1">
-            <div className="relative h-32 w-32 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops})` }}>
-                <div className="absolute inset-3 flex items-center justify-center rounded-full bg-white text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-300">
-                    {total}
-                </div>
-            </div>
-            <ul className="min-w-0 flex-1 space-y-1.5 text-xs">
-                {items.map((item, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: palette[index % palette.length] }} />
-                        <span className="truncate text-gray-700 dark:text-gray-300">{item.label}</span>
-                        <span className="ml-auto shrink-0 font-medium text-gray-900 dark:text-gray-100">{item.value}</span>
-                        <span className="w-10 shrink-0 text-right text-gray-400 dark:text-gray-500">{Math.round((item.value / total) * 100)}%</span>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-}
-
 /* ================================================================
    Panel de Control — chrome & new widgets
    ================================================================ */
@@ -562,10 +528,10 @@ function TrafficChart({ points }: { points: TrafficPoint[] }) {
     }
 
     const width = 720;
-    const height = 200;
+    const height = 220;
     const padX = 12;
-    const padTop = 24;
-    const padBottom = 20;
+    const padTop = 28;
+    const padBottom = 34;
     const plotH = height - padTop - padBottom;
     const max = Math.max(...points.map((p) => p.calls), 1);
     const stepX = (width - padX * 2) / Math.max(points.length - 1, 1);
@@ -573,6 +539,7 @@ function TrafficChart({ points }: { points: TrafficPoint[] }) {
     const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
     const areaPath = `${linePath} L${coords[coords.length - 1].x.toFixed(1)},${height - padBottom} L${coords[0].x.toFixed(1)},${height - padBottom} Z`;
     const peakIndex = points.findIndex((p) => p.calls === max);
+    const timeLabelEvery = Math.max(1, Math.ceil(coords.length / 8));
 
     return (
         <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
@@ -585,11 +552,22 @@ function TrafficChart({ points }: { points: TrafficPoint[] }) {
             {coords.map((c, i) => (
                 <circle key={i} cx={c.x} cy={c.y} r={i === peakIndex ? 4 : 2.5} className={i === peakIndex ? 'fill-red-500' : 'fill-indigo-500'} />
             ))}
-            {peakIndex >= 0 && (
-                <text x={coords[peakIndex].x} y={Math.max(12, coords[peakIndex].y - 10)} textAnchor="middle" className="fill-gray-700 text-[11px] font-semibold dark:fill-gray-200">
-                    {points[peakIndex].calls}
+            {coords.map((c, i) => c.calls > 0 && (
+                <text
+                    key={i}
+                    x={c.x}
+                    y={Math.max(12, c.y - 10)}
+                    textAnchor="middle"
+                    className={i === peakIndex ? 'fill-gray-900 text-[12px] font-semibold dark:fill-gray-100' : 'fill-gray-500 text-[10px] dark:fill-gray-400'}
+                >
+                    {c.calls}
                 </text>
-            )}
+            ))}
+            {coords.map((c, i) => (i % timeLabelEvery === 0 || i === coords.length - 1) && (
+                <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[10px] dark:fill-gray-500">
+                    {formatBucketLabel(c.at)}
+                </text>
+            ))}
         </svg>
     );
 }
@@ -815,6 +793,7 @@ export default function Dashboard({
     };
 
     const periodLabels: Record<string, string> = HISTORY_PERIOD_LABELS;
+    const alertsTotal = (alertCounts.block ?? 0) + (alertCounts.notify ?? 0) + (alertCounts.ignore ?? 0);
 
     const header = (
         <div className="flex items-center justify-between gap-2">
@@ -860,17 +839,29 @@ export default function Dashboard({
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 2xl:max-w-none 2xl:px-10">
-                    <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-5">
                         <KpiTile label="Llamadas activas" value={kpis.activeCalls.toLocaleString('es-CR')} sub={periodLabels[period]} />
                         <KpiTile
                             label="Alertas (24h)"
-                            value={((alertCounts.block ?? 0) + (alertCounts.notify ?? 0) + (alertCounts.ignore ?? 0)).toLocaleString('es-CR')}
+                            value={alertsTotal.toLocaleString('es-CR')}
                             href={route('alerts.index')}
                             sub={(
                                 <div className="flex gap-3">
                                     <span>🚫 {alertCounts.block ?? 0}</span>
                                     <span>🔔 {alertCounts.notify ?? 0}</span>
                                     <span>➖ {alertCounts.ignore ?? 0}</span>
+                                </div>
+                            )}
+                        />
+                        <KpiTile
+                            label="Acciones"
+                            value={alertsTotal.toLocaleString('es-CR')}
+                            href={route('alerts.index')}
+                            sub={(
+                                <div className="flex gap-3">
+                                    <span>🔔 {alertsTotal > 0 ? Math.round(((alertCounts.notify ?? 0) / alertsTotal) * 100) : 0}%</span>
+                                    <span>🚫 {alertsTotal > 0 ? Math.round(((alertCounts.block ?? 0) / alertsTotal) * 100) : 0}%</span>
+                                    <span>➖ {alertsTotal > 0 ? Math.round(((alertCounts.ignore ?? 0) / alertsTotal) * 100) : 0}%</span>
                                 </div>
                             )}
                         />
@@ -895,23 +886,6 @@ export default function Dashboard({
                                     <TrafficChart points={trafficSeries} />
                                 </WidgetCard>
                             </div>
-                        )}
-
-                        {isOn('actions') && (
-                            <WidgetCard icon="🎯" title="Distribución de acciones" href={route('alerts.index')}>
-                                {(alertCounts.block ?? 0) + (alertCounts.notify ?? 0) + (alertCounts.ignore ?? 0) === 0 ? (
-                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Sin alertas en las últimas 24h.</p>
-                                ) : (
-                                    <DonutChart
-                                        colors={['#f59e0b', '#ef4444', '#94a3b8']}
-                                        items={[
-                                            { label: ACTION_LABEL.notify, value: alertCounts.notify ?? 0 },
-                                            { label: ACTION_LABEL.block, value: alertCounts.block ?? 0 },
-                                            { label: ACTION_LABEL.ignore, value: alertCounts.ignore ?? 0 },
-                                        ]}
-                                    />
-                                )}
-                            </WidgetCard>
                         )}
 
                         {isOn('prefixes') && (
