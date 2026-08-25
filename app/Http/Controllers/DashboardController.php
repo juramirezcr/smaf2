@@ -129,11 +129,19 @@ class DashboardController extends Controller
                     'occurredAt' => $event->occurred_at->toIso8601String(),
                     'clientName' => $isAdmin ? $clientNames?->get($event->client_id) : null,
                     'account' => $event->context['account'] ?? null,
+                    'customer' => $event->context['customer'] ?? null,
                     'calls' => $event->context['calls'] ?? null,
                     'seconds' => $event->context['seconds'] ?? null,
+                    'callLimit' => $event->context['call_limit'] ?? null,
+                    'durationLimitSeconds' => $event->context['duration_limit_seconds'] ?? null,
                     'action' => $event->action,
+                    'prefix' => $event->rule?->match_value,
                     'ruleLabel' => $event->rule?->description ?: $event->rule?->match_value,
                     'reviewStatus' => $event->review_status,
+                    'feedbackNotes' => $event->feedback_notes,
+                    'reviewedByName' => $event->reviewer?->name,
+                    'canReview' => $event->action === 'block'
+                        && ($isAdmin || ($user->client_id === $event->client_id && $user->isClientAdmin())),
                 ]),
         ]);
     }

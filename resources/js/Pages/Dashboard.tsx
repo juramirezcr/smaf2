@@ -74,11 +74,18 @@ interface AlertRecentItem {
     occurredAt: string;
     clientName: string | null;
     account: string | null;
+    customer: string | null;
     calls: number | null;
     seconds: number | null;
+    callLimit: number | null;
+    durationLimitSeconds: number | null;
     action: 'ignore' | 'notify' | 'block';
+    prefix: string | null;
     ruleLabel: string | null;
     reviewStatus: 'pending' | 'cleared' | 'maintained';
+    feedbackNotes: string | null;
+    reviewedByName: string | null;
+    canReview: boolean;
 }
 
 interface WidgetDef {
@@ -631,6 +638,112 @@ const ACTION_CHIP: Record<AlertRecentItem['action'], string> = {
     ignore: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
 
+function AlertDetailModal({ alert, timeZone, onClose }: { alert: AlertRecentItem; timeZone: string; onClose: () => void }) {
+    const [decision, setDecision] = useState<'cleared' | 'maintained'>('maintained');
+    const [notes, setNotes] = useState('');
+    const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const canDecide = alert.canReview && alert.reviewStatus === 'pending';
+
+    const submit = () => {
+        setProcessing(true);
+        setError(null);
+
+        router.patch(route('alerts.review', alert.id), { decision, notes }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['alertsRecent', 'kpis'] });
+                onClose();
+            },
+            onError: (errors) => setError((Object.values(errors)[0] as string) ?? 'No fue posible guardar la revisión.'),
+            onFinish: () => setProcessing(false),
+        });
+    };
+
+    return (
+        <Modal show onClose={onClose} maxWidth="md">
+            <div className="p-6">
+                <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Alerta de prefijo +{alert.prefix ?? '—'}</h3>
+                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${ACTION_CHIP[alert.action]}`}>{ACTION_LABEL[alert.action]}</span>
+                </div>
+                <ul className="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                    <li>Hora: {formatDateTime(alert.occurredAt, timeZone, { dateStyle: 'medium', timeStyle: 'short' })}</li>
+                    {alert.clientName && <li>Cliente: {alert.clientName}</li>}
+                    <li>Cuenta: <span className="font-mono">{alert.account ?? '—'}</span></li>
+                    <li>Customer: {alert.customer ?? '—'}</li>
+                    <li>Regla: {alert.ruleLabel ?? '—'}</li>
+                    <li>Llamadas: {alert.calls ?? '—'}{alert.callLimit !== null ? ` / límite ${alert.callLimit}` : ''}</li>
+                    <li>Segundos: {alert.seconds ?? '—'}{alert.durationLimitSeconds !== null ? ` / límite ${alert.durationLimitSeconds}` : ''}</li>
+                </ul>
+
+                {alert.action !== 'block' ? (
+                    <p className="mt-4 text-sm text-gray-400 dark:text-gray-500">Solo las alertas de bloqueo se revisan.</p>
+                ) : !canDecide ? (
+                    <div className="mt-4">
+                        <InputLabel value="Revisión" />
+                        <div className="mt-1 flex items-center gap-2">
+                            <ReviewChip status={alert.reviewStatus} />
+                            {alert.reviewedByName && <span className="text-xs text-gray-400 dark:text-gray-500">por {alert.reviewedByName}</span>}
+                        </div>
+                        {alert.feedbackNotes && <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{alert.feedbackNotes}</p>}
+                    </div>
+                ) : (
+                    <>
+                        <div className="mt-5">
+                            <InputLabel value="Decisión tras validar con el cliente" />
+                            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                                <label className={`cursor-pointer rounded-lg border p-3 text-sm transition ${decision === 'cleared' ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'}`}>
+                                    <input type="radio" name="decision" className="sr-only" checked={decision === 'cleared'} onChange={() => setDecision('cleared')} />
+                                    <span className="block font-medium text-gray-900 dark:text-gray-100">Levantar bloqueo</span>
+                                    <span className="mt-1 block text-xs text-gray-600 dark:text-gray-300">Las llamadas son legítimas.</span>
+                                </label>
+                                <label className={`cursor-pointer rounded-lg border p-3 text-sm transition ${decision === 'maintained' ? 'border-red-500 bg-red-50 dark:border-red-500 dark:bg-red-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'}`}>
+                                    <input type="radio" name="decision" className="sr-only" checked={decision === 'maintained'} onChange={() => setDecision('maintained')} />
+                                    <span className="block font-medium text-gray-900 dark:text-gray-100">Mantener bloqueo</span>
+                                    <span className="mt-1 block text-xs text-gray-600 dark:text-gray-300">Se confirma tráfico sospechoso.</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="mt-4">
+                            <InputLabel htmlFor="dash_alert_notes" value="Notas de la llamada al cliente" />
+                            <textarea
+                                id="dash_alert_notes"
+                                value={notes}
+                                onChange={(event) => setNotes(event.target.value)}
+                                rows={3}
+                                maxLength={2000}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                placeholder="Ej. Se llamó al cliente, confirma que las llamadas fueron autorizadas."
+                            />
+                        </div>
+
+                        {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">Cancelar</button>
+                            <PrimaryButton disabled={processing} onClick={submit}>Guardar revisión</PrimaryButton>
+                        </div>
+                    </>
+                )}
+
+                {alert.action === 'block' && !canDecide && (
+                    <div className="mt-6 flex justify-end">
+                        <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">Cerrar</button>
+                    </div>
+                )}
+                {alert.action !== 'block' && (
+                    <div className="mt-6 flex justify-end">
+                        <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">Cerrar</button>
+                    </div>
+                )}
+            </div>
+        </Modal>
+    );
+}
+
 interface WidgetPickerProps {
     open: boolean;
     onClose: () => void;
@@ -717,6 +830,7 @@ export default function Dashboard({
     const [autoRefreshInterval, setAutoRefreshInterval] = useState(60_000);
     const [prefixModal, setPrefixModal] = useState<{ clientId: number; prefix: string } | null>(null);
     const [accountModal, setAccountModal] = useState<{ clientId: number; customer: string | null; account: string } | null>(null);
+    const [viewingAlert, setViewingAlert] = useState<AlertRecentItem | null>(null);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [active, setActive] = useState<Set<string>>(new Set(activeWidgets));
     const timeZone = useTimezone();
@@ -994,44 +1108,49 @@ export default function Dashboard({
                         )}
 
                         {isOn('alerts') && (
-                            <div className="md:col-span-2 min-[1800px]:col-span-4">
-                                <WidgetCard icon="🔔" title="Alertas recientes" href={route('alerts.index')}>
-                                    {alertsRecent.length === 0 ? (
-                                        <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Aún no hay alertas registradas.</p>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                                <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
-                                                    <tr>
-                                                        <th className="py-1.5 text-left">Hora</th>
-                                                        {isAdmin && <th className="py-1.5 text-left">Cliente</th>}
-                                                        <th className="py-1.5 text-left">Cuenta</th>
-                                                        <th className="py-1.5 text-left">Regla</th>
-                                                        <th className="py-1.5 text-right">Llamadas</th>
-                                                        <th className="py-1.5 text-right">Segundos</th>
-                                                        <th className="py-1.5 text-left">Acción</th>
-                                                        <th className="py-1.5 text-left">Revisión</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-200">
-                                                    {alertsRecent.map((alert) => (
-                                                        <tr key={alert.id}>
-                                                            <td className="py-2 font-mono text-xs">{formatDateTime(alert.occurredAt, timeZone, { dateStyle: 'short', timeStyle: 'short' })}</td>
-                                                            {isAdmin && <td className="py-2">{alert.clientName ?? '—'}</td>}
-                                                            <td className="py-2 font-mono">{alert.account ?? '—'}</td>
-                                                            <td className="py-2">{alert.ruleLabel ?? '—'}</td>
-                                                            <td className="py-2 text-right">{alert.calls ?? '—'}</td>
-                                                            <td className="py-2 text-right">{alert.seconds ?? '—'}</td>
-                                                            <td className="py-2"><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ACTION_CHIP[alert.action]}`}>{ACTION_LABEL[alert.action]}</span></td>
-                                                            <td className="py-2">{alert.action === 'block' ? <ReviewChip status={alert.reviewStatus} /> : <span className="text-gray-400 dark:text-gray-500">—</span>}</td>
+                            <WidgetCard icon="🔔" title="Alertas recientes" href={route('alerts.index')}>
+                                {alertsRecent.length === 0 ? (
+                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Aún no hay alertas registradas.</p>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
+                                                <tr>
+                                                    <th className="py-1.5 text-left">Regla</th>
+                                                    <th className="py-1.5 text-left">{isAdmin ? 'Cliente (Cuenta)' : 'Cuenta'}</th>
+                                                    <th className="py-1.5 text-right">Llamadas/Min.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
+                                                {alertsRecent.map((alert) => {
+                                                    const pending = alert.action === 'block' && alert.reviewStatus === 'pending';
+
+                                                    return (
+                                                        <tr
+                                                            key={alert.id}
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                setViewingAlert(alert);
+                                                            }}
+                                                            className={`cursor-pointer transition ${pending ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                                                        >
+                                                            <td className="py-2 font-mono">{alert.prefix ?? '—'}</td>
+                                                            <td className="py-2">
+                                                                {isAdmin && alert.clientName && `${alert.clientName} `}
+                                                                {alert.account && <span className="text-gray-400 dark:text-gray-500">({alert.account})</span>}
+                                                            </td>
+                                                            <td className="py-2 text-right">
+                                                                <CallsMinutesBadge calls={alert.calls ?? 0} seconds={alert.seconds ?? 0} alerted={pending} />
+                                                            </td>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </WidgetCard>
-                            </div>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </WidgetCard>
                         )}
 
                     </div>
@@ -1059,6 +1178,13 @@ export default function Dashboard({
                     customer={accountModal.customer}
                     account={accountModal.account}
                     onClose={() => setAccountModal(null)}
+                />
+            )}
+            {viewingAlert && (
+                <AlertDetailModal
+                    alert={viewingAlert}
+                    timeZone={timeZone}
+                    onClose={() => setViewingAlert(null)}
                 />
             )}
         </AuthenticatedLayout>
