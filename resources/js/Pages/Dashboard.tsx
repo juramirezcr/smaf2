@@ -3,6 +3,7 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatDateTime, useTimezone } from '@/lib/datetime';
 import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import { Fragment, ReactNode, useEffect, useState } from 'react';
@@ -155,11 +156,13 @@ interface HistoryBucket {
     seconds: number;
 }
 
-function formatBucketLabel(iso: string): string {
-    return new Date(iso).toLocaleString('es-CR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+function formatBucketLabel(iso: string, timeZone: string): string {
+    return formatDateTime(iso, timeZone, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 function HistoryChart({ buckets, loading }: { buckets: HistoryBucket[] | null; loading: boolean }) {
+    const timeZone = useTimezone();
+
     if (loading || buckets === null) {
         return <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Cargando histórico...</p>;
     }
@@ -207,7 +210,7 @@ function HistoryChart({ buckets, loading }: { buckets: HistoryBucket[] | null; l
                 ))}
                 {points.map((p, index) => (index % dateLabelEvery === 0 || index === points.length - 1) && (
                     <text key={index} x={p.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[11px] dark:fill-gray-500">
-                        {formatBucketLabel(p.at)}
+                        {formatBucketLabel(p.at, timeZone)}
                     </text>
                 ))}
             </svg>
@@ -515,6 +518,8 @@ function WidgetCard({ icon, title, tag, href, children }: { icon: string; title:
 }
 
 function TrafficChart({ points }: { points: TrafficPoint[] }) {
+    const timeZone = useTimezone();
+
     if (points.every((p) => p.calls === 0)) {
         return <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Sin llamadas en este período.</p>;
     }
@@ -557,7 +562,7 @@ function TrafficChart({ points }: { points: TrafficPoint[] }) {
             ))}
             {coords.map((c, i) => (i % timeLabelEvery === 0 || i === coords.length - 1) && (
                 <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[10px] dark:fill-gray-500">
-                    {formatBucketLabel(c.at)}
+                    {formatBucketLabel(c.at, timeZone)}
                 </text>
             ))}
         </svg>
@@ -732,6 +737,7 @@ export default function Dashboard({
     const [accountModal, setAccountModal] = useState<{ clientId: number; customer: string | null; account: string } | null>(null);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [active, setActive] = useState<Set<string>>(new Set(activeWidgets));
+    const timeZone = useTimezone();
 
     useEffect(() => setActive(new Set(activeWidgets)), [activeWidgets]);
 
@@ -805,7 +811,7 @@ export default function Dashboard({
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 2xl:max-w-none 2xl:px-10">
-                    <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-5">
+                    <div className={`mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4 ${isAdmin ? 'xl:grid-cols-5' : ''}`}>
                         <KpiTile label="Llamadas activas" value={kpis.activeCalls.toLocaleString('es-CR')} sub={periodLabels[period]} />
                         <KpiTile
                             label="Alertas (24h)"
@@ -819,18 +825,19 @@ export default function Dashboard({
                                 </div>
                             )}
                         />
-                        <KpiTile
-                            label="Acciones"
-                            value={alertsTotal.toLocaleString('es-CR')}
-                            href={route('alerts.index')}
-                            sub={(
-                                <div className="flex gap-3">
-                                    <span>🔔 {alertsTotal > 0 ? Math.round(((alertCounts.notify ?? 0) / alertsTotal) * 100) : 0}%</span>
-                                    <span>🚫 {alertsTotal > 0 ? Math.round(((alertCounts.block ?? 0) / alertsTotal) * 100) : 0}%</span>
-                                    <span>➖ {alertsTotal > 0 ? Math.round(((alertCounts.ignore ?? 0) / alertsTotal) * 100) : 0}%</span>
-                                </div>
-                            )}
-                        />
+                        {isAdmin && (
+                            <KpiTile
+                                label="Cola de jobs"
+                                value={(queueSummary?.pending ?? 0).toLocaleString('es-CR')}
+                                href={route('admin.queue.index')}
+                                sub={(
+                                    <div className="flex gap-3">
+                                        <span>▶ {queueSummary?.running ?? 0}</span>
+                                        <span>✗ {queueSummary?.failedRecent ?? 0}</span>
+                                    </div>
+                                )}
+                            />
+                        )}
                         <KpiTile
                             label="Cuentas en revisión"
                             value={kpis.accountsInReview.toLocaleString('es-CR')}
@@ -1010,34 +1017,6 @@ export default function Dashboard({
                             </WidgetCard>
                         )}
 
-                        {isAdmin && isOn('queue') && (
-                            <WidgetCard icon="⚙" title="Cola de jobs" href={route('admin.queue.index')}>
-                                {queueSummary === null ? (
-                                    <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Sin datos.</p>
-                                ) : (
-                                    <div className="space-y-2.5 text-sm">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-600 dark:text-gray-300">Pendientes</span>
-                                            <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">{queueSummary.pending}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-600 dark:text-gray-300">En ejecución</span>
-                                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-xs text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">{queueSummary.running}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-600 dark:text-gray-300">Fallidos (24h)</span>
-                                            <span className="rounded-full bg-red-100 px-2 py-0.5 font-mono text-xs text-red-800 dark:bg-red-500/10 dark:text-red-400">{queueSummary.failedRecent}</span>
-                                        </div>
-                                        {queueSummary.oldestPendingSeconds !== null && (
-                                            <p className="border-t border-gray-100 pt-2 text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
-                                                Pendiente más antiguo: hace {Math.round(queueSummary.oldestPendingSeconds / 60)} min
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </WidgetCard>
-                        )}
-
                         {isOn('alerts') && (
                             <div className="md:col-span-2 min-[1800px]:col-span-4">
                                 <WidgetCard icon="🔔" title="Alertas recientes" href={route('alerts.index')}>
@@ -1061,7 +1040,7 @@ export default function Dashboard({
                                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-200">
                                                     {alertsRecent.map((alert) => (
                                                         <tr key={alert.id}>
-                                                            <td className="py-2 font-mono text-xs">{new Intl.DateTimeFormat('es-CR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(alert.occurredAt))}</td>
+                                                            <td className="py-2 font-mono text-xs">{formatDateTime(alert.occurredAt, timeZone, { dateStyle: 'short', timeStyle: 'short' })}</td>
                                                             {isAdmin && <td className="py-2">{alert.clientName ?? '—'}</td>}
                                                             <td className="py-2 font-mono">{alert.account ?? '—'}</td>
                                                             <td className="py-2">{alert.ruleLabel ?? '—'}</td>
