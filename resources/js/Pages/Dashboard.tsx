@@ -854,6 +854,14 @@ export default function Dashboard({
                             </div>
                         )}
 
+                        {isOn('heatmap') && (
+                            <div className="md:col-span-2">
+                                <WidgetCard icon="🕘" title="Intensidad de tráfico por hora" tag="7 DÍAS">
+                                    <HeatmapGrid matrix={heatmap} />
+                                </WidgetCard>
+                            </div>
+                        )}
+
                         {isOn('prefixes') && (
                             <WidgetCard icon="🌐" title="Prefijos" href={route('prefixes.index')}>
                                 <div className="overflow-x-auto">
@@ -986,14 +994,6 @@ export default function Dashboard({
                                     </table>
                                 </div>
                             </WidgetCard>
-                        )}
-
-                        {isOn('heatmap') && (
-                            <div className="md:col-span-2">
-                                <WidgetCard icon="🕘" title="Intensidad de tráfico por hora" tag="7 DÍAS">
-                                    <HeatmapGrid matrix={heatmap} />
-                                </WidgetCard>
-                            </div>
                         )}
 
                         {isAdmin && isOn('clients') && (
