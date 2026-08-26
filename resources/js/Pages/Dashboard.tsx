@@ -1243,30 +1243,26 @@ export default function Dashboard({
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
-                                                {alertsRecent.map((alert) => {
-                                                    const pending = alert.action === 'block' && alert.reviewStatus === 'pending';
-
-                                                    return (
-                                                        <tr
-                                                            key={alert.id}
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                event.stopPropagation();
-                                                                setViewingAlert(alert);
-                                                            }}
-                                                            className={`cursor-pointer transition ${pending ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                                                        >
-                                                            <td className="py-2 font-mono">{alert.prefix ?? '—'}</td>
-                                                            <td className="py-2">
-                                                                {isAdmin && alert.clientName && `${alert.clientName} `}
-                                                                {alert.account && <span className="text-gray-400 dark:text-gray-500">({alert.account})</span>}
-                                                            </td>
-                                                            <td className="py-2 text-right">
-                                                                <CallsMinutesBadge calls={alert.calls ?? 0} seconds={alert.seconds ?? 0} alerted={pending} />
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
+                                                {alertsRecent.map((alert) => (
+                                                    <tr
+                                                        key={alert.id}
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            event.stopPropagation();
+                                                            setViewingAlert(alert);
+                                                        }}
+                                                        className={`cursor-pointer transition ${ALERT_ROW_CLASS[alert.action]}`}
+                                                    >
+                                                        <td className="py-2 font-mono">{alert.prefix ?? '—'}</td>
+                                                        <td className="py-2">
+                                                            {isAdmin && alert.clientName && `${alert.clientName} `}
+                                                            {alert.account && <span className="text-gray-400 dark:text-gray-500">({alert.account})</span>}
+                                                        </td>
+                                                        <td className="py-2 text-right">
+                                                            <CallsMinutesBadge calls={alert.calls ?? 0} seconds={alert.seconds ?? 0} alerted={alert.action !== 'ignore'} />
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                             </tbody>
                                         </table>
                                     </div>
