@@ -7,6 +7,7 @@ use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
+use App\Models\PortaoneActiveSession;
 use App\Services\AdminAlertNotifier;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
@@ -16,7 +17,7 @@ class EvaluateMonitoringRules extends Command
 {
     protected $signature = 'smaf:evaluate-monitoring-rules';
 
-    protected $description = 'Evalúa las reglas de prefijo y destino (globales y por cliente) contra las llamadas de la última hora y genera alertas cuando una cuenta supera los límites configurados.';
+    protected $description = 'Evalúa las reglas de prefijo y destino (globales y por cliente) contra las llamadas de la última hora más las llamadas activas en curso, y genera alertas cuando una cuenta supera los límites configurados.';
 
     public function handle(AdminAlertNotifier $adminAlerts): int
     {
@@ -95,7 +96,25 @@ class EvaluateMonitoringRules extends Command
             ->whereIn('client_id', $involvedClientIds)
             ->get(['client_id', 'prefix', 'destination', 'account', 'customer', 'duration_seconds']);
 
-        $callsByClient = $recentCalls->groupBy('client_id');
+        // Las llamadas que siguen en curso no aparecen todavía en call_records
+        // (eso solo pasa cuando terminan y se sincroniza el CDR); sin sumarlas
+        // aquí, una ráfaga de fraude en progreso no se detecta hasta que esas
+        // llamadas cuelguen. Se homologan al mismo shape que CallRecord para
+        // que evaluateRule() las procese sin distinguir el origen.
+        $activeCalls = PortaoneActiveSession::query()
+            ->active()
+            ->whereIn('client_id', $involvedClientIds)
+            ->get(['client_id', 'account_id', 'customer_name', 'cld', 'duration_seconds'])
+            ->map(fn (PortaoneActiveSession $session) => (object) [
+                'client_id' => $session->client_id,
+                'account' => $session->account_id,
+                'customer' => $session->customer_name,
+                'prefix' => $this->prefixFor((string) $session->cld),
+                'destination' => $session->cld,
+                'duration_seconds' => (int) ($session->duration_seconds ?? 0),
+            ]);
+
+        $callsByClient = $recentCalls->concat($activeCalls)->groupBy('client_id');
 
         $existingAlerts = MonitoringRuleEvent::query()
             ->whereIn('monitoring_rule_id', $rules->pluck('id'))
@@ -130,12 +149,39 @@ class EvaluateMonitoringRules extends Command
     }
 
     /**
-     * @param  Collection<int, CallRecord>  $clientCalls
+     * Mismo criterio que SyncPortaOneCalls/CallRecordImporter usan para
+     * poblar call_records.prefix, para que una llamada activa "cuente"
+     * exactamente para el mismo prefijo que contaría una vez completada.
+     */
+    private function prefixFor(string $destination): ?string
+    {
+        $normalized = preg_replace('/\D/', '', $destination);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (str_starts_with($normalized, '011')) {
+            $normalized = substr($normalized, 3);
+        }
+
+        return str_starts_with($normalized, '1')
+            ? substr($normalized, 0, 4)
+            : substr($normalized, 0, 3);
+    }
+
+    /**
+     * $clientCalls mezcla filas de CallRecord (llamadas completadas) con
+     * objetos genéricos equivalentes construidos a partir de
+     * PortaoneActiveSession (llamadas en curso); por eso el parámetro de los
+     * closures de abajo no se tipa a CallRecord.
+     *
+     * @param  Collection<int, object>  $clientCalls
      * @param  array<int, string>  $alreadyAlerted
      */
     private function evaluateRule(MonitoringRule $rule, int $effectiveClientId, Collection $clientCalls, array $alreadyAlerted): int
     {
-        $matching = $clientCalls->filter(function (CallRecord $call) use ($rule) {
+        $matching = $clientCalls->filter(function (object $call) use ($rule) {
             if ($rule->account !== null && $call->account !== $rule->account) {
                 return false;
             }
@@ -152,7 +198,7 @@ class EvaluateMonitoringRules extends Command
             return 0;
         }
 
-        $groups = $matching->groupBy(fn (CallRecord $call) => ($call->account ?? '').'|'.($call->customer ?? ''));
+        $groups = $matching->groupBy(fn (object $call) => ($call->account ?? '').'|'.($call->customer ?? ''));
 
         $created = 0;
 
