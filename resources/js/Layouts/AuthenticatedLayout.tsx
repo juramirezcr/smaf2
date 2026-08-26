@@ -1,10 +1,11 @@
 import ThemeToggle from '@/Components/ThemeToggle';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { Link, usePage } from '@inertiajs/react';
-import { PropsWithChildren, ReactNode, useState } from 'react';
+import { PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 
-function Icon({ path }: { path: string }) {
+function Icon({ path, large = false }: { path: string; large?: boolean }) {
     return (
-        <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <svg className={`shrink-0 ${large ? 'h-[1.875rem] w-[1.875rem]' : 'h-6 w-6'}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d={path} />
         </svg>
     );
@@ -21,6 +22,7 @@ const ICONS = {
     help: 'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z M12 17.25h.007v.008H12v-.008z',
     cog: 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.752.43.992l1.005.828c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.752-.43-.992l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.213-1.28z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
     chevron: 'M8.25 4.5l7.5 7.5-7.5 7.5',
+    chevronDoubleLeft: 'M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5',
     logout: 'M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75',
 };
 
@@ -37,12 +39,33 @@ export default function Authenticated({
 }: PropsWithChildren<{ header?: ReactNode }>) {
     const user = usePage().props.auth.user;
     const [mobileOpen, setMobileOpen] = useState<boolean>(false);
+    const { collapsed, toggleCollapsed } = useSidebarCollapsed();
+    const configRef = useRef<HTMLDivElement>(null);
 
     const canSeeConfig = (user.isSystemAdmin || user.role === 'client_admin') && !user.readOnly;
     const configActive = Boolean(
         route().current('admin.clients.*') || route().current('admin.portaone.*') || route().current('admin.telegram.*') || route().current('admin.email.*') || route().current('admin.platform-users.*') || route().current('admin.queue.*') || route().current('users.*') || route().current('process-runs.*'),
     );
     const [configOpen, setConfigOpen] = useState<boolean>(configActive);
+
+    // En modo colapsado el submenú se muestra como un flyout flotante junto
+    // al ícono en vez de una lista anidada; debe cerrarse solo al hacer clic
+    // fuera de él, ya que no hay texto visible que sirva de "cerrar".
+    useEffect(() => {
+        if (!collapsed || !configOpen) {
+            return;
+        }
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (configRef.current && !configRef.current.contains(event.target as Node)) {
+                setConfigOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [collapsed, configOpen]);
 
     const navItems: NavItem[] = [
         { name: 'Panel de Control', href: route('dashboard'), active: route().current('dashboard'), icon: 'dashboard' },
@@ -69,91 +92,127 @@ export default function Authenticated({
         user.isSystemAdmin && { name: 'Ejecuciones', href: route('process-runs.index'), active: route().current('process-runs.*') },
     ].filter((item): item is Exclude<typeof item, false> => item !== false);
 
-    const sidebarContent = (
-        <>
-            <div className="flex h-16 shrink-0 items-center justify-between px-4">
-                <div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">SMAF 2</p>
-                    {user.clientName && <p className="text-xs text-gray-500 dark:text-slate-400">{user.clientName}</p>}
-                </div>
-                <div className="flex items-center gap-2">
-                    <ThemeToggle />
-                    <Link href={route('logout')} method="post" as="button" className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
-                        <Icon path={ICONS.logout} />
-                        Salir
-                    </Link>
-                </div>
-            </div>
-            <nav className="flex-1 space-y-1 px-2 pb-4">
-                {navItems.map((item) => (
-                    <Link
-                        key={item.name}
-                        href={item.href}
-                        className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                            item.active
-                                ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
-                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
-                        }`}
+    function renderSidebar(isCollapsed: boolean) {
+        return (
+            <>
+                <div className={`flex shrink-0 items-center px-4 ${isCollapsed ? 'flex-col gap-2 py-3' : 'h-16 justify-between'}`}>
+                    {!isCollapsed && (
+                        <div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">SMAF 2</p>
+                            {user.clientName && <p className="text-xs text-gray-500 dark:text-slate-400">{user.clientName}</p>}
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={toggleCollapsed}
+                        title={isCollapsed ? 'Expandir menú' : 'Colapsar menú a solo íconos'}
+                        className="hidden rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white md:inline-flex"
                     >
-                        <Icon path={ICONS[item.icon]} />
-                        {item.name}
-                    </Link>
-                ))}
-
-                {canSeeConfig && (
-                    <div>
-                        <button
-                            type="button"
-                            onClick={() => setConfigOpen((previous) => !previous)}
-                            className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                                configActive
+                        <svg className={`h-5 w-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.chevronDoubleLeft} />
+                        </svg>
+                    </button>
+                    {isCollapsed ? (
+                        <>
+                            <ThemeToggle />
+                            <Link href={route('logout')} method="post" as="button" title="Salir" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">
+                                <Icon path={ICONS.logout} />
+                            </Link>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <Link href={route('logout')} method="post" as="button" className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
+                                <Icon path={ICONS.logout} />
+                                Salir
+                            </Link>
+                        </div>
+                    )}
+                </div>
+                <nav className="flex-1 space-y-1 px-2 pb-4">
+                    {navItems.map((item) => (
+                        <Link
+                            key={item.name}
+                            href={item.href}
+                            title={isCollapsed ? item.name : undefined}
+                            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${isCollapsed ? 'justify-center' : ''} ${
+                                item.active
                                     ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
                             }`}
                         >
-                            <span className="flex items-center gap-3">
-                                <Icon path={ICONS.cog} />
-                                Configuraciones
-                            </span>
-                            <svg className={`h-5 w-5 transition-transform ${configOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.chevron} />
-                            </svg>
-                        </button>
-                        {configOpen && (
-                            <div className="ms-6 mt-1 space-y-1">
-                                {configItems.map((item) => (
-                                    <Link
-                                        key={item.name}
-                                        href={item.href}
-                                        className={`block rounded-md px-3 py-2 text-sm transition ${
-                                            item.active
-                                                ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
-                                                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white'
-                                        }`}
-                                    >
-                                        {item.name}
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
+                            <Icon path={ICONS[item.icon]} large={isCollapsed} />
+                            {!isCollapsed && item.name}
+                        </Link>
+                    ))}
+
+                    {canSeeConfig && (
+                        <div ref={isCollapsed ? configRef : undefined} className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setConfigOpen((previous) => !previous)}
+                                title={isCollapsed ? 'Configuraciones' : undefined}
+                                className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${isCollapsed ? 'justify-center' : 'justify-between'} ${
+                                    configActive
+                                        ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
+                                }`}
+                            >
+                                <span className="flex items-center gap-3">
+                                    <Icon path={ICONS.cog} large={isCollapsed} />
+                                    {!isCollapsed && 'Configuraciones'}
+                                </span>
+                                {!isCollapsed && (
+                                    <svg className={`h-5 w-5 transition-transform ${configOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.chevron} />
+                                    </svg>
+                                )}
+                            </button>
+                            {configOpen && (
+                                <div
+                                    className={
+                                        isCollapsed
+                                            ? 'absolute left-full top-0 z-30 ml-2 w-52 space-y-1 rounded-md border border-gray-200 bg-white p-1.5 shadow-lg dark:border-slate-600 dark:bg-slate-800'
+                                            : 'ms-6 mt-1 space-y-1'
+                                    }
+                                >
+                                    {configItems.map((item) => (
+                                        <Link
+                                            key={item.name}
+                                            href={item.href}
+                                            onClick={() => isCollapsed && setConfigOpen(false)}
+                                            className={`block rounded-md px-3 py-2 text-sm transition ${
+                                                item.active
+                                                    ? 'bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-white'
+                                                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            {item.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </nav>
+                {!isCollapsed && (
+                    <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
+                        <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+                        <p className="truncate text-xs text-gray-500 dark:text-slate-400">{user.email}</p>
+                        <Link href={route('profile.edit')} className="mt-2 inline-block text-xs text-gray-500 underline hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
+                            Perfil
+                        </Link>
                     </div>
                 )}
-            </nav>
-            <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
-                <p className="truncate text-xs text-gray-500 dark:text-slate-400">{user.email}</p>
-                <Link href={route('profile.edit')} className="mt-2 inline-block text-xs text-gray-500 underline hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
-                    Perfil
-                </Link>
-            </div>
-        </>
-    );
+            </>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
             {/* Sidebar de escritorio */}
-            <div className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
-                <div className="flex min-h-0 flex-1 flex-col border-r border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800">{sidebarContent}</div>
+            <div className={`hidden md:fixed md:inset-y-0 md:flex md:flex-col ${collapsed ? 'md:w-20' : 'md:w-64'}`}>
+                <div className="flex min-h-0 flex-1 flex-col border-r border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800">{renderSidebar(collapsed)}</div>
             </div>
 
             {/* Barra superior + menú deslizable en móvil */}
@@ -186,11 +245,11 @@ export default function Authenticated({
             </div>
             {mobileOpen && (
                 <div className="fixed inset-x-0 top-16 z-20 flex max-h-[calc(100vh-4rem)] flex-col overflow-y-auto border-b border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800 md:hidden">
-                    {sidebarContent}
+                    {renderSidebar(false)}
                 </div>
             )}
 
-            <div className="flex flex-1 flex-col md:pl-64">
+            <div className={`flex flex-1 flex-col ${collapsed ? 'md:pl-20' : 'md:pl-64'}`}>
                 {header && (
                     <header className="bg-white shadow dark:bg-gray-800 dark:shadow-none dark:ring-1 dark:ring-white/10">
                         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{header}</div>
