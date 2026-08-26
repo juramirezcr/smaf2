@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Mail\AlertTriggeredMail;
+use App\Models\AlertNotification;
 use App\Models\Client;
 use App\Models\MonitoringRuleEvent;
 use App\Models\NotificationSetting;
@@ -11,6 +12,7 @@ use App\Services\TelegramNotifier;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class SendAlertNotification implements ShouldQueue
 {
@@ -56,20 +58,51 @@ class SendAlertNotification implements ShouldQueue
         ];
 
         if ($client->telegram_chat_id) {
-            $telegram->send(
-                $client->telegram_chat_id,
-                AlertMessageFormatter::telegramText($alert),
-                $client->effectiveTelegramBotToken(),
-            );
+            $error = null;
+
+            try {
+                $sent = $telegram->send(
+                    $client->telegram_chat_id,
+                    AlertMessageFormatter::telegramText($alert),
+                    $client->effectiveTelegramBotToken(),
+                );
+            } catch (Throwable $exception) {
+                $sent = false;
+                $error = $exception->getMessage();
+            }
+
+            $this->logNotification($event, 'telegram', $client->telegram_chat_id, $sent, $error);
         }
 
         if ($client->notification_email) {
             $settings = NotificationSetting::current();
 
             if ($settings->isEmailConfigured()) {
-                $settings->applyMailConfig();
-                Mail::to($client->notification_email)->send(new AlertTriggeredMail($alert));
+                $error = null;
+
+                try {
+                    $settings->applyMailConfig();
+                    Mail::to($client->notification_email)->send(new AlertTriggeredMail($alert));
+                    $sent = true;
+                } catch (Throwable $exception) {
+                    $sent = false;
+                    $error = $exception->getMessage();
+                }
+
+                $this->logNotification($event, 'email', $client->notification_email, $sent, $error);
             }
         }
+    }
+
+    private function logNotification(MonitoringRuleEvent $event, string $channel, string $recipient, bool $sent, ?string $error): void
+    {
+        AlertNotification::create([
+            'monitoring_rule_event_id' => $event->id,
+            'channel' => $channel,
+            'recipient' => $recipient,
+            'status' => $sent ? 'sent' : 'failed',
+            'error' => $error,
+            'sent_at' => now(),
+        ]);
     }
 }

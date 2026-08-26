@@ -90,6 +90,15 @@ interface AlertRecentItem {
     canReview: boolean;
 }
 
+interface AlertNotificationItem {
+    id: number;
+    channel: 'telegram' | 'email';
+    recipient: string | null;
+    status: 'sent' | 'failed';
+    sentAt: string;
+    alert: AlertRecentItem;
+}
+
 interface WidgetDef {
     key: string;
     label: string;
@@ -119,6 +128,7 @@ interface DashboardProps {
     heatmap: number[][];
     queueSummary: QueueSummary | null;
     alertsRecent: AlertRecentItem[];
+    notificationsRecent: AlertNotificationItem[];
 }
 
 function Sparkline({ data }: { data: number[] }) {
@@ -858,11 +868,13 @@ export default function Dashboard({
     heatmap,
     queueSummary,
     alertsRecent,
+    notificationsRecent,
 }: DashboardProps) {
     const [autoRefreshInterval, setAutoRefreshInterval] = useState(60_000);
     const [prefixModal, setPrefixModal] = useState<{ clientId: number; prefix: string } | null>(null);
     const [accountModal, setAccountModal] = useState<{ clientId: number; customer: string | null; account: string } | null>(null);
     const [viewingAlert, setViewingAlert] = useState<AlertRecentItem | null>(null);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [active, setActive] = useState<Set<string>>(new Set(activeWidgets));
     const timeZone = useTimezone();
@@ -879,7 +891,7 @@ export default function Dashboard({
         }
 
         const interval = setInterval(() => {
-            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'kpis', 'clientsActive', 'trafficSeries', 'heatmap', 'queueSummary', 'alertsRecent'] });
+            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'kpis', 'clientsActive', 'trafficSeries', 'heatmap', 'queueSummary', 'alertsRecent', 'notificationsRecent'] });
         }, autoRefreshInterval);
 
         return () => clearInterval(interval);
@@ -919,6 +931,69 @@ export default function Dashboard({
                         <option key={value} value={value}>{label}</option>
                     ))}
                 </select>
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setNotificationsOpen((open) => !open)}
+                        className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+                    >
+                        📨 Notificaciones
+                        {notificationsRecent.length > 0 && (
+                            <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 font-mono text-[11px] text-white">{notificationsRecent.length}</span>
+                        )}
+                    </button>
+                    {notificationsOpen && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />
+                            <div className="absolute right-0 z-50 mt-2 max-h-[28rem] w-96 overflow-y-auto rounded-lg bg-white shadow-2xl dark:bg-gray-800">
+                                <div className="border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
+                                    Notificaciones enviadas
+                                </div>
+                                {notificationsRecent.length === 0 ? (
+                                    <p className="p-4 text-sm text-gray-400 dark:text-gray-500">Aún no se ha enviado ninguna notificación.</p>
+                                ) : (
+                                    <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                                        {notificationsRecent.map((notification) => (
+                                            <li key={notification.id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setNotificationsOpen(false);
+                                                        setViewingAlert(notification.alert);
+                                                    }}
+                                                    className="block w-full px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                                                            {notification.channel === 'telegram' ? '📲 Telegram' : '✉️ Correo'}
+                                                        </span>
+                                                        <span
+                                                            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                                                notification.status === 'sent'
+                                                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                                                    : 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
+                                                            }`}
+                                                        >
+                                                            {notification.status === 'sent' ? 'Enviada' : 'Falló'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                                        {notification.recipient ?? '—'} · {formatDateTime(notification.sentAt, timeZone, { dateStyle: 'short', timeStyle: 'short' })}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                                                        Prefijo +{notification.alert.prefix ?? '—'}
+                                                        {notification.alert.clientName ? ` · ${notification.alert.clientName}` : ''}
+                                                        {' '}({notification.alert.account ?? '—'})
+                                                    </p>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
                 <button
                     type="button"
                     onClick={() => setPickerOpen(true)}

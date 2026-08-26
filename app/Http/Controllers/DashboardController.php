@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AlertNotification;
 use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRule;
@@ -127,26 +128,48 @@ class DashboardController extends Controller
                 ->latest('occurred_at')
                 ->limit(8)
                 ->get()
-                ->map(fn (MonitoringRuleEvent $event) => [
-                    'id' => $event->id,
-                    'occurredAt' => $event->occurred_at->toIso8601String(),
-                    'clientName' => $isAdmin ? $clientNames?->get($event->client_id) : null,
-                    'account' => $event->context['account'] ?? null,
-                    'customer' => $event->context['customer'] ?? null,
-                    'calls' => $event->context['calls'] ?? null,
-                    'seconds' => $event->context['seconds'] ?? null,
-                    'callLimit' => $event->context['call_limit'] ?? null,
-                    'durationLimitSeconds' => $event->context['duration_limit_seconds'] ?? null,
-                    'action' => $event->action,
-                    'prefix' => $event->rule?->match_value,
-                    'ruleLabel' => $event->rule?->description ?: $event->rule?->match_value,
-                    'reviewStatus' => $event->review_status,
-                    'feedbackNotes' => $event->feedback_notes,
-                    'reviewedByName' => $event->reviewer?->name,
-                    'canReview' => $event->action === 'block'
-                        && ($isAdmin || ($user->client_id === $event->client_id && $user->isClientAdmin())),
+                ->map(fn (MonitoringRuleEvent $event) => $this->alertEventData($event, $isAdmin, $clientNames, $user)),
+            'notificationsRecent' => AlertNotification::query()
+                ->whereHas('event', fn ($q) => $q->when(!$isAdmin, fn ($q2) => $q2->where('client_id', $clientId)))
+                ->with(['event.rule:id,match_value,description', 'event.reviewer:id,name'])
+                ->latest('sent_at')
+                ->limit(8)
+                ->get()
+                ->map(fn (AlertNotification $notification) => [
+                    'id' => $notification->id,
+                    'channel' => $notification->channel,
+                    'recipient' => $notification->recipient,
+                    'status' => $notification->status,
+                    'sentAt' => $notification->sent_at->toIso8601String(),
+                    'alert' => $this->alertEventData($notification->event, $isAdmin, $clientNames, $user),
                 ]),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function alertEventData(MonitoringRuleEvent $event, bool $isAdmin, $clientNames, $user): array
+    {
+        return [
+            'id' => $event->id,
+            'occurredAt' => $event->occurred_at->toIso8601String(),
+            'clientName' => $isAdmin ? $clientNames?->get($event->client_id) : null,
+            'account' => $event->context['account'] ?? null,
+            'customer' => $event->context['customer'] ?? null,
+            'calls' => $event->context['calls'] ?? null,
+            'seconds' => $event->context['seconds'] ?? null,
+            'callLimit' => $event->context['call_limit'] ?? null,
+            'durationLimitSeconds' => $event->context['duration_limit_seconds'] ?? null,
+            'action' => $event->action,
+            'prefix' => $event->rule?->match_value,
+            'ruleLabel' => $event->rule?->description ?: $event->rule?->match_value,
+            'reviewStatus' => $event->review_status,
+            'feedbackNotes' => $event->feedback_notes,
+            'reviewedByName' => $event->reviewer?->name,
+            'canReview' => $event->action === 'block'
+                && ($isAdmin || ($user->client_id === $event->client_id && $user->isClientAdmin())),
+        ];
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MonitoringRuleEvent extends Model
 {
@@ -43,5 +44,10 @@ class MonitoringRuleEvent extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(AlertNotification::class, 'monitoring_rule_event_id');
     }
 }
