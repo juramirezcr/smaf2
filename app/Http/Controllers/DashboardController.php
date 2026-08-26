@@ -358,11 +358,12 @@ class DashboardController extends Controller
      * Se ignoran las reglas atadas a una cuenta/customer específico porque
      * ese contexto no existe en esta vista agregada por prefijo.
      *
-     * Clave 'clientId|prefix' para reglas de cliente, 'GLOBAL|prefix' para
-     * globales (solo existen cuando isAdmin, ya que a un cliente ya se le
-     * resuelve su propio scoping en la query).
+     * Separadas por cliente y globales (en vez de una única clave
+     * "clientId|prefix") porque la resolución ya no es por igualdad exacta:
+     * resolvePrefixRule() necesita poder revisar todas las reglas de un
+     * cliente para encontrar la más específica que sea prefijo del bucket.
      *
-     * @return array<string, array{limit: int|null, action: string}>
+     * @return array{byClient: array<int, array<int, array{matchValue: string, limit: int|null, action: string, isClient: bool}>>, global: array<int, array{matchValue: string, limit: int|null, action: string, isClient: bool}>}
      */
     private function prefixRuleLookup(bool $isAdmin, ?int $clientId): array
     {
@@ -374,14 +375,55 @@ class DashboardController extends Controller
             ->when(!$isAdmin, fn ($query) => $query->where(fn ($q) => $q->whereNull('client_id')->orWhere('client_id', $clientId)))
             ->get(['client_id', 'match_value', 'call_limit', 'action']);
 
-        $lookup = [];
+        $byClient = [];
+        $global = [];
 
         foreach ($rules as $rule) {
-            $key = ($rule->client_id ?? 'GLOBAL').'|'.$rule->match_value;
-            $lookup[$key] = ['limit' => $rule->call_limit, 'action' => $rule->action];
+            $entry = ['matchValue' => $rule->match_value, 'limit' => $rule->call_limit, 'action' => $rule->action, 'isClient' => $rule->client_id !== null];
+
+            if ($rule->client_id === null) {
+                $global[] = $entry;
+            } else {
+                $byClient[$rule->client_id][] = $entry;
+            }
         }
 
-        return $lookup;
+        return ['byClient' => $byClient, 'global' => $global];
+    }
+
+    /**
+     * La evaluación de reglas hace match tanto por igualdad exacta del
+     * prefijo como por "el destino empieza con match_value" (ver
+     * EvaluateMonitoringRules::evaluateRule), así que una regla corta como
+     * "53" puede disparar una alerta sobre tráfico cuyo bucket de prefijo
+     * calculado es más largo (p. ej. "531"). Buscar aquí solo por igualdad
+     * exacta dejaba ese bucket sin la etiqueta de su propia regla; se
+     * resuelve igual que la evaluación: la coincidencia más específica
+     * (match_value más largo) entre las que son prefijo del bucket.
+     *
+     * @return array{limit: int|null, action: string}|null
+     */
+    private function resolvePrefixRule(array $ruleLookup, int $clientId, string $prefix): ?array
+    {
+        $candidates = array_merge($ruleLookup['byClient'][$clientId] ?? [], $ruleLookup['global'] ?? []);
+
+        $best = null;
+
+        foreach ($candidates as $candidate) {
+            if (! str_starts_with($prefix, $candidate['matchValue'])) {
+                continue;
+            }
+
+            $isMoreSpecific = $best === null
+                || strlen($candidate['matchValue']) > strlen($best['matchValue'])
+                || (strlen($candidate['matchValue']) === strlen($best['matchValue']) && $candidate['isClient'] && ! $best['isClient']);
+
+            if ($isMoreSpecific) {
+                $best = $candidate;
+            }
+        }
+
+        return $best;
     }
 
     /**
@@ -408,7 +450,7 @@ class DashboardController extends Controller
             $key = $row->client_id.'|'.$row->$labelField;
 
             if (! isset($aggregated[$key])) {
-                $rule = $ruleLookup[$key] ?? $ruleLookup['GLOBAL|'.$row->$labelField] ?? null;
+                $rule = $this->resolvePrefixRule($ruleLookup, (int) $row->client_id, (string) $row->$labelField);
 
                 $aggregated[$key] = [
                     'clientId' => $row->client_id,
