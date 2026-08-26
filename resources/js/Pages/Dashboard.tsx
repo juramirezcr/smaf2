@@ -15,6 +15,7 @@ interface StatItem {
     seconds: number;
     history: number[];
     alerted: boolean;
+    alertAction: 'notify' | 'block' | 'ignore' | null;
     ruleLimit: number | null;
     ruleAction: 'notify' | 'block' | 'ignore' | null;
 }
@@ -680,6 +681,13 @@ const ACTION_CHIP: Record<AlertRecentItem['action'], string> = {
     ignore: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
 
+const ALERT_ROW_CLASS: Record<'block' | 'notify' | 'ignore' | 'none', string> = {
+    block: 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20',
+    notify: 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20',
+    ignore: 'hover:bg-gray-50 dark:hover:bg-gray-700',
+    none: 'hover:bg-gray-50 dark:hover:bg-gray-700',
+};
+
 function AlertDetailModal({ alert, timeZone, onClose }: { alert: AlertRecentItem; timeZone: string; onClose: () => void }) {
     const [decision, setDecision] = useState<'cleared' | 'maintained'>('maintained');
     const [notes, setNotes] = useState('');
@@ -1112,7 +1120,7 @@ export default function Dashboard({
                                                                 event.stopPropagation();
                                                                 setPrefixModal({ clientId: item.clientId, prefix: item.label });
                                                             }}
-                                                            className={`cursor-pointer transition ${item.alerted ? 'bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                                                            className={`cursor-pointer transition ${ALERT_ROW_CLASS[item.alertAction ?? 'none']}`}
                                                         >
                                                             <td className="py-2 font-mono">
                                                                 {item.label ?? '—'}

@@ -59,7 +59,7 @@ class DashboardController extends Controller
                 labelField: 'prefix',
                 bucketCount: $bucketCount,
                 clientNames: $clientNames,
-                perClientLimit: 5,
+                perClientLimit: null,
                 alertedKeys: $alertedPrefixKeys,
                 ruleLookup: $prefixRuleLookup,
             ),
@@ -308,33 +308,44 @@ class DashboardController extends Controller
     /**
      * Construye los conjuntos de claves "client_id|prefijo" y
      * "client_id|customer|account" que tuvieron una alerta en la última hora,
-     * para resaltar esas filas en las tablas del dashboard.
+     * para resaltar esas filas en las tablas del dashboard. El valor
+     * guardado es la acción más severa (block > notify > ignore) entre las
+     * alertas de esa clave en la última hora, para poder pintar la fila de
+     * rojo o naranja según corresponda en vez de un simple booleano.
      *
-     * @return array{0: array<string, bool>, 1: array<string, bool>}
+     * @return array{0: array<string, string>, 1: array<string, string>}
      */
     private function alertedKeys(bool $isAdmin, ?int $clientId): array
     {
+        $severity = ['block' => 2, 'notify' => 1, 'ignore' => 0];
+
         $events = MonitoringRuleEvent::query()
             ->with('rule:id,match_value')
             ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
             ->where('occurred_at', '>=', now()->subHour())
-            ->get(['id', 'client_id', 'monitoring_rule_id', 'context']);
+            ->get(['id', 'client_id', 'monitoring_rule_id', 'action', 'context']);
 
         $prefixKeys = [];
         $accountKeys = [];
+
+        $keepMostSevere = function (array &$bag, string $key, string $action) use ($severity) {
+            if (! isset($bag[$key]) || $severity[$action] > $severity[$bag[$key]]) {
+                $bag[$key] = $action;
+            }
+        };
 
         foreach ($events as $event) {
             $prefix = $event->rule?->match_value;
 
             if ($prefix !== null) {
-                $prefixKeys[$event->client_id.'|'.$prefix] = true;
+                $keepMostSevere($prefixKeys, $event->client_id.'|'.$prefix, $event->action);
             }
 
             $account = $event->context['account'] ?? null;
             $customer = $event->context['customer'] ?? null;
 
             if ($account !== null) {
-                $accountKeys[$event->client_id.'|'.$customer.'|'.$account] = true;
+                $keepMostSevere($accountKeys, $event->client_id.'|'.$customer.'|'.$account, $event->action);
             }
         }
 
@@ -388,8 +399,9 @@ class DashboardController extends Controller
         };
     }
 
-    private function groupedByClient($rows, string $labelField, int $bucketCount, $clientNames, int $perClientLimit, array $alertedKeys = [], array $ruleLookup = []): array
+    private function groupedByClient($rows, string $labelField, int $bucketCount, $clientNames, ?int $perClientLimit, array $alertedKeys = [], array $ruleLookup = []): array
     {
+        $severity = ['block' => 2, 'notify' => 1, 'ignore' => 0];
         $aggregated = [];
 
         foreach ($rows as $row) {
@@ -405,6 +417,7 @@ class DashboardController extends Controller
                     'seconds' => 0,
                     'history' => array_fill(0, $bucketCount, 0),
                     'alerted' => isset($alertedKeys[$key]),
+                    'alertAction' => $alertedKeys[$key] ?? null,
                     'ruleLimit' => $rule['limit'] ?? null,
                     'ruleAction' => $rule['action'] ?? null,
                 ];
@@ -426,11 +439,21 @@ class DashboardController extends Controller
 
         $groups = [];
         foreach ($byClient as $clientIdKey => $items) {
-            usort($items, fn ($a, $b) => $b['calls'] <=> $a['calls']);
+            // Las filas con alerta activa en la última hora van primero (las
+            // más severas -bloqueo- antes que una simple notificación), y
+            // dentro de cada grupo se ordena por volumen de llamadas. Un
+            // prefijo peligroso con una sola llamada no debe quedar oculto
+            // por debajo de tráfico normal de mayor volumen.
+            usort($items, function ($a, $b) use ($severity) {
+                $severityA = $a['alertAction'] !== null ? $severity[$a['alertAction']] : -1;
+                $severityB = $b['alertAction'] !== null ? $severity[$b['alertAction']] : -1;
+
+                return $severityB <=> $severityA ?: $b['calls'] <=> $a['calls'];
+            });
 
             $groups[] = [
                 'clientName' => $clientNames?->get($clientIdKey),
-                'items' => array_slice($items, 0, $perClientLimit),
+                'items' => $perClientLimit !== null ? array_slice($items, 0, $perClientLimit) : $items,
             ];
         }
 
