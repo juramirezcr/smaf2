@@ -901,7 +901,7 @@ export default function Dashboard({
         const next = new Set(active);
         next.has(key) ? next.delete(key) : next.add(key);
         setActive(next);
-        router.patch(route('dashboard.widgets.update'), { widgets: Array.from(next) }, { preserveState: true, preserveScroll: true, only: [] });
+        axios.patch(route('dashboard.widgets.update'), { widgets: Array.from(next) });
     };
 
     const periodLabels: Record<string, string> = HISTORY_PERIOD_LABELS;
