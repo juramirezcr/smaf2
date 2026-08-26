@@ -980,7 +980,10 @@ export default function Dashboard({
                                                     <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                                                         {notification.recipient ?? '—'} · {formatDateTime(notification.sentAt, timeZone, { dateStyle: 'short', timeStyle: 'short' })}
                                                     </p>
-                                                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                                                    <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                                                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${ACTION_CHIP[notification.alert.action]}`}>
+                                                            {ACTION_LABEL[notification.alert.action]}
+                                                        </span>
                                                         Prefijo +{notification.alert.prefix ?? '—'}
                                                         {notification.alert.clientName ? ` · ${notification.alert.clientName}` : ''}
                                                         {' '}({notification.alert.account ?? '—'})
