@@ -45,7 +45,7 @@ Schedule::call(function () {
                 ->chunk(40)
                 ->each(fn ($chunk) => SyncPortaOneCalls::dispatch($client->id, $chunk->values()->all()));
         });
-})->everyThirtyMinutes()->name('portaone-xdr-sync')->withoutOverlapping();
+})->hourly()->name('portaone-xdr-sync')->withoutOverlapping();
 
 Schedule::command('smaf:evaluate-monitoring-rules')
     ->everyFiveMinutes()
