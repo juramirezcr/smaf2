@@ -6,18 +6,18 @@ class CallPrefix
 {
     /**
      * Bucket de prefijo (3-4 dígitos) usado para monitoreo de tráfico y
-     * agrupación en el dashboard. Un destino de menos de 5 dígitos no puede
-     * ser un número real en E.164 (el código de país + número más corto ya
-     * supera esa longitud), así que es una extensión interna: se devuelve
-     * null para que no cuente en ningún prefijo ni dispare reglas de
-     * monitoreo (ej. una extensión "2000" no debe activar una regla del
-     * prefijo "20").
+     * agrupación en el dashboard. Un destino de 8 dígitos o menos no alcanza
+     * a ser un número real en E.164 (código de país + número), así que se
+     * trata como extensión/llamada interna: se devuelve null para que no
+     * cuente en ningún prefijo ni dispare reglas de monitoreo (ej. una
+     * extensión "2000", o el formato "X10002" que PortaOne usa para algunas
+     * llamadas internas, no deben activar una regla de prefijo).
      */
     public static function forDestination(string $destination): ?string
     {
         $normalized = preg_replace('/\D/', '', $destination);
 
-        if ($normalized === '' || strlen($normalized) < 5) {
+        if ($normalized === '' || strlen($normalized) <= 8) {
             return null;
         }
 
