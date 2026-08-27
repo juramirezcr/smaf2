@@ -124,12 +124,14 @@ class DashboardController extends Controller
             'queueSummary' => $isAdmin ? $this->queueSummary() : null,
             'alertsRecent' => MonitoringRuleEvent::query()
                 ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
+                ->where('occurred_at', '>=', $since)
                 ->with(['rule:id,match_value,description', 'reviewer:id,name'])
                 ->latest('occurred_at')
                 ->limit(8)
                 ->get()
                 ->map(fn (MonitoringRuleEvent $event) => $this->alertEventData($event, $isAdmin, $clientNames, $user)),
             'notificationsRecent' => AlertNotification::query()
+                ->where('sent_at', '>=', $since)
                 ->whereHas('event', fn ($q) => $q->when(!$isAdmin, fn ($q2) => $q2->where('client_id', $clientId)))
                 ->with(['event.rule:id,match_value,description', 'event.reviewer:id,name'])
                 ->latest('sent_at')

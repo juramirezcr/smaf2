@@ -954,8 +954,9 @@ export default function Dashboard({
                         <>
                             <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />
                             <div className="absolute right-0 z-50 mt-2 max-h-[28rem] w-96 overflow-y-auto rounded-lg bg-white shadow-2xl dark:bg-gray-800">
-                                <div className="border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-gray-100">
-                                    Notificaciones enviadas
+                                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5 dark:border-gray-700">
+                                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Notificaciones enviadas</span>
+                                    <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">{periodLabels[period]}</span>
                                 </div>
                                 {notificationsRecent.length === 0 ? (
                                     <p className="p-4 text-sm text-gray-400 dark:text-gray-500">Aún no se ha enviado ninguna notificación.</p>
@@ -1229,7 +1230,7 @@ export default function Dashboard({
                         )}
 
                         {isOn('alerts') && (
-                            <WidgetCard icon="🔔" title="Alertas recientes" href={route('alerts.index')}>
+                            <WidgetCard icon="🔔" title="Alertas recientes" tag={periodLabels[period]} href={route('alerts.index')}>
                                 {alertsRecent.length === 0 ? (
                                     <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Aún no hay alertas registradas.</p>
                                 ) : (
