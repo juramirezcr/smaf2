@@ -38,10 +38,21 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
      * despacha un job por lote, para que corran en paralelo entre los
      * workers de la cola y ninguno solo acumule minutos por volumen.
      *
+     * $fromDate es opcional: si se indica (flujo recurrente del scheduler,
+     * que solo pasa cuentas con actividad reciente y una ventana fija de
+     * ~15 minutos), se usa tal cual y NO se avanza xdr_synced_until, porque
+     * esa marca representa "hasta dónde quedó sincronizado el historial
+     * completo del cliente", no el resultado de una ventana corta puntual.
+     * Si se omite (botón manual "Sincronizar ahora"), se retoma desde esa
+     * marca como antes, para poder ponerse al día con el historial completo.
+     *
      * @param  array<int, int>  $iAccounts
      */
-    public function __construct(public readonly int $clientId, public readonly array $iAccounts)
-    {
+    public function __construct(
+        public readonly int $clientId,
+        public readonly array $iAccounts,
+        public readonly ?\DateTimeInterface $fromDate = null,
+    ) {
     }
 
     public function uniqueId(): string
@@ -52,12 +63,13 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
     public function handle(): void
     {
         $client = Client::findOrFail($this->clientId);
+        $isFullCatchUp = $this->fromDate === null;
 
         // Pequeño solape hacia atrás para no perder registros que aún se
         // estaban finalizando en el borde de la ventana de la corrida anterior.
-        $fromDate = $client->xdr_synced_until !== null
+        $fromDate = $this->fromDate ?? ($client->xdr_synced_until !== null
             ? $client->xdr_synced_until->clone()->subMinutes(10)
-            : now()->subDays(7);
+            : now()->subDays(7));
 
         $run = ProcessRun::create([
             'client_id' => $client->id,
@@ -140,8 +152,10 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
             // Varios lotes del mismo cliente pueden terminar casi al mismo tiempo;
             // solo se avanza la marca si este lote realmente vio una llamada más
             // reciente que la ya guardada, para que un lote sin llamadas no la
-            // pise con un valor desactualizado.
-            if ($maxConnectTime !== null) {
+            // pise con un valor desactualizado. Solo aplica al catch-up completo:
+            // una corrida de ventana corta no representa "hasta dónde está al día
+            // el historial", así que no debe mover esa marca.
+            if ($isFullCatchUp && $maxConnectTime !== null) {
                 $current = $client->refresh()->xdr_synced_until;
 
                 if ($current === null || $maxConnectTime->greaterThan($current)) {

@@ -5,6 +5,7 @@ use App\Jobs\SyncPortaOneCalls;
 use App\Jobs\SyncPortaOneData;
 use App\Models\Client;
 use App\Models\PortaoneAccount;
+use App\Models\PortaoneActiveSession;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -28,11 +29,44 @@ Schedule::call(function () {
 })->everyMinute()->name('portaone-active-sessions')->withoutOverlapping();
 
 Schedule::call(function () {
-    // PortaOne exige consultar el XDR cuenta por cuenta (ver PortaOneClient::
-    // syncXdrsForAccounts), así que repartimos las cuentas de cada cliente en
-    // lotes y despachamos un job por lote: corren en paralelo entre los
-    // workers de la cola en vez de que un solo job acumule minutos por la
-    // sola cantidad de cuentas, aunque cada llamada SOAP individual sea rápida.
+    // En vez de barrer el catálogo completo de cuentas de cada cliente (que
+    // no escala con miles de cuentas la mayoría sin tráfico), solo se
+    // consultan las cuentas con una sesión activa o recién finalizada
+    // (portaone_active_sessions, poblada cada minuto), y solo se les pide el
+    // XDR de los últimos 15 minutos. El monitoreo de límites en tiempo real
+    // ya no depende de esto (usa sesiones activas + CDR de la última hora vía
+    // EvaluateMonitoringRules); esta corrida solo mantiene al día el
+    // historial de llamadas terminadas para reportes/dashboard.
+    $since = now()->subMinutes(15);
+
+    Client::query()
+        ->whereNotNull('portaone_username')
+        ->whereNotNull('portaone_token')
+        ->each(function (Client $client) use ($since) {
+            $iAccounts = PortaoneActiveSession::query()
+                ->where('client_id', $client->id)
+                ->where(fn ($q) => $q->whereNull('ended_at')->orWhere('ended_at', '>=', $since))
+                ->whereNotNull('i_account')
+                ->distinct()
+                ->pluck('i_account')
+                ->filter();
+
+            if ($iAccounts->isEmpty()) {
+                return;
+            }
+
+            $iAccounts->chunk(150)
+                ->each(fn ($chunk) => SyncPortaOneCalls::dispatch($client->id, $chunk->values()->all(), $since));
+        });
+})->everyFiveMinutes()->name('portaone-xdr-sync')->withoutOverlapping();
+
+Schedule::call(function () {
+    // Respaldo: una llamada que dura menos de 1 minuto puede arrancar y
+    // colgar entre dos sondeos de PollPortaOneActiveSessions sin llegar a
+    // verse nunca como "activa", y por tanto nunca dispara el sync de arriba.
+    // Una vez al día se barre el catálogo completo de cuentas (con la lógica
+    // vieja de xdr_synced_until) para atrapar cualquier llamada que se haya
+    // escapado por ese hueco.
     Client::query()
         ->whereNotNull('portaone_username')
         ->whereNotNull('portaone_token')
@@ -42,10 +76,10 @@ Schedule::call(function () {
                 ->active()
                 ->pluck('i_account')
                 ->filter()
-                ->chunk(40)
+                ->chunk(150)
                 ->each(fn ($chunk) => SyncPortaOneCalls::dispatch($client->id, $chunk->values()->all()));
         });
-})->hourly()->name('portaone-xdr-sync')->withoutOverlapping();
+})->dailyAt('03:00')->name('portaone-xdr-full-catchup')->withoutOverlapping();
 
 Schedule::command('smaf:evaluate-monitoring-rules')
     ->everyFiveMinutes()
