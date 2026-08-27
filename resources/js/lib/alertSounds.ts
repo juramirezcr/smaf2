@@ -3,7 +3,7 @@ export type AlertSoundKey = 'beep' | 'double' | 'siren';
 export const ALERT_SOUND_LABELS: Record<AlertSoundKey, string> = {
     beep: 'Beep sencillo',
     double: 'Beep doble',
-    siren: 'Sirena corta',
+    siren: 'Sirena larga (x3)',
 };
 
 export function isAlertSoundKey(value: string): value is AlertSoundKey {
@@ -48,22 +48,43 @@ export function playAlertSound(key: AlertSoundKey): void {
         tone(ctx, now + 0.18, 880, 0.12);
         closeAfter = 0.6;
     } else if (key === 'siren') {
+        // Sirena tipo "whoop-whoop-whoop": un barrido largo de subida y
+        // bajada de tono, repetido 3 veces con un pequeño silencio entre
+        // cada repetición para que se distingan como 3 toques, no uno solo.
         const oscillator = ctx.createOscillator();
         const gain = ctx.createGain();
 
         oscillator.type = 'sawtooth';
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.22, now + 0.03);
-        oscillator.frequency.setValueAtTime(600, now);
-        oscillator.frequency.linearRampToValueAtTime(1000, now + 0.3);
-        oscillator.frequency.linearRampToValueAtTime(600, now + 0.6);
-        gain.gain.linearRampToValueAtTime(0, now + 0.6);
-
         oscillator.connect(gain);
         gain.connect(ctx.destination);
+
+        const cycles = 3;
+        const upDuration = 0.7;
+        const downDuration = 0.7;
+        const gapDuration = 0.15;
+
+        gain.gain.setValueAtTime(0, now);
+        oscillator.frequency.setValueAtTime(600, now);
+
+        let cursor = now;
+
+        for (let cycle = 0; cycle < cycles; cycle++) {
+            gain.gain.linearRampToValueAtTime(0.24, cursor + 0.03);
+            oscillator.frequency.linearRampToValueAtTime(1000, cursor + upDuration);
+            oscillator.frequency.linearRampToValueAtTime(600, cursor + upDuration + downDuration);
+            gain.gain.linearRampToValueAtTime(0, cursor + upDuration + downDuration);
+            cursor += upDuration + downDuration;
+
+            if (cycle < cycles - 1) {
+                gain.gain.setValueAtTime(0, cursor);
+                cursor += gapDuration;
+                oscillator.frequency.setValueAtTime(600, cursor);
+            }
+        }
+
         oscillator.start(now);
-        oscillator.stop(now + 0.65);
-        closeAfter = 0.9;
+        oscillator.stop(cursor + 0.05);
+        closeAfter = cursor - now + 0.3;
     }
 
     // Liberar el AudioContext un poco después de terminar; mantenerlos vivos
