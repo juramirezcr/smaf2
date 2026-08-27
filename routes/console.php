@@ -42,7 +42,7 @@ Schedule::call(function () {
                 ->active()
                 ->pluck('i_account')
                 ->filter()
-                ->chunk(150)
+                ->chunk(40)
                 ->each(fn ($chunk) => SyncPortaOneCalls::dispatch($client->id, $chunk->values()->all()));
         });
 })->everyThirtyMinutes()->name('portaone-xdr-sync')->withoutOverlapping();
