@@ -600,34 +600,44 @@ function TrafficChart({ points, period }: { points: TrafficPoint[]; period: stri
     const peakIndex = points.findIndex((p) => p.calls === max);
     const timeLabelEvery = Math.max(1, Math.ceil(coords.length / 8));
 
+    // El SVG se estira sin mantener proporción (preserveAspectRatio="none") para
+    // llenar la tarjeta, pero un <text> dentro de ese SVG se deforma con ese mismo
+    // estiramiento no uniforme (ancho y alto escalan distinto), dando letras de
+    // tamaño inconsistente entre gráficos con proporciones de tarjeta distintas.
+    // Por eso las etiquetas van como HTML posicionado por porcentaje encima del
+    // SVG: su tamaño de letra queda fijo en px reales, igual en ambos gráficos.
     return (
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
-            {[0, 0.5, 1].map((f) => {
-                const y = height - padBottom - f * plotH;
-                return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
-            })}
-            <path d={areaPath} className="fill-indigo-500/10" />
-            <path d={linePath} fill="none" className="stroke-indigo-500" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-            {coords.map((c, i) => (
-                <circle key={i} cx={c.x} cy={c.y} r={i === peakIndex ? 4 : 2.5} className={i === peakIndex ? 'fill-red-500' : 'fill-indigo-500'} />
-            ))}
+        <div className="relative h-full w-full">
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
+                {[0, 0.5, 1].map((f) => {
+                    const y = height - padBottom - f * plotH;
+                    return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
+                })}
+                <path d={areaPath} className="fill-indigo-500/10" />
+                <path d={linePath} fill="none" className="stroke-indigo-500" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+                {coords.map((c, i) => (
+                    <circle key={i} cx={c.x} cy={c.y} r={i === peakIndex ? 4 : 2.5} className={i === peakIndex ? 'fill-red-500' : 'fill-indigo-500'} />
+                ))}
+            </svg>
             {coords.map((c, i) => c.calls > 0 && (
-                <text
+                <span
                     key={i}
-                    x={c.x}
-                    y={Math.max(12, c.y - 10)}
-                    textAnchor="middle"
-                    className={i === peakIndex ? 'fill-gray-900 text-[12px] font-semibold dark:fill-gray-100' : 'fill-gray-500 text-[10px] dark:fill-gray-400'}
+                    className={`pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap ${i === peakIndex ? 'text-xs font-semibold text-gray-900 dark:text-gray-100' : 'text-[10px] text-gray-500 dark:text-gray-400'}`}
+                    style={{ left: `${(c.x / width) * 100}%`, top: `${(Math.max(12, c.y - 10) / height) * 100}%` }}
                 >
                     {c.calls}
-                </text>
+                </span>
             ))}
             {coords.map((c, i) => (i % timeLabelEvery === 0 || i === coords.length - 1) && (
-                <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[11px] dark:fill-gray-500">
+                <span
+                    key={i}
+                    className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] text-gray-400 dark:text-gray-500"
+                    style={{ left: `${(c.x / width) * 100}%`, top: `${((height - 12) / height) * 100}%` }}
+                >
                     {formatAxisLabel(c.at, timeZone, period)}
-                </text>
+                </span>
             ))}
-        </svg>
+        </div>
     );
 }
 
@@ -653,33 +663,37 @@ function ActiveCallsChart({ points, period }: { points: ActiveCallsPoint[]; peri
     const timeLabelEvery = Math.max(1, Math.ceil(coords.length / 8));
 
     return (
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
-            {[0, 0.5, 1].map((f) => {
-                const y = height - padBottom - f * plotH;
-                return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
-            })}
-            <path d={areaPath} className="fill-emerald-500/10" />
-            <path d={linePath} fill="none" className="stroke-emerald-500" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-            {coords.map((c, i) => (
-                <circle key={i} cx={c.x} cy={c.y} r={i === peakIndex ? 4 : 2.5} className={i === peakIndex ? 'fill-red-500' : 'fill-emerald-500'} />
-            ))}
+        <div className="relative h-full w-full">
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
+                {[0, 0.5, 1].map((f) => {
+                    const y = height - padBottom - f * plotH;
+                    return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
+                })}
+                <path d={areaPath} className="fill-emerald-500/10" />
+                <path d={linePath} fill="none" className="stroke-emerald-500" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+                {coords.map((c, i) => (
+                    <circle key={i} cx={c.x} cy={c.y} r={i === peakIndex ? 4 : 2.5} className={i === peakIndex ? 'fill-red-500' : 'fill-emerald-500'} />
+                ))}
+            </svg>
             {coords.map((c, i) => c.active > 0 && (
-                <text
+                <span
                     key={i}
-                    x={c.x}
-                    y={Math.max(12, c.y - 10)}
-                    textAnchor="middle"
-                    className={i === peakIndex ? 'fill-gray-900 text-[12px] font-semibold dark:fill-gray-100' : 'fill-gray-500 text-[10px] dark:fill-gray-400'}
+                    className={`pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap ${i === peakIndex ? 'text-xs font-semibold text-gray-900 dark:text-gray-100' : 'text-[10px] text-gray-500 dark:text-gray-400'}`}
+                    style={{ left: `${(c.x / width) * 100}%`, top: `${(Math.max(12, c.y - 10) / height) * 100}%` }}
                 >
                     {c.active}
-                </text>
+                </span>
             ))}
             {coords.map((c, i) => (i % timeLabelEvery === 0 || i === coords.length - 1) && (
-                <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[11px] dark:fill-gray-500">
+                <span
+                    key={i}
+                    className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] text-gray-400 dark:text-gray-500"
+                    style={{ left: `${(c.x / width) * 100}%`, top: `${((height - 12) / height) * 100}%` }}
+                >
                     {formatAxisLabel(c.at, timeZone, period)}
-                </text>
+                </span>
             ))}
-        </svg>
+        </div>
     );
 }
 
