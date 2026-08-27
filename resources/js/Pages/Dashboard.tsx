@@ -1136,19 +1136,15 @@ export default function Dashboard({
                     <div className="grid gap-4 md:grid-cols-2 min-[1800px]:grid-cols-4">
 
                         {isOn('traffic') && (
-                            <div className="min-[1800px]:col-span-2">
-                                <WidgetCard icon="📈" title="Tráfico de llamadas" tag={periodLabels[period]}>
-                                    <TrafficChart points={trafficSeries} period={period} />
-                                </WidgetCard>
-                            </div>
+                            <WidgetCard icon="📈" title="Tráfico de llamadas" tag={periodLabels[period]}>
+                                <TrafficChart points={trafficSeries} period={period} />
+                            </WidgetCard>
                         )}
 
                         {isOn('traffic') && (
-                            <div className="min-[1800px]:col-span-2">
-                                <WidgetCard icon="📶" title="Llamadas activas" tag={periodLabels[period]}>
-                                    <ActiveCallsChart points={activeCallsSeries} period={period} />
-                                </WidgetCard>
-                            </div>
+                            <WidgetCard icon="📶" title="Llamadas activas" tag={periodLabels[period]}>
+                                <ActiveCallsChart points={activeCallsSeries} period={period} />
+                            </WidgetCard>
                         )}
 
                         {isOn('heatmap') && (
