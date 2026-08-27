@@ -48,6 +48,7 @@ class HandleInertiaRequests extends Middleware
                     'readOnly' => $user->read_only,
                     'timezone' => $user->timezone,
                     'effectiveTimezone' => $user->effectiveTimezone(),
+                    'alertSound' => $user->alert_sound,
                 ] : null,
             ],
             'timezoneOptions' => $user ? Timezones::options() : [],

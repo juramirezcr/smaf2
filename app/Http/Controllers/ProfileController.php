@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\AlertSounds;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,23 @@ class ProfileController extends Controller
         }
 
         $request->user()->save();
+
+        return Redirect::route('profile.edit');
+    }
+
+    /**
+     * Preferencia personal de sonido de alerta (se reproduce en el navegador
+     * cuando aparece una alerta nueva en el dashboard). Endpoint aparte del
+     * form de nombre/email para no acoplarse a esa validación (name/email
+     * son required ahí; esto se guarda solo, sin tocar el resto del perfil).
+     */
+    public function updateAlertSound(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'alert_sound' => ['nullable', 'string', 'in:'.implode(',', AlertSounds::keys())],
+        ]);
+
+        $request->user()->update(['alert_sound' => $validated['alert_sound'] ?: null]);
 
         return Redirect::route('profile.edit');
     }

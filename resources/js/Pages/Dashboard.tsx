@@ -3,10 +3,11 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { isAlertSoundKey, playAlertSound } from '@/lib/alertSounds';
 import { formatDateTime, useTimezone } from '@/lib/datetime';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Fragment, ReactNode, useEffect, useState } from 'react';
+import { Fragment, ReactNode, useEffect, useRef, useState } from 'react';
 
 interface StatItem {
     clientId: number;
@@ -1085,8 +1086,27 @@ export default function Dashboard({
     const [pickerOpen, setPickerOpen] = useState(false);
     const [active, setActive] = useState<Set<string>>(new Set(activeWidgets));
     const timeZone = useTimezone();
+    const alertSound = usePage().props.auth.user.alertSound;
 
     useEffect(() => setActive(new Set(activeWidgets)), [activeWidgets]);
+
+    // Suena cuando aparece una alerta más nueva que la última vista (no en la
+    // carga inicial de la página, solo en refrescos posteriores), sin
+    // importar si la notificación por Telegram/email ya se envió o no —
+    // pensado para una pantalla de monitoreo (NOC) siempre abierta.
+    const lastAlertIdRef = useRef<number | null>(null);
+    const alertSoundReadyRef = useRef(false);
+
+    useEffect(() => {
+        const topId = alertsRecent[0]?.id ?? null;
+
+        if (alertSoundReadyRef.current && topId !== null && (lastAlertIdRef.current === null || topId > lastAlertIdRef.current) && alertSound && isAlertSoundKey(alertSound)) {
+            playAlertSound(alertSound);
+        }
+
+        alertSoundReadyRef.current = true;
+        lastAlertIdRef.current = topId ?? lastAlertIdRef.current;
+    }, [alertsRecent, alertSound]);
 
     const handlePeriodChange = (newPeriod: string) => {
         router.get(route('dashboard'), { period: newPeriod }, { preserveState: true });

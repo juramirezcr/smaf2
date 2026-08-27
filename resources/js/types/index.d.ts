@@ -11,6 +11,7 @@ export interface User {
     email_verified_at?: string;
     timezone: string | null;
     effectiveTimezone: string;
+    alertSound: string | null;
 }
 
 export interface TimezoneOption {
