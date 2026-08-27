@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\PortaoneActiveSession;
 use App\Services\AdminAlertNotifier;
 use App\Services\PortaOneClient;
+use App\Support\CallPrefix;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -58,6 +59,16 @@ class PollPortaOneActiveSessions implements ShouldQueue, ShouldBeUnique
             $callId = $session['call_id'] ?? null;
 
             if ($callId === null || $callId === '') {
+                continue;
+            }
+
+            // Un destino de 8 dígitos o menos (extensión interna, o el
+            // formato "X10002" que PortaOne usa para algunas llamadas
+            // internas) se ignora por completo: no se guarda como sesión
+            // activa, así que tampoco cuenta en "Llamadas activas" ni entra
+            // a evaluar reglas de monitoreo ni al sync de XDR por actividad
+            // reciente (los tres consultan portaone_active_sessions).
+            if (CallPrefix::forDestination((string) ($session['cld'] ?? '')) === null) {
                 continue;
             }
 
