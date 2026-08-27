@@ -210,12 +210,13 @@ class DashboardController extends Controller
 
     /**
      * A diferencia de trafficSeries() (que cuenta CallRecord, es decir XDR ya
-     * cerrado), esto reconstruye cuántas llamadas estaban EN CURSO en cada
-     * bucket a partir de portaone_active_sessions: una sesión cuenta en un
-     * bucket si ya había conectado antes de que terminara ese bucket y (sigue
-     * activa o terminó después de que empezó). La precisión está limitada al
-     * minuto de polling de PollPortaOneActiveSessions, y una llamada que
-     * conectó y colgó entre dos sondeos puede no quedar registrada.
+     * cerrado), esto reconstruye la concurrencia real de llamadas a partir de
+     * portaone_active_sessions: para cada bucket se toma una foto puntual al
+     * inicio del bucket (cuántas sesiones ya habían conectado y aún no habían
+     * terminado en ese instante exacto), igual que el KPI de "Llamadas
+     * activas" mide el momento actual. No es una ventana acumulada, así que
+     * el número es comparable entre buckets y con el KPI. La precisión está
+     * limitada al minuto de polling de PollPortaOneActiveSessions.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -231,14 +232,13 @@ class DashboardController extends Controller
         $series = [];
 
         for ($i = 0; $i < $bucketCount; $i++) {
-            $bucketStart = $since->copy()->addSeconds($i * $bucketUnitSeconds);
-            $bucketEnd = $bucketStart->copy()->addSeconds($bucketUnitSeconds);
+            $instant = $since->copy()->addSeconds($i * $bucketUnitSeconds);
 
-            $active = $sessions->filter(fn ($session) => $session->connect_time->lt($bucketEnd)
-                && ($session->ended_at === null || $session->ended_at->gt($bucketStart)))->count();
+            $active = $sessions->filter(fn ($session) => $session->connect_time->lte($instant)
+                && ($session->ended_at === null || $session->ended_at->gt($instant)))->count();
 
             $series[] = [
-                'at' => $bucketStart->toIso8601String(),
+                'at' => $instant->toIso8601String(),
                 'active' => $active,
             ];
         }

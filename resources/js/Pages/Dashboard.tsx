@@ -1138,18 +1138,12 @@ export default function Dashboard({
                         {isOn('traffic') && (
                             <WidgetCard icon="📈" title="Tráfico de llamadas" tag={periodLabels[period]}>
                                 <TrafficChart points={trafficSeries} period={period} />
-                                <p className="mt-2 text-center text-[11px] text-gray-400 dark:text-gray-500">
-                                    Llamadas ya finalizadas y sincronizadas desde PortaOne.
-                                </p>
                             </WidgetCard>
                         )}
 
                         {isOn('traffic') && (
                             <WidgetCard icon="📶" title="Llamadas activas" tag={periodLabels[period]}>
                                 <ActiveCallsChart points={activeCallsSeries} period={period} />
-                                <p className="mt-2 text-center text-[11px] text-gray-400 dark:text-gray-500">
-                                    Llamadas en curso en cada momento, en tiempo real.
-                                </p>
                             </WidgetCard>
                         )}
 
