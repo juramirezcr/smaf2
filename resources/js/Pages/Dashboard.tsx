@@ -587,10 +587,10 @@ function TrafficChart({ points, period }: { points: TrafficPoint[]; period: stri
     }
 
     const width = 720;
-    const height = 220;
+    const height = 110;
     const padX = 12;
-    const padTop = 28;
-    const padBottom = 34;
+    const padTop = 20;
+    const padBottom = 24;
     const plotH = height - padTop - padBottom;
     const max = Math.max(...points.map((p) => p.calls), 1);
     const stepX = (width - padX * 2) / Math.max(points.length - 1, 1);
@@ -639,10 +639,10 @@ function ActiveCallsChart({ points, period }: { points: ActiveCallsPoint[]; peri
     }
 
     const width = 720;
-    const height = 220;
+    const height = 110;
     const padX = 12;
-    const padTop = 28;
-    const padBottom = 34;
+    const padTop = 20;
+    const padBottom = 24;
     const plotH = height - padTop - padBottom;
     const max = Math.max(...points.map((p) => p.active), 1);
     const stepX = (width - padX * 2) / Math.max(points.length - 1, 1);
