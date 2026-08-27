@@ -4,7 +4,6 @@ namespace App\Jobs;
 
 use App\Models\CallRecord;
 use App\Models\Client;
-use App\Models\PortaoneAccount;
 use App\Models\PortaoneCustomer;
 use App\Models\ProcessRun;
 use App\Services\PortaOneClient;
@@ -19,10 +18,10 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
     use Queueable;
 
     /**
-     * Evita apilar corridas: si el sync anterior de este cliente sigue
-     * corriendo (puede tardar horas en la primera carga histórica), el
-     * scheduler simplemente omite el disparo actual en vez de encolar
-     * otro job detrás; el siguiente tick lo vuelve a intentar.
+     * Evita apilar corridas: si el lote anterior de este mismo grupo de
+     * cuentas sigue corriendo, el scheduler simplemente omite el disparo
+     * actual en vez de encolar otro job detrás; el siguiente tick lo
+     * vuelve a intentar.
      */
     public int $uniqueFor = 3600;
 
@@ -31,13 +30,23 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
      */
     private array $customerNameCache = [];
 
-    public function __construct(public readonly int $clientId)
+    /**
+     * PortaOne exige i_account en get_xdr_list (no admite consulta en lote
+     * por fecha), así que hay que consultarlo cuenta por cuenta. Con
+     * clientes de muchas cuentas eso puede sumar miles de llamadas SOAP por
+     * corrida; el scheduler reparte las cuentas en lotes de este tamaño y
+     * despacha un job por lote, para que corran en paralelo entre los
+     * workers de la cola y ninguno solo acumule minutos por volumen.
+     *
+     * @param  array<int, int>  $iAccounts
+     */
+    public function __construct(public readonly int $clientId, public readonly array $iAccounts)
     {
     }
 
     public function uniqueId(): string
     {
-        return (string) $this->clientId;
+        return $this->clientId.':'.md5(implode(',', $this->iAccounts));
     }
 
     public function handle(): void
@@ -54,16 +63,11 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
             'client_id' => $client->id,
             'type' => 'portaone_xdr_sync',
             'status' => 'started',
-            'context' => ['calls' => ['total' => 0, 'synced' => 0]],
+            'context' => ['calls' => ['total' => 0, 'synced' => 0], 'accounts' => count($this->iAccounts)],
             'started_at' => now(),
         ]);
 
-        $iAccounts = PortaoneAccount::query()
-            ->where('client_id', $client->id)
-            ->active()
-            ->pluck('i_account')
-            ->filter()
-            ->all();
+        $iAccounts = $this->iAccounts;
 
         if ($iAccounts === []) {
             $run->update(['status' => 'completed', 'finished_at' => now()]);
@@ -133,7 +137,17 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
                 },
             );
 
-            $client->update(['xdr_synced_until' => $maxConnectTime ?? now()]);
+            // Varios lotes del mismo cliente pueden terminar casi al mismo tiempo;
+            // solo se avanza la marca si este lote realmente vio una llamada más
+            // reciente que la ya guardada, para que un lote sin llamadas no la
+            // pise con un valor desactualizado.
+            if ($maxConnectTime !== null) {
+                $current = $client->fresh(['xdr_synced_until'])->xdr_synced_until;
+
+                if ($current === null || $maxConnectTime->greaterThan($current)) {
+                    $client->update(['xdr_synced_until' => $maxConnectTime]);
+                }
+            }
 
             $run->update(['status' => 'completed', 'finished_at' => now()]);
         } catch (Throwable $exception) {

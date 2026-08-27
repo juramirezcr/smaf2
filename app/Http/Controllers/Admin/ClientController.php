@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncPortaOneCalls;
+use App\Models\PortaoneAccount;
 use App\Jobs\SyncPortaOneData;
 use App\Models\Client;
 use App\Models\ProcessRun;
@@ -227,7 +228,14 @@ class ClientController extends Controller
     public function sync(Client $client): RedirectResponse
     {
         SyncPortaOneData::dispatch($client->id);
-        SyncPortaOneCalls::dispatch($client->id);
+
+        PortaoneAccount::query()
+            ->where('client_id', $client->id)
+            ->active()
+            ->pluck('i_account')
+            ->filter()
+            ->chunk(150)
+            ->each(fn ($chunk) => SyncPortaOneCalls::dispatch($client->id, $chunk->values()->all()));
 
         return back();
     }
