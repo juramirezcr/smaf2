@@ -24,6 +24,7 @@ const ICONS = {
     chevron: 'M8.25 4.5l7.5 7.5-7.5 7.5',
     chevronDoubleLeft: 'M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5',
     logout: 'M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75',
+    userCircle: 'M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z',
 };
 
 interface NavItem {
@@ -112,14 +113,6 @@ export default function Authenticated({
                             <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.chevronDoubleLeft} />
                         </svg>
                     </button>
-                    {isCollapsed && (
-                        <>
-                            <ThemeToggle />
-                            <Link href={route('logout')} method="post" as="button" title="Salir" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">
-                                <Icon path={ICONS.logout} />
-                            </Link>
-                        </>
-                    )}
                 </div>
                 <nav className="flex-1 space-y-1 px-2 pb-4">
                     {navItems.map((item) => (
@@ -187,7 +180,17 @@ export default function Authenticated({
                         </div>
                     )}
                 </nav>
-                {!isCollapsed && (
+                {isCollapsed ? (
+                    <div className="flex flex-col items-center gap-2 border-t border-gray-200 py-3 dark:border-slate-700">
+                        <Link href={route('profile.edit')} title="Perfil" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">
+                            <Icon path={ICONS.userCircle} />
+                        </Link>
+                        <ThemeToggle />
+                        <Link href={route('logout')} method="post" as="button" title="Salir" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">
+                            <Icon path={ICONS.logout} />
+                        </Link>
+                    </div>
+                ) : (
                     <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
