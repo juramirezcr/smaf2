@@ -1313,7 +1313,7 @@ export default function Dashboard({
                                                 <Fragment key={groupIndex}>
                                                     {group.clientName && (
                                                         <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                            <td colSpan={3} className="py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                            <td colSpan={3} className="py-1.5 text-xs font-bold text-gray-900 dark:text-gray-100">{group.clientName}</td>
                                                         </tr>
                                                     )}
                                                     {group.items.map((item, itemIndex) => (
@@ -1363,7 +1363,7 @@ export default function Dashboard({
                                                 <Fragment key={groupIndex}>
                                                     {group.clientName && (
                                                         <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                            <td colSpan={4} className="py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                            <td colSpan={4} className="py-1.5 text-xs font-bold text-gray-900 dark:text-gray-100">{group.clientName}</td>
                                                         </tr>
                                                     )}
                                                     {group.items.map((item, itemIndex) => (
@@ -1401,7 +1401,7 @@ export default function Dashboard({
                                                 <Fragment key={groupIndex}>
                                                     {group.clientName && (
                                                         <tr className="bg-gray-50 dark:bg-gray-900/40">
-                                                            <td colSpan={isAdmin ? 4 : 3} className="py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">{group.clientName}</td>
+                                                            <td colSpan={isAdmin ? 4 : 3} className="py-1.5 text-xs font-bold text-gray-900 dark:text-gray-100">{group.clientName}</td>
                                                         </tr>
                                                     )}
                                                     {group.items.map((item, itemIndex) => (
