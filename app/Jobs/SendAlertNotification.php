@@ -46,6 +46,8 @@ class SendAlertNotification implements ShouldQueue
             'clientName' => $client->name,
             'account' => $context['account'] ?? null,
             'customer' => $context['customer'] ?? null,
+            'origin' => $context['origin'] ?? null,
+            'destination' => $context['destination'] ?? null,
             'prefix' => $event->rule?->match_value,
             'calls' => $calls,
             'callLimit' => $callLimit,

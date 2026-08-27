@@ -176,6 +176,8 @@ class DashboardController extends Controller
             'clientName' => $isAdmin ? $clientNames?->get($event->client_id) : null,
             'account' => $event->context['account'] ?? null,
             'customer' => $event->context['customer'] ?? null,
+            'origin' => $event->context['origin'] ?? null,
+            'destination' => $event->context['destination'] ?? null,
             'calls' => $event->context['calls'] ?? null,
             'seconds' => $event->context['seconds'] ?? null,
             'callLimit' => $event->context['call_limit'] ?? null,

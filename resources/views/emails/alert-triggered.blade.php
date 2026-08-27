@@ -38,6 +38,14 @@
                                     <td style="padding:6px 0;">{{ $alert['customer'] ?? '—' }}</td>
                                 </tr>
                                 <tr>
+                                    <td style="padding:6px 0; color:#6b7280;">Origen</td>
+                                    <td style="padding:6px 0;">{{ $alert['origin'] ?? '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:6px 0; color:#6b7280;">Destino</td>
+                                    <td style="padding:6px 0;">{{ $alert['destination'] ?? '—' }}</td>
+                                </tr>
+                                <tr>
                                     <td style="padding:6px 0; color:#6b7280;">Prefijo</td>
                                     <td style="padding:6px 0;">+{{ $alert['prefix'] }}</td>
                                 </tr>

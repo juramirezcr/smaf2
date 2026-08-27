@@ -83,6 +83,8 @@ interface AlertRecentItem {
     clientName: string | null;
     account: string | null;
     customer: string | null;
+    origin: string | null;
+    destination: string | null;
     calls: number | null;
     seconds: number | null;
     callLimit: number | null;
@@ -795,6 +797,8 @@ function AlertDetailModal({ alert, timeZone, onClose }: { alert: AlertRecentItem
                     {alert.clientName && <li>Cliente: {alert.clientName}</li>}
                     <li>Cuenta: <span className="font-mono">{alert.account ?? '—'}</span></li>
                     <li>Customer: {alert.customer ?? '—'}</li>
+                    <li>Origen: <span className="font-mono">{alert.origin ?? '—'}</span></li>
+                    <li>Destino: <span className="font-mono">{alert.destination ?? '—'}</span></li>
                     <li>Regla: {alert.ruleLabel ?? '—'}</li>
                     <li>Llamadas: {alert.calls ?? '—'}{alert.callLimit !== null ? ` / límite ${alert.callLimit}` : ''}</li>
                     <li>Segundos: {alert.seconds ?? '—'}{alert.durationLimitSeconds !== null ? ` / límite ${alert.durationLimitSeconds}` : ''}</li>

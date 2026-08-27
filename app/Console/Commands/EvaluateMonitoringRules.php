@@ -94,7 +94,7 @@ class EvaluateMonitoringRules extends Command
         $recentCalls = CallRecord::query()
             ->where('connected_at', '>=', now()->subHour())
             ->whereIn('client_id', $involvedClientIds)
-            ->get(['client_id', 'prefix', 'destination', 'account', 'customer', 'duration_seconds']);
+            ->get(['client_id', 'prefix', 'origin', 'destination', 'account', 'customer', 'duration_seconds']);
 
         // Las llamadas que siguen en curso no aparecen todavía en call_records
         // (eso solo pasa cuando terminan y se sincroniza el CDR); sin sumarlas
@@ -104,12 +104,13 @@ class EvaluateMonitoringRules extends Command
         $activeCalls = PortaoneActiveSession::query()
             ->active()
             ->whereIn('client_id', $involvedClientIds)
-            ->get(['client_id', 'account_id', 'customer_name', 'cld', 'duration_seconds'])
+            ->get(['client_id', 'account_id', 'customer_name', 'cli', 'cld', 'duration_seconds'])
             ->map(fn (PortaoneActiveSession $session) => (object) [
                 'client_id' => $session->client_id,
                 'account' => $session->account_id,
                 'customer' => $session->customer_name,
                 'prefix' => $this->prefixFor((string) $session->cld),
+                'origin' => $session->cli,
                 'destination' => $session->cld,
                 'duration_seconds' => (int) ($session->duration_seconds ?? 0),
             ]);
@@ -220,6 +221,11 @@ class EvaluateMonitoringRules extends Command
                 continue;
             }
 
+            // No hay una sola llamada "la que disparó" la alerta (es un conteo
+            // sobre una ventana), así que se muestra la última del grupo como
+            // muestra representativa de origen/destino.
+            $last = $group->last();
+
             $event = $rule->recordAction('triggered', [
                 'account' => $first->account,
                 'customer' => $first->customer,
@@ -228,6 +234,8 @@ class EvaluateMonitoringRules extends Command
                 'call_limit' => $rule->call_limit,
                 'duration_limit_seconds' => $rule->duration_limit_seconds,
                 'reason' => $callBreach && $durationBreach ? 'calls_and_duration' : ($callBreach ? 'calls' : 'duration'),
+                'origin' => $last->origin ?? null,
+                'destination' => $last->destination ?? null,
             ], clientId: $effectiveClientId);
 
             // Cola dedicada de alta prioridad: si esto cae en 'default' junto a los
