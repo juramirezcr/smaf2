@@ -112,21 +112,13 @@ export default function Authenticated({
                             <path strokeLinecap="round" strokeLinejoin="round" d={ICONS.chevronDoubleLeft} />
                         </svg>
                     </button>
-                    {isCollapsed ? (
+                    {isCollapsed && (
                         <>
                             <ThemeToggle />
                             <Link href={route('logout')} method="post" as="button" title="Salir" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">
                                 <Icon path={ICONS.logout} />
                             </Link>
                         </>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <ThemeToggle />
-                            <Link href={route('logout')} method="post" as="button" className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
-                                <Icon path={ICONS.logout} />
-                                Salir
-                            </Link>
-                        </div>
                     )}
                 </div>
                 <nav className="flex-1 space-y-1 px-2 pb-4">
@@ -197,11 +189,21 @@ export default function Authenticated({
                 </nav>
                 {!isCollapsed && (
                     <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
-                        <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
-                        <p className="truncate text-xs text-gray-500 dark:text-slate-400">{user.email}</p>
-                        <Link href={route('profile.edit')} className="mt-2 inline-block text-xs text-gray-500 underline hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
-                            Perfil
-                        </Link>
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+                                <p className="truncate text-xs text-gray-500 dark:text-slate-400">{user.email}</p>
+                                <Link href={route('profile.edit')} className="mt-2 inline-block text-xs text-gray-500 underline hover:text-gray-900 dark:text-slate-300 dark:hover:text-white">
+                                    Perfil
+                                </Link>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                                <ThemeToggle />
+                                <Link href={route('logout')} method="post" as="button" title="Salir" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white">
+                                    <Icon path={ICONS.logout} />
+                                </Link>
+                            </div>
+                        </div>
                     </div>
                 )}
             </>
