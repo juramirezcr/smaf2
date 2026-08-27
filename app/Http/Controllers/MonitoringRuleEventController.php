@@ -30,11 +30,36 @@ class MonitoringRuleEventController extends Controller
         $clientNames = $showAll ? $clients->pluck('name', 'id') : null;
         $canReviewAnyClient = $user->client_id === null;
 
+        $search = trim((string) $request->input('search', ''));
+        $action = $request->input('action');
+        $action = in_array($action, ['notify', 'block', 'ignore'], true) ? $action : null;
+        $reviewStatus = $request->input('review_status');
+        $reviewStatus = in_array($reviewStatus, ['pending', 'cleared', 'maintained'], true) ? $reviewStatus : null;
+        $from = $request->date('from');
+        $to = $request->date('to');
+
         return Inertia::render('Alerts/Index', [
             'clients' => $clients,
             'selectedClientId' => $isAdmin ? ($showAll ? 'all' : $clientId) : null,
+            'filters' => [
+                'search' => $search !== '' ? $search : null,
+                'action' => $action,
+                'reviewStatus' => $reviewStatus,
+                'from' => $from?->toDateString(),
+                'to' => $to?->toDateString(),
+            ],
             'alerts' => MonitoringRuleEvent::query()
                 ->when(! $showAll, fn ($query) => $query->where('client_id', $clientId))
+                ->when($search !== '', fn ($query) => $query->where(
+                    fn ($q) => $q->where('context->account', 'like', "%{$search}%")
+                        ->orWhere('context->customer', 'like', "%{$search}%")
+                        ->orWhereHas('rule', fn ($r) => $r->where('match_value', 'like', "%{$search}%")
+                            ->orWhere('description', 'like', "%{$search}%"))
+                ))
+                ->when($action !== null, fn ($query) => $query->where('action', $action))
+                ->when($reviewStatus !== null, fn ($query) => $query->where('review_status', $reviewStatus))
+                ->when($from !== null, fn ($query) => $query->where('occurred_at', '>=', $from->startOfDay()))
+                ->when($to !== null, fn ($query) => $query->where('occurred_at', '<=', $to->endOfDay()))
                 ->with(['rule:id,scope,match_value,description', 'reviewer:id,name'])
                 ->latest('occurred_at')
                 ->paginate(25)

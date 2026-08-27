@@ -5,7 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatDateTime, useTimezone } from '@/lib/datetime';
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface AlertItem {
     id: number;
@@ -42,9 +42,18 @@ interface ClientOption {
     name: string;
 }
 
+interface AlertFilters {
+    search: string | null;
+    action: AlertItem['action'] | null;
+    reviewStatus: AlertItem['reviewStatus'] | null;
+    from: string | null;
+    to: string | null;
+}
+
 interface AlertsProps {
     clients?: ClientOption[] | null;
     selectedClientId?: number | 'all' | null;
+    filters: AlertFilters;
     alerts: {
         data: AlertItem[];
         links: PaginationLink[];
@@ -145,34 +154,148 @@ function ReviewModal({ alert, onClose }: { alert: AlertItem; onClose: () => void
     );
 }
 
-export default function AlertsIndex({ clients, selectedClientId, alerts }: AlertsProps) {
+export default function AlertsIndex({ clients, selectedClientId, filters, alerts }: AlertsProps) {
     const showingAll = selectedClientId === 'all';
     const [reviewingAlert, setReviewingAlert] = useState<AlertItem | null>(null);
     const timeZone = useTimezone();
 
-    const changeClient = (clientId: string) => {
-        router.get('/alerts', { client_id: clientId }, { preserveState: true });
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [action, setAction] = useState(filters.action ?? '');
+    const [reviewStatus, setReviewStatus] = useState(filters.reviewStatus ?? '');
+    const [from, setFrom] = useState(filters.from ?? '');
+    const [to, setTo] = useState(filters.to ?? '');
+    const isFirstRender = useRef(true);
+
+    const applyFilters = (overrides: Record<string, string> = {}) => {
+        const params: Record<string, string> = {
+            search,
+            action,
+            review_status: reviewStatus,
+            from,
+            to,
+            ...overrides,
+        };
+
+        if (selectedClientId !== null && selectedClientId !== undefined) {
+            params.client_id = String(selectedClientId);
+        }
+
+        Object.keys(params).forEach((key) => {
+            if (params[key] === '') {
+                delete params[key];
+            }
+        });
+
+        router.get('/alerts', params, { preserveState: true, replace: true });
     };
+
+    // Debounce solo el texto libre; los selects y fechas aplican al instante.
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        const timeout = setTimeout(() => applyFilters(), 400);
+
+        return () => clearTimeout(timeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
+
+    const changeClient = (clientId: string) => {
+        router.get('/alerts', { ...(clientId !== 'all' ? { client_id: clientId } : {}), search, action, review_status: reviewStatus, from, to }, { preserveState: true });
+    };
+
+    const clearFilters = () => {
+        setSearch('');
+        setAction('');
+        setReviewStatus('');
+        setFrom('');
+        setTo('');
+        router.get('/alerts', selectedClientId !== null && selectedClientId !== undefined ? { client_id: String(selectedClientId) } : {}, { preserveState: true });
+    };
+
+    const hasActiveFilters = search !== '' || action !== '' || reviewStatus !== '' || from !== '' || to !== '';
 
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">Alertas</h2>}>
             <Head title="Alertas" />
             <div className="py-8">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    {clients && (
-                        <div className="mb-4">
-                            <select
-                                value={selectedClientId ?? ''}
-                                onChange={(event) => changeClient(event.target.value)}
-                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                            >
-                                <option value="all">Todos</option>
-                                {clients.map((option) => (
-                                    <option key={option.id} value={option.id}>{option.name}</option>
-                                ))}
-                            </select>
+                    <div className="mb-4 flex flex-wrap items-end gap-3">
+                        {clients && (
+                            <div>
+                                <select
+                                    value={selectedClientId ?? ''}
+                                    onChange={(event) => changeClient(event.target.value)}
+                                    className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                >
+                                    <option value="all">Todos</option>
+                                    {clients.map((option) => (
+                                        <option key={option.id} value={option.id}>{option.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div className="min-w-[220px] flex-1">
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                placeholder="Buscar por cuenta, customer o regla…"
+                                className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                            />
                         </div>
-                    )}
+
+                        <select
+                            value={action}
+                            onChange={(event) => { setAction(event.target.value); applyFilters({ action: event.target.value }); }}
+                            className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        >
+                            <option value="">Toda acción</option>
+                            <option value="block">Bloqueada</option>
+                            <option value="notify">Notificada</option>
+                            <option value="ignore">Ignorada</option>
+                        </select>
+
+                        <select
+                            value={reviewStatus}
+                            onChange={(event) => { setReviewStatus(event.target.value); applyFilters({ review_status: event.target.value }); }}
+                            className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                        >
+                            <option value="">Toda revisión</option>
+                            <option value="pending">Pendiente de revisión</option>
+                            <option value="cleared">Bloqueo levantado</option>
+                            <option value="maintained">Bloqueo mantenido</option>
+                        </select>
+
+                        <div className="flex items-center gap-1.5">
+                            <input
+                                type="date"
+                                value={from}
+                                onChange={(event) => { setFrom(event.target.value); applyFilters({ from: event.target.value }); }}
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                            />
+                            <span className="text-sm text-gray-400 dark:text-gray-500">–</span>
+                            <input
+                                type="date"
+                                value={to}
+                                onChange={(event) => { setTo(event.target.value); applyFilters({ to: event.target.value }); }}
+                                className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                            />
+                        </div>
+
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={clearFilters}
+                                className="text-sm font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                            >
+                                Limpiar filtros
+                            </button>
+                        )}
+                    </div>
 
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
                         <div className="overflow-x-auto">
