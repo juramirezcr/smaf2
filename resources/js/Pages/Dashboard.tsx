@@ -128,7 +128,7 @@ interface DashboardProps {
     period: string;
     isAdmin: boolean;
     prefixStats: StatGroup[];
-    destinationStats: DestinationGroup[];
+    destinationStats: { international: DestinationGroup[]; national: DestinationGroup[] };
     accountStats: AccountGroup[];
     alertCounts: Record<string, number>;
     kpis: DashboardKpis;
@@ -1183,6 +1183,7 @@ export default function Dashboard({
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [active, setActive] = useState<Set<string>>(new Set(activeWidgets));
+    const [destinationTab, setDestinationTab] = useState<'international' | 'national'>('international');
     const timeZone = useTimezone();
     const alertSound = usePage().props.auth.user.alertSound;
 
@@ -1487,6 +1488,22 @@ export default function Dashboard({
 
                         {isOn('destinations') && (
                             <WidgetCard icon="📞" title="Destinos (Top 10)" href={route('destinations.index')}>
+                                <div className="mb-3 flex gap-4 border-b border-gray-200 dark:border-gray-700">
+                                    {(['international', 'national'] as const).map((tab) => (
+                                        <button
+                                            key={tab}
+                                            type="button"
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                setDestinationTab(tab);
+                                            }}
+                                            className={`border-b-2 px-1 pb-2 text-sm font-medium ${destinationTab === tab ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400'}`}
+                                        >
+                                            {tab === 'international' ? 'Internacionales' : 'Nacionales'}
+                                        </button>
+                                    ))}
+                                </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
@@ -1498,9 +1515,9 @@ export default function Dashboard({
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700 dark:text-gray-100">
-                                            {destinationStats.length === 0 ? (
+                                            {destinationStats[destinationTab].length === 0 ? (
                                                 <tr><td colSpan={4} className="py-3 text-gray-500 dark:text-gray-400">Sin llamadas en este período.</td></tr>
-                                            ) : destinationStats.map((group, groupIndex) => (
+                                            ) : destinationStats[destinationTab].map((group, groupIndex) => (
                                                 <Fragment key={groupIndex}>
                                                     {group.clientName && (
                                                         <tr className="bg-gray-50 dark:bg-gray-900/40">

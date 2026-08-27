@@ -69,7 +69,7 @@ class DashboardController extends Controller
                 alertedKeys: $alertedPrefixKeys,
                 ruleLookup: $prefixRuleLookup,
             ),
-            'destinationStats' => $this->topDestinations(
+            'destinationStats' => $this->nationalAndInternationalDestinations(
                 (clone $baseQuery)
                     ->whereNotNull('prefix')
                     ->selectRaw("client_id, customer, prefix, destination, {$bucketExpression} as bucket")
@@ -573,6 +573,22 @@ class DashboardController extends Controller
      * Cliente (no admin): rango top 10 por combinación customer+destino
      * dentro de su propio tráfico, agrupado por Customer.
      */
+    /**
+     * "Nacional" = prefijo 506 (Costa Rica); todo lo demás es "internacional".
+     * Se calcula el top 10 por separado en cada uno (no un top 10 global
+     * partido en dos), porque el tráfico nacional normalmente es tan alto en
+     * volumen que ocupa las 10 posiciones y el internacional nunca aparece.
+     *
+     * @return array{international: array, national: array}
+     */
+    private function nationalAndInternationalDestinations($rows, int $bucketCount, $clientNames, bool $isAdmin, int $limit): array
+    {
+        return [
+            'international' => $this->topDestinations($rows->where('prefix', '!=', '506'), $bucketCount, $clientNames, $isAdmin, $limit),
+            'national' => $this->topDestinations($rows->where('prefix', '506'), $bucketCount, $clientNames, $isAdmin, $limit),
+        ];
+    }
+
     private function topDestinations($rows, int $bucketCount, $clientNames, bool $isAdmin, int $limit): array
     {
         $perCustomer = [];
