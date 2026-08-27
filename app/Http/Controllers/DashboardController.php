@@ -7,6 +7,7 @@ use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
+use App\Models\PortaoneActiveSession;
 use App\Support\DashboardWidgets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,7 +89,12 @@ class DashboardController extends Controller
             ),
             'alertCounts' => $alertCounts,
             'kpis' => [
-                'activeCalls' => (clone $baseQuery)->count(),
+                // Llamadas en curso ahora mismo (portaone_active_sessions, poblada cada
+                // minuto), no llamadas completadas del período: esas van en trafficSeries.
+                'activeCalls' => PortaoneActiveSession::query()
+                    ->active()
+                    ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
+                    ->count(),
                 'accountsInReview' => $this->accountsInReviewCount($isAdmin, $clientId),
                 'prefixesMonitored' => (clone $baseQuery)->whereNotNull('prefix')->distinct('prefix')->count('prefix'),
             ],
@@ -116,6 +122,13 @@ class DashboardController extends Controller
                     ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
                     ->groupBy('bucket')
                     ->get(),
+                since: $since,
+                bucketUnitSeconds: $bucketUnitSeconds,
+                bucketCount: $bucketCount,
+            ),
+            'activeCallsSeries' => $this->activeCallsSeries(
+                $isAdmin,
+                $clientId,
                 since: $since,
                 bucketUnitSeconds: $bucketUnitSeconds,
                 bucketCount: $bucketCount,
@@ -189,6 +202,44 @@ class DashboardController extends Controller
                 'at' => $since->copy()->addSeconds($i * $bucketUnitSeconds)->toIso8601String(),
                 'calls' => $row ? (int) $row->calls : 0,
                 'seconds' => $row ? (int) $row->seconds : 0,
+            ];
+        }
+
+        return $series;
+    }
+
+    /**
+     * A diferencia de trafficSeries() (que cuenta CallRecord, es decir XDR ya
+     * cerrado), esto reconstruye cuántas llamadas estaban EN CURSO en cada
+     * bucket a partir de portaone_active_sessions: una sesión cuenta en un
+     * bucket si ya había conectado antes de que terminara ese bucket y (sigue
+     * activa o terminó después de que empezó). La precisión está limitada al
+     * minuto de polling de PollPortaOneActiveSessions, y una llamada que
+     * conectó y colgó entre dos sondeos puede no quedar registrada.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function activeCallsSeries(bool $isAdmin, ?int $clientId, \Illuminate\Support\Carbon $since, int $bucketUnitSeconds, int $bucketCount): array
+    {
+        $sessions = PortaoneActiveSession::query()
+            ->when(!$isAdmin, fn ($q) => $q->where('client_id', $clientId))
+            ->whereNotNull('connect_time')
+            ->where('connect_time', '<=', now())
+            ->where(fn ($q) => $q->whereNull('ended_at')->orWhere('ended_at', '>=', $since))
+            ->get(['connect_time', 'ended_at']);
+
+        $series = [];
+
+        for ($i = 0; $i < $bucketCount; $i++) {
+            $bucketStart = $since->copy()->addSeconds($i * $bucketUnitSeconds);
+            $bucketEnd = $bucketStart->copy()->addSeconds($bucketUnitSeconds);
+
+            $active = $sessions->filter(fn ($session) => $session->connect_time->lt($bucketEnd)
+                && ($session->ended_at === null || $session->ended_at->gt($bucketStart)))->count();
+
+            $series[] = [
+                'at' => $bucketStart->toIso8601String(),
+                'active' => $active,
             ];
         }
 

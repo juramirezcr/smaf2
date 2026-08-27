@@ -65,6 +65,11 @@ interface TrafficPoint {
     seconds: number;
 }
 
+interface ActiveCallsPoint {
+    at: string;
+    active: number;
+}
+
 interface QueueSummary {
     pending: number;
     running: number;
@@ -126,6 +131,7 @@ interface DashboardProps {
     activeWidgets: string[];
     clientsActive: ClientActiveItem[];
     trafficSeries: TrafficPoint[];
+    activeCallsSeries: ActiveCallsPoint[];
     heatmap: number[][];
     queueSummary: QueueSummary | null;
     alertsRecent: AlertRecentItem[];
@@ -625,6 +631,58 @@ function TrafficChart({ points, period }: { points: TrafficPoint[]; period: stri
     );
 }
 
+function ActiveCallsChart({ points, period }: { points: ActiveCallsPoint[]; period: string }) {
+    const timeZone = useTimezone();
+
+    if (points.every((p) => p.active === 0)) {
+        return <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Sin llamadas activas en este período.</p>;
+    }
+
+    const width = 720;
+    const height = 220;
+    const padX = 12;
+    const padTop = 28;
+    const padBottom = 34;
+    const plotH = height - padTop - padBottom;
+    const max = Math.max(...points.map((p) => p.active), 1);
+    const stepX = (width - padX * 2) / Math.max(points.length - 1, 1);
+    const coords = points.map((p, i) => ({ x: padX + i * stepX, y: height - padBottom - (p.active / max) * plotH, ...p }));
+    const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+    const areaPath = `${linePath} L${coords[coords.length - 1].x.toFixed(1)},${height - padBottom} L${coords[0].x.toFixed(1)},${height - padBottom} Z`;
+    const peakIndex = points.findIndex((p) => p.active === max);
+    const timeLabelEvery = Math.max(1, Math.ceil(coords.length / 8));
+
+    return (
+        <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+            {[0, 0.5, 1].map((f) => {
+                const y = height - padBottom - f * plotH;
+                return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
+            })}
+            <path d={areaPath} className="fill-emerald-500/10" />
+            <path d={linePath} fill="none" className="stroke-emerald-500" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+            {coords.map((c, i) => (
+                <circle key={i} cx={c.x} cy={c.y} r={i === peakIndex ? 4 : 2.5} className={i === peakIndex ? 'fill-red-500' : 'fill-emerald-500'} />
+            ))}
+            {coords.map((c, i) => c.active > 0 && (
+                <text
+                    key={i}
+                    x={c.x}
+                    y={Math.max(12, c.y - 10)}
+                    textAnchor="middle"
+                    className={i === peakIndex ? 'fill-gray-900 text-[12px] font-semibold dark:fill-gray-100' : 'fill-gray-500 text-[10px] dark:fill-gray-400'}
+                >
+                    {c.active}
+                </text>
+            ))}
+            {coords.map((c, i) => (i % timeLabelEvery === 0 || i === coords.length - 1) && (
+                <text key={i} x={c.x} y={height - 12} textAnchor="middle" className="fill-gray-400 text-[11px] dark:fill-gray-500">
+                    {formatAxisLabel(c.at, timeZone, period)}
+                </text>
+            ))}
+        </svg>
+    );
+}
+
 const ACTION_LABEL: Record<string, string> = { notify: 'Notificadas', block: 'Bloqueadas', ignore: 'Ignoradas' };
 
 function HeatmapGrid({ matrix }: { matrix: number[][] }) {
@@ -873,6 +931,7 @@ export default function Dashboard({
     activeWidgets,
     clientsActive,
     trafficSeries,
+    activeCallsSeries,
     heatmap,
     queueSummary,
     alertsRecent,
@@ -899,7 +958,7 @@ export default function Dashboard({
         }
 
         const interval = setInterval(() => {
-            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'kpis', 'clientsActive', 'trafficSeries', 'heatmap', 'queueSummary', 'alertsRecent', 'notificationsRecent'] });
+            router.reload({ only: ['prefixStats', 'destinationStats', 'accountStats', 'alertCounts', 'kpis', 'clientsActive', 'trafficSeries', 'activeCallsSeries', 'heatmap', 'queueSummary', 'alertsRecent', 'notificationsRecent'] });
         }, autoRefreshInterval);
 
         return () => clearInterval(interval);
@@ -1077,11 +1136,21 @@ export default function Dashboard({
                     <div className="grid gap-4 md:grid-cols-2 min-[1800px]:grid-cols-4">
 
                         {isOn('traffic') && (
-                            <div className="md:col-span-2">
-                                <WidgetCard icon="📈" title="Tráfico de llamadas" tag={periodLabels[period]}>
-                                    <TrafficChart points={trafficSeries} period={period} />
-                                </WidgetCard>
-                            </div>
+                            <WidgetCard icon="📈" title="Tráfico de llamadas" tag={periodLabels[period]}>
+                                <TrafficChart points={trafficSeries} period={period} />
+                                <p className="mt-2 text-center text-[11px] text-gray-400 dark:text-gray-500">
+                                    Llamadas ya finalizadas y sincronizadas desde PortaOne.
+                                </p>
+                            </WidgetCard>
+                        )}
+
+                        {isOn('traffic') && (
+                            <WidgetCard icon="📶" title="Llamadas activas" tag={periodLabels[period]}>
+                                <ActiveCallsChart points={activeCallsSeries} period={period} />
+                                <p className="mt-2 text-center text-[11px] text-gray-400 dark:text-gray-500">
+                                    Llamadas en curso en cada momento, en tiempo real.
+                                </p>
+                            </WidgetCard>
                         )}
 
                         {isOn('heatmap') && (
