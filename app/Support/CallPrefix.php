@@ -13,10 +13,18 @@ class CallPrefix
      * Con 6 dígitos o más se trata como número real; con 5 o menos, como
      * extensión/llamada interna: se devuelve null para que no cuente en
      * ningún prefijo ni dispare reglas de monitoreo.
+     *
+     * Para una llamada interna, PortaOne a veces devuelve el destino con una
+     * etiqueta entre paréntesis repitiendo el número (ej. "2000 (2000)"), no
+     * solo el número. Quitar TODOS los caracteres no numéricos del string
+     * completo concatenaría ambas apariciones ("20002000", 8 dígitos) y lo
+     * haría pasar por número real; por eso solo se toma el primer bloque de
+     * dígitos, ignorando cualquier cosa después de un espacio o paréntesis.
      */
     public static function forDestination(string $destination): ?string
     {
-        $normalized = preg_replace('/\D/', '', $destination);
+        preg_match('/^\D*(\d+)/', $destination, $matches);
+        $normalized = $matches[1] ?? '';
 
         if ($normalized === '' || strlen($normalized) <= 5) {
             return null;
