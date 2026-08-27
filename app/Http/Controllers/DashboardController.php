@@ -174,7 +174,9 @@ class DashboardController extends Controller
     {
         return [
             'id' => $event->id,
+            'clientId' => $event->client_id,
             'occurredAt' => $event->occurred_at->toIso8601String(),
+            'updatedAt' => $event->updated_at->toIso8601String(),
             'clientName' => $isAdmin ? $clientNames?->get($event->client_id) : null,
             'account' => $event->context['account'] ?? null,
             'customer' => $event->context['customer'] ?? null,

@@ -118,22 +118,25 @@ class EvaluateMonitoringRules extends Command
 
         $callsByClient = $recentCalls->concat($activeCalls)->groupBy('client_id');
 
+        // Por cuenta (no solo la lista de cuentas ya alertadas): así
+        // evaluateRule() puede actualizar la fila existente en vez de solo
+        // omitirla, para que el tráfico que sigue disparando la alerta se
+        // refleje (calls/seconds al día, updated_at más reciente) sin crear
+        // una fila nueva ni re-notificar por Telegram/email cada 5 minutos.
         $existingAlerts = MonitoringRuleEvent::query()
             ->whereIn('monitoring_rule_id', $rules->pluck('id'))
             ->where('occurred_at', '>=', now()->startOfHour())
-            ->get(['monitoring_rule_id', 'client_id', 'context'])
+            ->get()
             ->groupBy(fn (MonitoringRuleEvent $event) => $event->monitoring_rule_id.'|'.$event->client_id)
-            ->map(fn (Collection $events) => $events
-                ->map(fn (MonitoringRuleEvent $event) => (string) ($event->context['account'] ?? ''))
-                ->all());
+            ->map(fn (Collection $events) => $events->keyBy(fn (MonitoringRuleEvent $event) => (string) ($event->context['account'] ?? '')));
 
         $created = 0;
 
         foreach ($pairs as [$rule, $effectiveClientId]) {
             $clientCalls = $callsByClient->get($effectiveClientId, collect());
-            $alreadyAlerted = $existingAlerts->get($rule->id.'|'.$effectiveClientId, []);
+            $existingByAccount = $existingAlerts->get($rule->id.'|'.$effectiveClientId, collect());
 
-            $created += $this->evaluateRule($rule, $effectiveClientId, $clientCalls, $alreadyAlerted);
+            $created += $this->evaluateRule($rule, $effectiveClientId, $clientCalls, $existingByAccount);
         }
 
         MonitoringRule::query()->whereIn('id', $rules->pluck('id'))->update(['last_evaluated_at' => now()]);
@@ -157,9 +160,9 @@ class EvaluateMonitoringRules extends Command
      * closures de abajo no se tipa a CallRecord.
      *
      * @param  Collection<int, object>  $clientCalls
-     * @param  array<int, string>  $alreadyAlerted
+     * @param  Collection<string, MonitoringRuleEvent>  $existingByAccount  Evento ya creado esta hora para esta regla+cliente, indexado por cuenta.
      */
-    private function evaluateRule(MonitoringRule $rule, int $effectiveClientId, Collection $clientCalls, array $alreadyAlerted): int
+    private function evaluateRule(MonitoringRule $rule, int $effectiveClientId, Collection $clientCalls, Collection $existingByAccount): int
     {
         $matching = $clientCalls->filter(function (object $call) use ($rule) {
             if ($rule->account !== null && $call->account !== $rule->account) {
@@ -204,16 +207,12 @@ class EvaluateMonitoringRules extends Command
             $first = $group->first();
             $accountKey = $first->account ?? '';
 
-            if (in_array($accountKey, $alreadyAlerted, true)) {
-                continue;
-            }
-
             // No hay una sola llamada "la que disparó" la alerta (es un conteo
             // sobre una ventana), así que se muestra la última del grupo como
             // muestra representativa de origen/destino.
             $last = $group->last();
 
-            $event = $rule->recordAction('triggered', [
+            $context = [
                 'account' => $first->account,
                 'customer' => $first->customer,
                 'calls' => $calls,
@@ -223,7 +222,23 @@ class EvaluateMonitoringRules extends Command
                 'reason' => $callBreach && $durationBreach ? 'calls_and_duration' : ($callBreach ? 'calls' : 'duration'),
                 'origin' => $last->origin ?? null,
                 'destination' => $last->destination ?? null,
-            ], clientId: $effectiveClientId);
+            ];
+
+            $existingEvent = $existingByAccount->get($accountKey);
+
+            if ($existingEvent !== null) {
+                // Sigue rompiendo el límite dentro de la misma hora: se
+                // actualiza la fila existente (calls/seconds al día,
+                // updated_at más reciente para que el popup del NOC sepa que
+                // la alerta sigue viva) en vez de crear otra o re-notificar.
+                if ($existingEvent->context !== $context) {
+                    $existingEvent->update(['context' => $context]);
+                }
+
+                continue;
+            }
+
+            $event = $rule->recordAction('triggered', $context, clientId: $effectiveClientId);
 
             // Cola dedicada de alta prioridad: si esto cae en 'default' junto a los
             // cientos de jobs de SyncPortaOneCalls, una notificación puede quedar

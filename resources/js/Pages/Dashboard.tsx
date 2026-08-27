@@ -80,7 +80,9 @@ interface QueueSummary {
 
 interface AlertRecentItem {
     id: number;
+    clientId: number | null;
     occurredAt: string;
+    updatedAt: string;
     clientName: string | null;
     account: string | null;
     customer: string | null;
@@ -885,6 +887,102 @@ const ALERT_ROW_CLASS: Record<'block' | 'notify' | 'ignore' | 'none', string> = 
     none: 'hover:bg-gray-50 dark:hover:bg-gray-700',
 };
 
+interface PopupCallItem {
+    origin: string | null;
+    destination: string | null;
+    durationSeconds: number;
+    at: string;
+    active: boolean;
+}
+
+function LiveAlertPopup({ alert, baselineAt, timeZone, onClose }: { alert: AlertRecentItem; baselineAt: string | null; timeZone: string; onClose: () => void }) {
+    const [calls, setCalls] = useState<PopupCallItem[] | null>(null);
+
+    useEffect(() => {
+        setCalls(null);
+        axios.get(route('dashboard.alert-calls'), { params: { event_id: alert.id } })
+            .then((response) => setCalls(response.data.calls))
+            .catch(() => setCalls([]));
+    }, [alert.id, alert.updatedAt]);
+
+    const isBlock = alert.action === 'block';
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-6" role="alert">
+            <div className={`w-full max-w-4xl rounded-2xl border-4 p-8 text-white shadow-2xl ${isBlock ? 'border-red-500 bg-red-950/95' : 'border-amber-500 bg-amber-950/95'}`}>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-sm uppercase tracking-wide text-white/70">Alerta de prefijo</p>
+                        <h2 className="text-4xl font-bold">+{alert.prefix ?? '—'}</h2>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className={`rounded-full px-4 py-1.5 text-lg font-semibold ${isBlock ? 'bg-red-500 text-white' : 'bg-amber-400 text-amber-950'}`}>
+                            {ACTION_LABEL[alert.action]}
+                        </span>
+                        <button type="button" onClick={onClose} title="Cerrar" className="rounded-md p-1.5 text-white/70 hover:bg-white/10 hover:text-white">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-3 text-lg sm:grid-cols-3">
+                    {alert.clientName && (
+                        <div><span className="text-sm text-white/60">Cliente</span><p className="font-semibold">{alert.clientName}</p></div>
+                    )}
+                    <div><span className="text-sm text-white/60">Cuenta</span><p className="font-mono font-semibold">{alert.account ?? '—'}</p></div>
+                    <div><span className="text-sm text-white/60">Customer</span><p className="font-semibold">{alert.customer ?? '—'}</p></div>
+                    <div>
+                        <span className="text-sm text-white/60">Llamadas</span>
+                        <p className="font-semibold">{alert.calls ?? '—'}{alert.callLimit !== null ? ` / límite ${alert.callLimit}` : ''}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm text-white/60">Segundos</span>
+                        <p className="font-semibold">{alert.seconds ?? '—'}{alert.durationLimitSeconds !== null ? ` / límite ${alert.durationLimitSeconds}` : ''}</p>
+                    </div>
+                    <div><span className="text-sm text-white/60">Regla</span><p className="font-semibold">{alert.ruleLabel ?? '—'}</p></div>
+                </div>
+
+                <div className="mt-6">
+                    <p className="mb-2 text-sm uppercase tracking-wide text-white/60">Llamadas recientes de esta cuenta</p>
+                    <div className="max-h-64 overflow-y-auto rounded-lg border border-white/10">
+                        <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-black/40 text-left text-xs uppercase text-white/50">
+                                <tr>
+                                    <th className="px-3 py-2">Hora</th>
+                                    <th className="px-3 py-2">Origen</th>
+                                    <th className="px-3 py-2">Destino</th>
+                                    <th className="px-3 py-2 text-right">Segundos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {calls === null ? (
+                                    <tr><td colSpan={4} className="px-3 py-4 text-center text-white/50">Cargando…</td></tr>
+                                ) : calls.length === 0 ? (
+                                    <tr><td colSpan={4} className="px-3 py-4 text-center text-white/50">Sin llamadas registradas.</td></tr>
+                                ) : calls.map((call, index) => {
+                                    const isNew = baselineAt !== null && call.at > baselineAt;
+
+                                    return (
+                                        <tr key={index} className={isNew ? 'bg-emerald-500/30' : ''}>
+                                            <td className="px-3 py-1.5 font-mono">{formatDateTime(call.at, timeZone, { timeStyle: 'medium' })}</td>
+                                            <td className="px-3 py-1.5 font-mono">{call.origin ?? '—'}</td>
+                                            <td className="px-3 py-1.5 font-mono">
+                                                {call.destination ?? '—'}
+                                                {call.active && <span className="ml-1 text-emerald-300" title="Llamada activa">●</span>}
+                                            </td>
+                                            <td className="px-3 py-1.5 text-right font-mono">{call.durationSeconds}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function AlertDetailModal({ alert, timeZone, onClose }: { alert: AlertRecentItem; timeZone: string; onClose: () => void }) {
     const [decision, setDecision] = useState<'cleared' | 'maintained'>('maintained');
     const [notes, setNotes] = useState('');
@@ -1090,23 +1188,46 @@ export default function Dashboard({
 
     useEffect(() => setActive(new Set(activeWidgets)), [activeWidgets]);
 
-    // Suena cuando aparece una alerta más nueva que la última vista (no en la
-    // carga inicial de la página, solo en refrescos posteriores), sin
-    // importar si la notificación por Telegram/email ya se envió o no —
-    // pensado para una pantalla de monitoreo (NOC) siempre abierta.
-    const lastAlertIdRef = useRef<number | null>(null);
+    // Suena y muestra el popup grande cuando aparece una alerta más nueva que
+    // la última vista, O cuando la misma alerta se actualiza porque sigue
+    // rompiendo el límite (updatedAt más reciente) — no en la carga inicial
+    // de la página, solo en refrescos posteriores. No depende de si la
+    // notificación por Telegram/email ya se envió: pensado para una pantalla
+    // de monitoreo (NOC) siempre abierta.
+    const lastAlertSignatureRef = useRef<{ id: number; updatedAt: string } | null>(null);
     const alertSoundReadyRef = useRef(false);
+    const [popupAlert, setPopupAlert] = useState<{ alert: AlertRecentItem; baselineAt: string | null } | null>(null);
+    const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        const topId = alertsRecent[0]?.id ?? null;
+        const top = alertsRecent[0];
+        const previous = lastAlertSignatureRef.current;
 
-        if (alertSoundReadyRef.current && topId !== null && (lastAlertIdRef.current === null || topId > lastAlertIdRef.current) && alertSound && isAlertSoundKey(alertSound)) {
-            playAlertSound(alertSound);
+        if (alertSoundReadyRef.current && top && (previous === null || previous.id !== top.id || previous.updatedAt !== top.updatedAt)) {
+            const isSameAlertUpdated = previous !== null && previous.id === top.id;
+
+            if (alertSound && isAlertSoundKey(alertSound)) {
+                playAlertSound(alertSound);
+            }
+
+            setPopupAlert({ alert: top, baselineAt: isSameAlertUpdated ? previous.updatedAt : null });
+
+            if (popupTimeoutRef.current) {
+                clearTimeout(popupTimeoutRef.current);
+            }
+
+            popupTimeoutRef.current = setTimeout(() => setPopupAlert(null), 15_000);
         }
 
         alertSoundReadyRef.current = true;
-        lastAlertIdRef.current = topId ?? lastAlertIdRef.current;
+        lastAlertSignatureRef.current = top ? { id: top.id, updatedAt: top.updatedAt } : lastAlertSignatureRef.current;
     }, [alertsRecent, alertSound]);
+
+    useEffect(() => () => {
+        if (popupTimeoutRef.current) {
+            clearTimeout(popupTimeoutRef.current);
+        }
+    }, []);
 
     const handlePeriodChange = (newPeriod: string) => {
         router.get(route('dashboard'), { period: newPeriod }, { preserveState: true });
@@ -1526,6 +1647,19 @@ export default function Dashboard({
                     alert={viewingAlert}
                     timeZone={timeZone}
                     onClose={() => setViewingAlert(null)}
+                />
+            )}
+            {popupAlert && (
+                <LiveAlertPopup
+                    alert={popupAlert.alert}
+                    baselineAt={popupAlert.baselineAt}
+                    timeZone={timeZone}
+                    onClose={() => {
+                        if (popupTimeoutRef.current) {
+                            clearTimeout(popupTimeoutRef.current);
+                        }
+                        setPopupAlert(null);
+                    }}
                 />
             )}
         </AuthenticatedLayout>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\CallRecord;
 use App\Models\MonitoringRule;
+use App\Models\MonitoringRuleEvent;
+use App\Models\PortaoneActiveSession;
 use App\Models\User;
 use App\Support\DashboardWidgets;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +30,64 @@ class DashboardDetailController extends Controller
         $user->update(['dashboard_widgets' => $selected]);
 
         return response()->json(['activeWidgets' => DashboardWidgets::resolveActive($selected, $canSeeAdminWidgets)]);
+    }
+
+    /**
+     * Log de llamadas reales (terminadas + activas) detrás de una alerta,
+     * para el popup grande de NOC: no basta con el conteo agregado guardado
+     * en el contexto, hay que ver el tráfico en sí. "Nueva" (verde) la decide
+     * el navegador comparando contra la última vez que mostró el popup, no
+     * el servidor.
+     */
+    public function alertCalls(Request $request): JsonResponse
+    {
+        $event = MonitoringRuleEvent::query()->findOrFail($request->integer('event_id'));
+        $user = $request->user();
+
+        abort_unless($user->client_id === null || $user->client_id === $event->client_id, 403);
+
+        $account = $event->context['account'] ?? null;
+        abort_if($account === null, 404);
+
+        $since = now()->subHour();
+
+        $completed = CallRecord::query()
+            ->where('client_id', $event->client_id)
+            ->where('account', $account)
+            ->where('connected_at', '>=', $since)
+            ->orderByDesc('connected_at')
+            ->limit(25)
+            ->get(['origin', 'destination', 'duration_seconds', 'connected_at'])
+            ->map(fn (CallRecord $call) => [
+                'origin' => $call->origin,
+                'destination' => $call->destination,
+                'durationSeconds' => $call->duration_seconds,
+                'at' => $call->connected_at,
+                'active' => false,
+            ]);
+
+        $active = PortaoneActiveSession::query()
+            ->where('client_id', $event->client_id)
+            ->where('account_id', $account)
+            ->active()
+            ->orderByDesc('connect_time')
+            ->limit(25)
+            ->get(['cli', 'cld', 'duration_seconds', 'connect_time'])
+            ->map(fn (PortaoneActiveSession $session) => [
+                'origin' => $session->cli,
+                'destination' => $session->cld,
+                'durationSeconds' => $session->duration_seconds,
+                'at' => $session->connect_time,
+                'active' => true,
+            ]);
+
+        $calls = $completed->concat($active)
+            ->sortByDesc('at')
+            ->values()
+            ->take(25)
+            ->map(fn (array $call) => [...$call, 'at' => $call['at']?->toIso8601String()]);
+
+        return response()->json(['calls' => $calls]);
     }
 
     public function prefixHistory(Request $request): JsonResponse

@@ -40,6 +40,7 @@ Route::patch('/dashboard/widgets', [DashboardDetailController::class, 'updateWid
 Route::middleware(['auth', 'verified', 'not-read-only'])->prefix('dashboard')->name('dashboard.')->group(function () {
     Route::get('/prefix-history', [DashboardDetailController::class, 'prefixHistory'])->name('prefix-history');
     Route::get('/prefix-calls', [DashboardDetailController::class, 'prefixCalls'])->name('prefix-calls');
+    Route::get('/alert-calls', [DashboardDetailController::class, 'alertCalls'])->name('alert-calls');
     Route::get('/account-history', [DashboardDetailController::class, 'accountHistory'])->name('account-history');
     Route::get('/prefix-rule', [DashboardDetailController::class, 'prefixRule'])->name('prefix-rule');
     Route::post('/prefix-rule', [DashboardDetailController::class, 'updatePrefixRule'])->name('prefix-rule.update');
