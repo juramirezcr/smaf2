@@ -250,7 +250,7 @@ function HistoryChart({ buckets, loading }: { buckets: HistoryBucket[] | null; l
                 <span>Llamadas: <strong className="text-gray-900 dark:text-gray-100">{totalCalls}</strong></span>
                 <span>Segundos: <strong className="text-gray-900 dark:text-gray-100">{totalSeconds}</strong></span>
             </div>
-            <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
                 {[0, 0.25, 0.5, 0.75, 1].map((fraction) => {
                     const y = height - paddingBottom - fraction * plotHeight;
 
@@ -601,7 +601,7 @@ function TrafficChart({ points, period }: { points: TrafficPoint[]; period: stri
     const timeLabelEvery = Math.max(1, Math.ceil(coords.length / 8));
 
     return (
-        <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
             {[0, 0.5, 1].map((f) => {
                 const y = height - padBottom - f * plotH;
                 return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
@@ -653,7 +653,7 @@ function ActiveCallsChart({ points, period }: { points: ActiveCallsPoint[]; peri
     const timeLabelEvery = Math.max(1, Math.ceil(coords.length / 8));
 
     return (
-        <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
             {[0, 0.5, 1].map((f) => {
                 const y = height - padBottom - f * plotH;
                 return <line key={f} x1={padX} x2={width - padX} y1={y} y2={y} className="stroke-gray-100 dark:stroke-gray-700" strokeWidth={1} />;
