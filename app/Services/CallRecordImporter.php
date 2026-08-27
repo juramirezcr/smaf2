@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CallRecord;
 use App\Models\ImportBatch;
+use App\Support\CallPrefix;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -58,7 +59,7 @@ class CallRecordImporter
                         'customer' => trim($customer) ?: null,
                         'origin' => trim($origin) ?: null,
                         'destination' => trim($destination),
-                        'prefix' => $this->prefixFor(trim($destination)),
+                        'prefix' => CallPrefix::forDestination(trim($destination)),
                         'duration_seconds' => max(0, (int) $duration),
                         'connected_at' => $timestamp,
                     ],
@@ -71,22 +72,5 @@ class CallRecordImporter
         }
 
         return compact('total', 'processed', 'rejected');
-    }
-
-    private function prefixFor(string $destination): ?string
-    {
-        $normalized = preg_replace('/\D/', '', $destination);
-
-        if ($normalized === '') {
-            return null;
-        }
-
-        if (str_starts_with($normalized, '011')) {
-            $normalized = substr($normalized, 3);
-        }
-
-        return str_starts_with($normalized, '1')
-            ? substr($normalized, 0, 4)
-            : substr($normalized, 0, 3);
     }
 }

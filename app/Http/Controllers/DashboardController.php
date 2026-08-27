@@ -57,6 +57,7 @@ class DashboardController extends Controller
             'isAdmin' => $isAdmin,
             'prefixStats' => $this->groupedByClient(
                 (clone $baseQuery)
+                    ->whereNotNull('prefix')
                     ->selectRaw("client_id, prefix, {$bucketExpression} as bucket")
                     ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
                     ->groupBy('client_id', 'prefix', 'bucket')
@@ -70,6 +71,7 @@ class DashboardController extends Controller
             ),
             'destinationStats' => $this->topDestinations(
                 (clone $baseQuery)
+                    ->whereNotNull('prefix')
                     ->selectRaw("client_id, customer, prefix, destination, {$bucketExpression} as bucket")
                     ->selectRaw('count(*) as calls, coalesce(sum(duration_seconds), 0) as seconds')
                     ->groupBy('client_id', 'customer', 'prefix', 'destination', 'bucket')

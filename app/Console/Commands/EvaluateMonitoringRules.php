@@ -9,6 +9,7 @@ use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
 use App\Models\PortaoneActiveSession;
 use App\Services\AdminAlertNotifier;
+use App\Support\CallPrefix;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Throwable;
@@ -109,7 +110,7 @@ class EvaluateMonitoringRules extends Command
                 'client_id' => $session->client_id,
                 'account' => $session->account_id,
                 'customer' => $session->customer_name,
-                'prefix' => $this->prefixFor((string) $session->cld),
+                'prefix' => CallPrefix::forDestination((string) $session->cld),
                 'origin' => $session->cli,
                 'destination' => $session->cld,
                 'duration_seconds' => (int) ($session->duration_seconds ?? 0),
@@ -150,28 +151,6 @@ class EvaluateMonitoringRules extends Command
     }
 
     /**
-     * Mismo criterio que SyncPortaOneCalls/CallRecordImporter usan para
-     * poblar call_records.prefix, para que una llamada activa "cuente"
-     * exactamente para el mismo prefijo que contaría una vez completada.
-     */
-    private function prefixFor(string $destination): ?string
-    {
-        $normalized = preg_replace('/\D/', '', $destination);
-
-        if ($normalized === '') {
-            return null;
-        }
-
-        if (str_starts_with($normalized, '011')) {
-            $normalized = substr($normalized, 3);
-        }
-
-        return str_starts_with($normalized, '1')
-            ? substr($normalized, 0, 4)
-            : substr($normalized, 0, 3);
-    }
-
-    /**
      * $clientCalls mezcla filas de CallRecord (llamadas completadas) con
      * objetos genéricos equivalentes construidos a partir de
      * PortaoneActiveSession (llamadas en curso); por eso el parámetro de los
@@ -188,6 +167,14 @@ class EvaluateMonitoringRules extends Command
             }
 
             if ($rule->customer !== null && $call->customer !== $rule->customer) {
+                return false;
+            }
+
+            // Un destino de extensión interna (menos de 5 dígitos, ej. "2000")
+            // no es un número real en E.164; CallPrefix::forDestination() ya
+            // lo descarta devolviendo null, así que tampoco debe poder
+            // disparar una regla por coincidencia parcial de dígitos.
+            if (CallPrefix::forDestination((string) $call->destination) === null) {
                 return false;
             }
 

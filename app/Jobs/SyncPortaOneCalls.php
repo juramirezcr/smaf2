@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\PortaoneCustomer;
 use App\Models\ProcessRun;
 use App\Services\PortaOneClient;
+use App\Support\CallPrefix;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -123,7 +124,7 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
                                 'customer' => $this->customerName($client, $iCustomer),
                                 'origin' => $row['CLI'] ?? null,
                                 'destination' => $row['CLD'] ?? null,
-                                'prefix' => $this->prefixFor((string) ($row['CLD'] ?? '')),
+                                'prefix' => CallPrefix::forDestination((string) ($row['CLD'] ?? '')),
                                 'duration_seconds' => $duration,
                                 'charged_amount' => $row['charged_amount'] ?? null,
                                 'connected_at' => $connectTime,
@@ -190,23 +191,6 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
         }
 
         return $this->customerNameCache[$iCustomer];
-    }
-
-    private function prefixFor(string $destination): ?string
-    {
-        $normalized = preg_replace('/\D/', '', $destination);
-
-        if ($normalized === '') {
-            return null;
-        }
-
-        if (str_starts_with($normalized, '011')) {
-            $normalized = substr($normalized, 3);
-        }
-
-        return str_starts_with($normalized, '1')
-            ? substr($normalized, 0, 4)
-            : substr($normalized, 0, 3);
     }
 
     private function setContext(ProcessRun $run, string $section, array $values, bool $merge = false): void
