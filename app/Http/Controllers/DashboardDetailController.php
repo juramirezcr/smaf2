@@ -53,6 +53,34 @@ class DashboardDetailController extends Controller
         ]);
     }
 
+    public function prefixCalls(Request $request): JsonResponse
+    {
+        $clientId = $this->resolveClientId($request);
+        $prefix = $request->string('prefix')->trim()->value();
+        abort_if($prefix === '', 422, 'prefix es requerido.');
+
+        [$since] = $this->periodBuckets($request->string('period', '7d')->value());
+
+        $calls = CallRecord::query()
+            ->where('client_id', $clientId)
+            ->where('prefix', $prefix)
+            ->where('connected_at', '>=', $since)
+            ->orderByDesc('connected_at')
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (CallRecord $call) => [
+                'id' => $call->id,
+                'connectedAt' => $call->connected_at,
+                'account' => $call->account,
+                'customer' => $call->customer,
+                'origin' => $call->origin,
+                'destination' => $call->destination,
+                'durationSeconds' => $call->duration_seconds,
+            ]);
+
+        return response()->json($calls);
+    }
+
     public function accountHistory(Request $request): JsonResponse
     {
         $clientId = $this->resolveClientId($request);

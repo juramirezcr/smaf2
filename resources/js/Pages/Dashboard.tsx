@@ -275,6 +275,71 @@ function HistoryChart({ buckets, loading }: { buckets: HistoryBucket[] | null; l
     );
 }
 
+function PrefixCallsTable({ calls, loading, onPageChange }: { calls: PrefixCallsPage | null; loading: boolean; onPageChange: (page: number) => void }) {
+    const timeZone = useTimezone();
+
+    if (loading || calls === null) {
+        return <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Cargando llamadas...</p>;
+    }
+
+    if (calls.data.length === 0) {
+        return <p className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Sin llamadas registradas en este período.</p>;
+    }
+
+    return (
+        <div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-gray-400 dark:text-gray-500">
+                        <tr>
+                            <th className="py-1.5 text-left">Fecha</th>
+                            <th className="py-1.5 text-left">Cuenta</th>
+                            <th className="py-1.5 text-left">Customer</th>
+                            <th className="py-1.5 text-left">Origen</th>
+                            <th className="py-1.5 text-left">Destino</th>
+                            <th className="py-1.5 text-right">Segundos</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {calls.data.map((call) => (
+                            <tr key={call.id}>
+                                <td className="py-1.5 pr-2 text-gray-500 dark:text-gray-400">{formatDateTime(call.connectedAt, timeZone, { dateStyle: 'short', timeStyle: 'short' })}</td>
+                                <td className="py-1.5 pr-2 font-mono text-gray-700 dark:text-gray-300">{call.account ?? '—'}</td>
+                                <td className="py-1.5 pr-2 text-gray-700 dark:text-gray-300">{call.customer ?? '—'}</td>
+                                <td className="py-1.5 pr-2 font-mono text-gray-700 dark:text-gray-300">{call.origin ?? '—'}</td>
+                                <td className="py-1.5 pr-2 font-mono text-gray-700 dark:text-gray-300">{call.destination ?? '—'}</td>
+                                <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">{call.durationSeconds}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {calls.last_page > 1 && (
+                <div className="mt-3 flex items-center justify-between text-sm">
+                    <button
+                        type="button"
+                        disabled={calls.current_page <= 1}
+                        onClick={() => onPageChange(calls.current_page - 1)}
+                        className="rounded-md px-2 py-1 font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-40 disabled:hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    >
+                        ← Anterior
+                    </button>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">Página {calls.current_page} de {calls.last_page}</span>
+                    <button
+                        type="button"
+                        disabled={calls.current_page >= calls.last_page}
+                        onClick={() => onPageChange(calls.current_page + 1)}
+                        className="rounded-md px-2 py-1 font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-40 disabled:hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    >
+                        Siguiente →
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function PeriodSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
     return (
         <select
@@ -287,6 +352,23 @@ function PeriodSelect({ value, onChange }: { value: string; onChange: (value: st
             ))}
         </select>
     );
+}
+
+interface PrefixCallItem {
+    id: number;
+    connectedAt: string;
+    account: string | null;
+    customer: string | null;
+    origin: string | null;
+    destination: string | null;
+    durationSeconds: number;
+}
+
+interface PrefixCallsPage {
+    data: PrefixCallItem[];
+    current_page: number;
+    last_page: number;
+    total: number;
 }
 
 interface PrefixRuleData {
@@ -302,10 +384,14 @@ interface PrefixRuleData {
 }
 
 function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; prefix: string; onClose: () => void }) {
-    const [tab, setTab] = useState<'history' | 'config'>('history');
+    const [tab, setTab] = useState<'history' | 'calls' | 'config'>('history');
     const [period, setPeriod] = useState('1h');
     const [buckets, setBuckets] = useState<HistoryBucket[] | null>(null);
     const [loadingHistory, setLoadingHistory] = useState(false);
+
+    const [callsPage, setCallsPage] = useState(1);
+    const [calls, setCalls] = useState<PrefixCallsPage | null>(null);
+    const [loadingCalls, setLoadingCalls] = useState(false);
 
     const [loadingRule, setLoadingRule] = useState(false);
     const [rule, setRule] = useState<PrefixRuleData | null>(null);
@@ -323,6 +409,23 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
             .catch(() => setBuckets([]))
             .finally(() => setLoadingHistory(false));
     }, [clientId, prefix, period]);
+
+    // Al cambiar el período, la página 1 puede quedar vacía o dejar de tener
+    // sentido; se vuelve a la primera página en vez de arrastrar una página
+    // fuera de rango del período anterior.
+    useEffect(() => setCallsPage(1), [clientId, prefix, period]);
+
+    useEffect(() => {
+        if (tab !== 'calls') {
+            return;
+        }
+
+        setLoadingCalls(true);
+        axios.get(route('dashboard.prefix-calls'), { params: { client_id: clientId, prefix, period, page: callsPage } })
+            .then((response) => setCalls(response.data))
+            .catch(() => setCalls({ data: [], current_page: 1, last_page: 1, total: 0 }))
+            .finally(() => setLoadingCalls(false));
+    }, [clientId, prefix, period, callsPage, tab]);
 
     useEffect(() => {
         setLoadingRule(true);
@@ -389,6 +492,13 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
                     </button>
                     <button
                         type="button"
+                        onClick={() => setTab('calls')}
+                        className={`border-b-2 px-1 pb-2 text-sm font-medium ${tab === 'calls' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400'}`}
+                    >
+                        Llamadas
+                    </button>
+                    <button
+                        type="button"
                         onClick={() => setTab('config')}
                         className={`border-b-2 px-1 pb-2 text-sm font-medium ${tab === 'config' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400'}`}
                     >
@@ -402,6 +512,18 @@ function PrefixDetailModal({ clientId, prefix, onClose }: { clientId: number; pr
                             <PeriodSelect value={period} onChange={setPeriod} />
                         </div>
                         <HistoryChart buckets={buckets} loading={loadingHistory} />
+                    </div>
+                )}
+
+                {tab === 'calls' && (
+                    <div className="mt-4">
+                        <div className="mb-3 flex items-center justify-between">
+                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                                {calls ? `${calls.total.toLocaleString('es-CR')} llamadas en este período` : ''}
+                            </span>
+                            <PeriodSelect value={period} onChange={setPeriod} />
+                        </div>
+                        <PrefixCallsTable calls={calls} loading={loadingCalls} onPageChange={setCallsPage} />
                     </div>
                 )}
 
