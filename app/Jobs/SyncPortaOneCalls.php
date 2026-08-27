@@ -142,7 +142,7 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
             // reciente que la ya guardada, para que un lote sin llamadas no la
             // pise con un valor desactualizado.
             if ($maxConnectTime !== null) {
-                $current = $client->fresh(['xdr_synced_until'])->xdr_synced_until;
+                $current = $client->refresh()->xdr_synced_until;
 
                 if ($current === null || $maxConnectTime->greaterThan($current)) {
                     $client->update(['xdr_synced_until' => $maxConnectTime]);
