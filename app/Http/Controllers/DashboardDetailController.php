@@ -21,12 +21,13 @@ class DashboardDetailController extends Controller
             'widgets.*' => ['string'],
         ]);
 
-        $allowed = DashboardWidgets::allowedKeys($user->isSystemAdmin());
+        $canSeeAdminWidgets = $user->isSystemAdmin() && ! $user->read_only;
+        $allowed = DashboardWidgets::allowedKeys($canSeeAdminWidgets);
         $selected = array_values(array_intersect($validated['widgets'], $allowed));
 
         $user->update(['dashboard_widgets' => $selected]);
 
-        return response()->json(['activeWidgets' => DashboardWidgets::resolveActive($selected, $user->isSystemAdmin())]);
+        return response()->json(['activeWidgets' => DashboardWidgets::resolveActive($selected, $canSeeAdminWidgets)]);
     }
 
     public function prefixHistory(Request $request): JsonResponse

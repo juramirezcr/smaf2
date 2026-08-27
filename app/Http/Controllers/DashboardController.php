@@ -21,6 +21,10 @@ class DashboardController extends Controller
         $user = auth()->user();
         $clientId = $user->client_id;
         $isAdmin = $clientId === null;
+        // Widgets marcados admin_only (ej. Intensidad por hora) son solo para
+        // administradores de sistema con acceso completo; los de solo lectura
+        // quedan fuera igual que cualquier usuario de cliente.
+        $canSeeAdminWidgets = $isAdmin && ! $user->read_only;
 
         $period = $request->input('period', '1h');
 
@@ -100,9 +104,9 @@ class DashboardController extends Controller
             ],
             'availableWidgets' => array_values(array_filter(
                 DashboardWidgets::catalog(),
-                fn (array $widget) => $isAdmin || ! $widget['adminOnly'],
+                fn (array $widget) => $canSeeAdminWidgets || ! $widget['adminOnly'],
             )),
-            'activeWidgets' => DashboardWidgets::resolveActive($user->dashboard_widgets, $isAdmin),
+            'activeWidgets' => DashboardWidgets::resolveActive($user->dashboard_widgets, $canSeeAdminWidgets),
             'clientsActive' => $isAdmin
                 ? (clone $baseQuery)
                     ->selectRaw('client_id')
