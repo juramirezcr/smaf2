@@ -230,7 +230,10 @@ class EvaluateMonitoringRules extends Command
                 'reason' => $callBreach && $durationBreach ? 'calls_and_duration' : ($callBreach ? 'calls' : 'duration'),
             ], clientId: $effectiveClientId);
 
-            SendAlertNotification::dispatch($event->id);
+            // Cola dedicada de alta prioridad: si esto cae en 'default' junto a los
+            // cientos de jobs de SyncPortaOneCalls, una notificación puede quedar
+            // esperando horas detrás del backlog aunque tarde milisegundos en correr.
+            SendAlertNotification::dispatch($event->id)->onQueue('notifications');
 
             $created++;
         }
