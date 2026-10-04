@@ -32,7 +32,7 @@ services:
     # Timeout de 900s: clientes con muchas cuentas hacen una llamada SOAP
     # secuencial por cuenta a PortaOne (get_xdr_list), y con 300s varios
     # terminaban en TimeoutExceededException tras agotar los 3 intentos.
-    command: php artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=900 --max-time=3600
+    command: php artisan queue:work --queue=notifications,default --sleep=3 --tries=3 --timeout=900 --max-time=3600
     env_file: .env
     depends_on:
       db:
@@ -50,7 +50,7 @@ services:
     build:
       context: .
       target: application
-    command: php artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=900 --max-time=3600
+    command: php artisan queue:work --queue=notifications,default --sleep=3 --tries=3 --timeout=900 --max-time=3600
     env_file: .env
     depends_on:
       db:
