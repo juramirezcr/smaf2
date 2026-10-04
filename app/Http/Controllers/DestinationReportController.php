@@ -105,7 +105,6 @@ class DestinationReportController extends Controller
             '6h' => now()->subHours(6),
             '24h' => now()->subDay(),
             '7d' => now()->subDays(7),
-            '30d' => now()->subDays(30),
             default => now()->subDay(),
         };
     }

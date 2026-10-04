@@ -207,7 +207,6 @@ const HISTORY_PERIOD_LABELS: Record<string, string> = {
     '6h': 'Últimas 6 horas',
     '24h': 'Últimas 24 horas',
     '7d': 'Últimos 7 días',
-    '30d': 'Último mes',
 };
 
 interface HistoryBucket {
@@ -701,7 +700,7 @@ function WidgetCard({ icon, title, tag, href, children }: { icon: string; title:
 }
 
 function formatAxisLabel(iso: string, timeZone: string, period: string): string {
-    return period === '7d' || period === '30d'
+    return period === '7d'
         ? formatDateTime(iso, timeZone, { day: 'numeric' })
         : formatDateTime(iso, timeZone, { hour: '2-digit', minute: '2-digit' });
 }

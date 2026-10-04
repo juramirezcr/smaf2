@@ -178,7 +178,6 @@ class PrefixRuleController extends Controller
         return [
             '24h' => 24,
             '7d' => 24 * 7,
-            '30d' => 24 * 30,
         ];
     }
 

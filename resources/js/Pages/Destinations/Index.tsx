@@ -37,7 +37,6 @@ const PERIOD_LABELS: Record<string, string> = {
     '6h': 'Últimas 6 horas',
     '24h': 'Último día',
     '7d': 'Últimos 7 días',
-    '30d': 'Último mes',
 };
 
 interface AccountGroup {

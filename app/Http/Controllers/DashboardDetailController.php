@@ -290,7 +290,6 @@ class DashboardDetailController extends Controller
             '6h' => [now()->subHours(6), 1800, 12],
             '24h' => [now()->subDay(), 3600, 24],
             '7d' => [now()->subDays(7), 86400, 7],
-            '30d' => [now()->subDays(30), 86400, 30],
             default => [now()->subDays(7), 86400, 7],
         };
     }

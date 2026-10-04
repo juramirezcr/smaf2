@@ -17,7 +17,7 @@ interface CallRecord {
 
 interface PrefixRuleShowProps {
     rule: PrefixRule;
-    period: '24h' | '7d' | '30d';
+    period: '24h' | '7d';
     summary: {
         callCount: number;
         durationSeconds: number;
@@ -28,7 +28,6 @@ interface PrefixRuleShowProps {
 const periods = [
     { value: '24h', label: '24 horas' },
     { value: '7d', label: '7 días' },
-    { value: '30d', label: '30 días' },
 ] as const;
 
 function formatDuration(seconds: number) {

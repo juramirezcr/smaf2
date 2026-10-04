@@ -90,3 +90,8 @@ Schedule::command('smaf:record-system-metrics')
     ->everyFiveMinutes()
     ->name('record-system-metrics')
     ->withoutOverlapping();
+
+Schedule::command('smaf:prune-old-data --days=7')
+    ->dailyAt('04:00')
+    ->name('prune-old-data')
+    ->withoutOverlapping();
