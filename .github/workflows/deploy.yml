@@ -48,7 +48,7 @@ jobs:
           git fetch --tags origin
           git checkout --detach "$revision"
           docker compose build
-          docker compose run --rm app php artisan migrate --pretend
+          docker compose run --rm app php artisan migrate --pretend --force
           docker compose up -d
           docker compose exec -T app php artisan migrate --force
 
