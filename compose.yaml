@@ -80,6 +80,26 @@ services:
     volumes:
       - app-storage:/var/www/html/storage
 
+  queue-xdr:
+    build:
+      context: .
+      target: application
+    # Worker dedicado a SyncPortaOneCalls (CDR): el sync horario de datos de
+    # PortaOne (SyncPortaOneData) ocupa los workers de "default" varios
+    # minutos y los CDR quedaban esperando detrás, dejando vacíos los widgets
+    # de tráfico/prefijos/destinos/cuentas. Timeout de 900s por la misma razón
+    # que el worker default (una llamada SOAP secuencial por cuenta).
+    command: php artisan queue:work --queue=xdr --sleep=1 --tries=3 --timeout=900 --max-time=3600
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - app-storage:/var/www/html/storage
+
   scheduler:
     build:
       context: .

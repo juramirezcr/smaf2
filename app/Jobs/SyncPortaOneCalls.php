@@ -54,6 +54,10 @@ class SyncPortaOneCalls implements ShouldQueue, ShouldBeUnique
         public readonly array $iAccounts,
         public readonly ?\DateTimeInterface $fromDate = null,
     ) {
+        // Cola propia (worker queue-xdr): el sync horario de SyncPortaOneData
+        // puede tardar varios minutos y, compartiendo la cola "default",
+        // retrasaba los CDR (el dashboard quedaba vacío hasta que terminaba).
+        $this->onQueue('xdr');
     }
 
     public function uniqueId(): string
