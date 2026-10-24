@@ -305,25 +305,65 @@ class PortaOneClient
         }
     }
 
+    /**
+     * Un SoapClient por servicio y por instancia. Antes se creaba uno nuevo en
+     * cada llamada con WSDL_CACHE_NONE, lo que descargaba el WSDL y Types.xsd
+     * (0.5-1 s cada vez) en cada página de cada cuenta: miles de descargas por
+     * sync, y cualquier hipo puntual del servidor web de PortaOne hacía fallar
+     * el lote completo. Ahora se descarga una vez por servicio; la caché en
+     * memoria vive lo que el worker (reiniciado cada hora por --max-time), así
+     * que un cambio de WSDL en PortaOne se recoge solo.
+     *
+     * @var array<string, SoapClient>
+     */
+    private array $soapClients = [];
+
+    private function soapClient(string $baseUrl, string $service): SoapClient
+    {
+        $key = "{$baseUrl}|{$service}";
+
+        if (isset($this->soapClients[$key])) {
+            return $this->soapClients[$key];
+        }
+
+        // connection_timeout de SoapClient solo cubre el establecimiento de la
+        // conexión TCP; sin un timeout de socket explícito, una respuesta lenta
+        // de PortaOne puede bloquear el worker de la cola por tiempo indefinido.
+        $options = [
+            'exceptions' => true,
+            'connection_timeout' => 10,
+            'cache_wsdl' => WSDL_CACHE_MEMORY,
+            'stream_context' => stream_context_create([
+                'ssl' => ['verify_peer' => false, 'verify_peer_name' => false],
+                'http' => ['timeout' => 30],
+            ]),
+        ];
+
+        try {
+            $client = new SoapClient("{$baseUrl}/wsdl/{$service}.wsdl", $options);
+        } catch (SoapFault) {
+            // La carga del WSDL falla de forma esporádica; un reintento corto
+            // evita perder el lote entero por un hipo puntual.
+            sleep(1);
+            $client = new SoapClient("{$baseUrl}/wsdl/{$service}.wsdl", $options);
+        }
+
+        return $this->soapClients[$key] = $client;
+    }
+
     private function call(string $baseUrl, string $service, string $method, array $params, ?string $sessionId = null): object
     {
         try {
-            // connection_timeout de SoapClient solo cubre el establecimiento de la
-            // conexión TCP; sin un timeout de socket explícito, una respuesta lenta
-            // de PortaOne puede bloquear el worker de la cola por tiempo indefinido.
-            $client = new SoapClient("{$baseUrl}/wsdl/{$service}.wsdl", [
-                'exceptions' => true,
-                'connection_timeout' => 10,
-                'cache_wsdl' => WSDL_CACHE_NONE,
-                'stream_context' => stream_context_create([
-                    'ssl' => ['verify_peer' => false, 'verify_peer_name' => false],
-                    'http' => ['timeout' => 30],
-                ]),
-            ]);
+            $client = $this->soapClient($baseUrl, $service);
 
+            // El cliente se reutiliza entre llamadas (login/logout comparten
+            // servicio), así que el header de sesión se fija siempre: con
+            // sesión o vacío, para que no quede el de una llamada anterior.
             if ($sessionId !== null) {
                 $authInfo = new SoapVar(['session_id' => $sessionId], SOAP_ENC_OBJECT);
                 $client->__setSoapHeaders(new SoapHeader(self::AUTH_NAMESPACE, 'auth_info', $authInfo));
+            } else {
+                $client->__setSoapHeaders(null);
             }
 
             return $client->__soapCall($method, [$params]);
