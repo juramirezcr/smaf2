@@ -8,6 +8,7 @@ use App\Models\CallRecord;
 use App\Models\Client;
 use App\Models\MonitoringRule;
 use App\Models\MonitoringRuleEvent;
+use App\Models\PortaoneAccount;
 use App\Models\PortaoneActiveSession;
 use App\Services\AdminAlertNotifier;
 use App\Support\CallPrefix;
@@ -18,6 +19,9 @@ use Throwable;
 class EvaluateMonitoringRules extends Command
 {
     protected $signature = 'smaf:evaluate-monitoring-rules';
+
+    /** @var array<string, true> clave "client_id|account_id" de cuentas ya bloqueadas en PortaOne */
+    private array $blockedAccounts = [];
 
     protected $description = 'Evalúa las reglas de prefijo y destino (globales y por cliente) contra las llamadas de la última hora más las llamadas activas en curso, y genera alertas cuando una cuenta supera los límites configurados.';
 
@@ -118,6 +122,16 @@ class EvaluateMonitoringRules extends Command
             ]);
 
         $callsByClient = $recentCalls->concat($activeCalls)->groupBy('client_id');
+
+        // Cuentas que ya están bloqueadas en PortaOne: no pueden llamar, así que
+        // las llamadas de la última hora que siguen en la ventana no deben
+        // generar otra alerta (sonido/popup) para algo que ya se resolvió.
+        $this->blockedAccounts = PortaoneAccount::query()
+            ->whereIn('client_id', $involvedClientIds)
+            ->where('blocked', 'Y')
+            ->get(['client_id', 'account_id'])
+            ->mapWithKeys(fn (PortaoneAccount $account) => [$account->client_id.'|'.$account->account_id => true])
+            ->all();
 
         // Por cuenta (no solo la lista de cuentas ya alertadas): así
         // evaluateRule() puede actualizar la fila existente en vez de solo
@@ -226,6 +240,16 @@ class EvaluateMonitoringRules extends Command
             ];
 
             $existingEvent = $existingByAccount->get($accountKey);
+
+            // Alerta ya atendida con el bloqueo: se deja tal cual (sin tocar
+            // updated_at) para que el NOC no vuelva a oír/ver la alerta.
+            if ($existingEvent !== null && $existingEvent->block_status === 'blocked') {
+                continue;
+            }
+
+            if ($existingEvent === null && $rule->action === 'block' && isset($this->blockedAccounts[$effectiveClientId.'|'.$accountKey])) {
+                continue;
+            }
 
             if ($existingEvent !== null) {
                 // Sigue rompiendo el límite dentro de la misma hora: se
