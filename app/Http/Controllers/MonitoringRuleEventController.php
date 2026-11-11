@@ -114,6 +114,11 @@ class MonitoringRuleEventController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        // "cleared" = falsa alarma: se desbloquea la cuenta en PortaOne.
+        if ($validated['decision'] === 'cleared' && in_array($alert->block_status, ['blocked', 'unblock_failed'], true)) {
+            \App\Jobs\ApplyAccountBlock::dispatch($alert->id, false)->onQueue('notifications');
+        }
+
         return back()->with('success', 'La alerta fue revisada.');
     }
 }

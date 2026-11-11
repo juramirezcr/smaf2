@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\ApplyAccountBlock;
 use App\Jobs\SendAlertNotification;
 use App\Models\CallRecord;
 use App\Models\Client;
@@ -244,6 +245,12 @@ class EvaluateMonitoringRules extends Command
             // cientos de jobs de SyncPortaOneCalls, una notificación puede quedar
             // esperando horas detrás del backlog aunque tarde milisegundos en correr.
             SendAlertNotification::dispatch($event->id)->onQueue('notifications');
+
+            // La acción "block" bloquea de verdad la cuenta en PortaOne; antes
+            // solo se etiquetaba la alerta como "Bloquear" sin ejecutar nada.
+            if ($rule->action === 'block') {
+                ApplyAccountBlock::dispatch($event->id)->onQueue('notifications');
+            }
 
             $created++;
         }

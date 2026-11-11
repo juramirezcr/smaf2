@@ -185,6 +185,23 @@ class PortaOneClient
         });
     }
 
+    /**
+     * Bloquea o desbloquea una cuenta (AccountAdminService::update_account,
+     * campo "blocked" = 'Y' | 'N'). Una cuenta bloqueada no puede hacer
+     * llamadas, que es lo que corta el consumo cuando se rompe un límite.
+     */
+    public function setAccountBlocked(int $iAccount, bool $blocked): void
+    {
+        $this->withSession(function (string $baseUrl, string $sessionId) use ($iAccount, $blocked) {
+            $this->call($baseUrl, 'AccountAdminService', 'update_account', [
+                'account_info' => [
+                    'i_account' => $iAccount,
+                    'blocked' => $blocked ? 'Y' : 'N',
+                ],
+            ], $sessionId);
+        });
+    }
+
     private function paginate(
         string $baseUrl,
         string $service,

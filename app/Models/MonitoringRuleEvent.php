@@ -20,6 +20,9 @@ class MonitoringRuleEvent extends Model
         'feedback_notes',
         'reviewed_by',
         'reviewed_at',
+        'block_status',
+        'block_error',
+        'blocked_at',
     ];
 
     protected function casts(): array
@@ -28,6 +31,7 @@ class MonitoringRuleEvent extends Model
             'context' => 'array',
             'occurred_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'blocked_at' => 'datetime',
         ];
     }
 
